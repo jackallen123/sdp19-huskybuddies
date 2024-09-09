@@ -1,1 +1,1 @@
-# sdp19-huskybuddies
+# SDP-19 HuskyBuddies
