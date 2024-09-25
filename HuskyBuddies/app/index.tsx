@@ -3,7 +3,13 @@ import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaVi
 import { MessageCircle, Users, Home, Calendar, Settings } from 'lucide-react-native';
 import { COLORS } from '../constants/Colors';
 
-const EventCard = ({ name, date, location }) => (
+type EventCardProps = {
+  name: string;
+  date: string;
+  location: string;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ name, date, location }) => (
   <View style={styles.eventCard}>
     <Text style={styles.eventName}>{name}</Text>
     <Text style={styles.eventDetails}>{date}</Text>
