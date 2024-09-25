@@ -20,7 +20,7 @@ Before making any changes, you need to clone the repository and set up the proje
 2. **Navigate to the Project Directory**
    - Once cloned, navigate into the project directory:
      ```bash
-     cd HuskyBuddies
+     cd sdp19-huskybuddies
      ```
 
 3. **Install Dependencies**
@@ -101,7 +101,7 @@ Follow these steps to contribute code:
      ```
    - All team members should pull the latest changes in their own branches after a merge.
 
-### 3. Additional Git Tips for Beginners
+### 3. Additional Git Tips
 
 - **Pull Often**: Regularly pull from `main` to avoid conflicts. It's easier to handle small updates rather than large conflicts.
   
