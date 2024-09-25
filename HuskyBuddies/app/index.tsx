@@ -41,34 +41,6 @@ export default function HomePage() {
           <Text style={styles.viewAllButtonText}>View All Events</Text>
         </TouchableOpacity>
       </ScrollView>
-      
-      {/* <View style={styles.navbar}>
-        <TouchableOpacity style={styles.navItem}>
-          <Link href="/messages">
-            <MessageCircle color={COLORS.UCONN_GREY} size={24} />
-          </Link>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Link href="/student-matching">
-            <Users color={COLORS.UCONN_GREY} size={24} />
-          </Link>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.homeIconContainer}>
-            <Home color={COLORS.UCONN_WHITE} size={28} />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Link href="/events">
-            <Calendar color={COLORS.UCONN_GREY} size={24} />
-          </Link>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Link href="/settings">
-            <Settings color={COLORS.UCONN_GREY} size={24} />
-          </Link>
-        </TouchableOpacity>
-      </View> */}
     </SafeAreaView>
   );
 }
@@ -137,27 +109,5 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_WHITE,
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  navbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: COLORS.UCONN_WHITE,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.UCONN_GREY,
-    paddingVertical: 8,
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  homeIconContainer: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    borderRadius: 30,
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -30,
   },
 });
