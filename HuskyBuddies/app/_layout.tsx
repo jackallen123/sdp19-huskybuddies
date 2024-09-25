@@ -6,6 +6,9 @@ import { COLORS } from '../constants/Colors';
 
 export default function RootLayout() {
   return (
+    /*
+      TODO: Make navbar icons "easier" to hit on mobile
+    */
     <Tabs
       screenOptions={{
         headerShown: false,
