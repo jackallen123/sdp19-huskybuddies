@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
-import { MessageCircle, Users, Home, Calendar, Settings } from 'lucide-react-native';
 import { COLORS } from '../constants/Colors';
 
 type EventCardProps = {
@@ -43,12 +42,16 @@ export default function HomePage() {
         </TouchableOpacity>
       </ScrollView>
       
-      <View style={styles.navbar}>
+      {/* <View style={styles.navbar}>
         <TouchableOpacity style={styles.navItem}>
-          <MessageCircle color={COLORS.UCONN_GREY} size={24} />
+          <Link href="/messages">
+            <MessageCircle color={COLORS.UCONN_GREY} size={24} />
+          </Link>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
-          <Users color={COLORS.UCONN_GREY} size={24} />
+          <Link href="/student-matching">
+            <Users color={COLORS.UCONN_GREY} size={24} />
+          </Link>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
           <View style={styles.homeIconContainer}>
@@ -56,12 +59,16 @@ export default function HomePage() {
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
-          <Calendar color={COLORS.UCONN_GREY} size={24} />
+          <Link href="/events">
+            <Calendar color={COLORS.UCONN_GREY} size={24} />
+          </Link>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
-          <Settings color={COLORS.UCONN_GREY} size={24} />
+          <Link href="/settings">
+            <Settings color={COLORS.UCONN_GREY} size={24} />
+          </Link>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </SafeAreaView>
   );
 }
