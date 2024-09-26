@@ -44,7 +44,7 @@ export default function HomePage() {
   const [academicModalVisible, setAcademicModalVisible] = useState(false);
   const [campusServicesModalVisible, setCampusServicesModalVisible] = useState(false);
 
-  /* Mock events data */
+  // Mock data for featured events
   const featuredEvents = [
     {
       id: 1,
@@ -66,7 +66,7 @@ export default function HomePage() {
     },
   ];
 
-  /* Mock study buddy data */
+  // Mock data for study buddies
   const studyBuddies = [
     {
       id: 1,
@@ -88,7 +88,7 @@ export default function HomePage() {
     },
   ];
 
-  /* Campus services links */
+  // Links for campus services
   const campusServices: ResourceItem[] = [
     { name: "Residential Life", url: "https://reslife.uconn.edu/" },
     { name: "Dining Services", url: "https://dining.uconn.edu/" },
@@ -97,7 +97,7 @@ export default function HomePage() {
     { name: "One Card Office", url: "https://onecard.uconn.edu/" },
   ];
 
-  /* Academic resources links */
+  // Links for academic resources
   const academicResources: ResourceItem[] = [
     { name: "Writing Center", url: "https://writingcenter.uconn.edu/" },
     { name: "Quantitative Learning Center", url: "https://qcenter.uconn.edu/" },
@@ -175,7 +175,7 @@ export default function HomePage() {
 
       <ScrollView contentContainerStyle={styles.content}>
 
-        { /* Find a Study Buddy Section */ }
+        {/* Find a Study Buddy Section */}
         <Text style={styles.sectionTitle}>Find a Study Buddy</Text>
         <ScrollView
           horizontal
@@ -195,7 +195,7 @@ export default function HomePage() {
           </Link>
         </View>
         
-        { /* Featured events section */ }
+        {/* Featured events section */}
         <Text style={styles.sectionTitle}>Featured Events</Text>
         <ScrollView
           horizontal
@@ -220,12 +220,18 @@ export default function HomePage() {
   );
 }
 
-/* Styling */
+// Styles
 const styles = StyleSheet.create({
+  // Container and general layout
   container: {
     flex: 1,
     backgroundColor: COLORS.UCONN_WHITE,
   },
+  content: {
+    padding: 16,
+  },
+
+  // Header styling
   header: {
     backgroundColor: COLORS.UCONN_NAVY,
     padding: 16,
@@ -249,9 +255,8 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'center',
   },
-  scrollViewResources: {
-    paddingVertical: 10,
-  },
+
+  // Modal styling
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -272,6 +277,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  scrollViewResources: {
+    paddingVertical: 10,
+  },
   resourceLink: {
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -283,6 +291,8 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_NAVY,
     textAlign: 'center',
   },
+
+  // Button styling
   closeButton: {
     marginTop: 20,
     padding: 12,
@@ -295,9 +305,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  content: {
-    padding: 16,
+  viewAllButtonWrapper: {
+    marginBottom: 16,
+    alignItems: 'center',
   },
+  viewAllButton: {
+    backgroundColor: COLORS.UCONN_NAVY,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  viewAllButtonText: {
+    color: COLORS.UCONN_WHITE,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Section styling
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -307,6 +332,8 @@ const styles = StyleSheet.create({
   fullWidthLink: {
     width: '100%',
   },
+
+  // Event styling
   eventScroll: {
     marginBottom: 16,
   },
@@ -337,22 +364,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.UCONN_GREY,
   },
-  viewAllButtonWrapper: {
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  viewAllButton: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  viewAllButtonText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+
+  // Study Buddy styling
   buddyScroll: {
     marginBottom: 16,
   },
