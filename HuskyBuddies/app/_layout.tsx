@@ -35,7 +35,7 @@ export default function RootLayout() {
       <Tabs.Screen
         name="student-matching/index"
         options={{
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: () => (
             <View style={styles.homeIconContainer}>
               <Users color={COLORS.UCONN_WHITE} size={28} />
             </View>
