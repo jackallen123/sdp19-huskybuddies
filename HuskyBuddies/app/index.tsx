@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal, Linking } from 'react-native';
 import { COLORS } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
@@ -105,18 +105,50 @@ export default function HomePage() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Academic Resources</Text>
-            <TouchableOpacity style={styles.resourceLink}>
-              <Text style={styles.resourceLinkText}>Writing Center</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.resourceLink}>
-              <Text style={styles.resourceLinkText}>Q Center</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.resourceLink}>
-              <Text style={styles.resourceLinkText}>Library</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.resourceLink}>
-              <Text style={styles.resourceLinkText}>Academic Achievement Center</Text>
-            </TouchableOpacity>
+            <ScrollView contentContainerStyle={styles.scrollViewResources}>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://writingcenter.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Writing Center</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://qcenter.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Quantitative Learning Center</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://advising.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Undergraduate Advising</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://isss.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>International Student Services</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://cap.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Center for Academic Programs</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://ece.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Institute for Student Success</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://iss.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Early College Experience</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://summerwinter.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Summer/Winter Sessions</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://lib.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>UConn Library</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://registrar.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Office of the Registrar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://uconn.bncollege.com/shop/uconn/home')}>
+                <Text style={styles.resourceLinkText}>UConn Bookstore</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://registrar.uconn.edu/academic-calendar/')}>
+                <Text style={styles.resourceLinkText}>Academic Calendar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://catalog.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Undergraduate Course Catalog</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://graduatecatalog.uconn.edu/')}>
+                <Text style={styles.resourceLinkText}>Graduate Course Catalog</Text>
+              </TouchableOpacity>
+            </ScrollView>
             <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
@@ -200,6 +232,9 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'flex-end',
   },
+  scrollViewResources: {
+    paddingVertical: 10,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -210,6 +245,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_WHITE,
     borderRadius: 8,
     padding: 20,
+    height: '43%',
     width: '80%',
     alignItems: 'center',
   },
