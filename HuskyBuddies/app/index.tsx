@@ -10,7 +10,7 @@ type EventCardProps = {
   location: string;
 }
 
-/* Card for featured events */
+// Card for featured events
 const EventCard: React.FC<EventCardProps> = ({ name, date, location }) => (
   <View style={styles.eventCard}>
     <Text style={styles.eventName}>{name}</Text>
@@ -25,7 +25,7 @@ type StudyBuddyCardProps = {
   profilePicture: string;
 }
 
-/* Card for study buddies */
+// Card for study buddies
 const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, profilePicture }) => (
   <View style={styles.studyBuddyCard}>
     <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
@@ -34,8 +34,15 @@ const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, pr
   </View>
 );
 
+// Interface to store resource items
+interface ResourceItem {
+  name: string;
+  url: string;
+}
+
 export default function HomePage() {
-  const [modalVisible, setModalVisible] = useState(false);
+  const [academicModalVisible, setAcademicModalVisible] = useState(false);
+  const [campusServicesModalVisible, setCampusServicesModalVisible] = useState(false);
 
   /* Mock events data */
   const featuredEvents = [
@@ -81,80 +88,90 @@ export default function HomePage() {
     },
   ];
 
+  /* Campus services links */
+  const campusServices: ResourceItem[] = [
+    { name: "Residential Life", url: "https://reslife.uconn.edu/" },
+    { name: "Dining Services", url: "https://dining.uconn.edu/" },
+    { name: "Campus Map", url: "https://maps.uconn.edu/" },
+    { name: "Transportation", url: "https://transpo.uconn.edu/" },
+    { name: "One Card Office", url: "https://onecard.uconn.edu/" },
+  ];
+
+  /* Academic resources links */
+  const academicResources: ResourceItem[] = [
+    { name: "Writing Center", url: "https://writingcenter.uconn.edu/" },
+    { name: "Quantitative Learning Center", url: "https://qcenter.uconn.edu/" },
+    { name: "Undergraduate Advising", url: "http://advising.uconn.edu/" },
+    { name: "International Student Services", url: "https://isss.uconn.edu/" },
+    { name: "Center for Academic Programs", url: "http://cap.uconn.edu/" },
+    { name: "Institute for Student Success", url: "http://ece.uconn.edu/" },
+    { name: "Early College Experience", url: "https://iss.uconn.edu/" },
+    { name: "Summer/Winter Sessions", url: "http://summerwinter.uconn.edu/" },
+    { name: "UConn Library", url: "https://lib.uconn.edu/" },
+    { name: "Office of the Registrar", url: "http://registrar.uconn.edu/" },
+    { name: "UConn Bookstore", url: "https://uconn.bncollege.com/shop/uconn/home" },
+    { name: "Academic Calendar", url: "http://registrar.uconn.edu/academic-calendar/" },
+    { name: "Undergraduate Course Catalog", url: "http://catalog.uconn.edu/" },
+    { name: "Graduate Course Catalog", url: "http://graduatecatalog.uconn.edu/" },
+  ];
+
+  // To render modal for academic resources and campus services
+  const renderModal = (
+    title: string,
+    data: ResourceItem[],
+    isVisible: boolean,
+    setIsVisible: React.Dispatch<React.SetStateAction<boolean>>
+  ): JSX.Element => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={() => setIsVisible(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>{title}</Text>
+          <ScrollView contentContainerStyle={styles.scrollViewResources}>
+            {data.map((item: ResourceItem, index: number) => (
+              <TouchableOpacity 
+                key={index}
+                style={styles.resourceLink} 
+                onPress={() => Linking.openURL(item.url)}
+              >
+                <Text style={styles.resourceLinkText}>{item.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity onPress={() => setIsVisible(false)} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeftPlaceholder} />
+        {/* Campus Services icon */}
+        <TouchableOpacity onPress={() => setCampusServicesModalVisible(true)} style={styles.iconContainer}>
+          <Ionicons name="business-outline" size={24} color={COLORS.UCONN_WHITE} />
+        </TouchableOpacity>
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerText}>Husky Buddies</Text>
         </View>
         {/* Academic Resources icon */}
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.iconContainer}>
+        <TouchableOpacity onPress={() => setAcademicModalVisible(true)} style={styles.iconContainer}>
           <Ionicons name="book-outline" size={24} color={COLORS.UCONN_WHITE} />
         </TouchableOpacity>
       </View>
 
+      {/* Campus Services Modal */}
+      {renderModal("Campus Services", campusServices, campusServicesModalVisible, setCampusServicesModalVisible)}
+
       {/* Academic Resources Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Academic Resources</Text>
-            <ScrollView contentContainerStyle={styles.scrollViewResources}>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://writingcenter.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Writing Center</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://qcenter.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Quantitative Learning Center</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://advising.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Undergraduate Advising</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://isss.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>International Student Services</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://cap.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Center for Academic Programs</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://ece.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Institute for Student Success</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://iss.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Early College Experience</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://summerwinter.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Summer/Winter Sessions</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://lib.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>UConn Library</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://registrar.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Office of the Registrar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('https://uconn.bncollege.com/shop/uconn/home')}>
-                <Text style={styles.resourceLinkText}>UConn Bookstore</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://registrar.uconn.edu/academic-calendar/')}>
-                <Text style={styles.resourceLinkText}>Academic Calendar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://catalog.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Undergraduate Course Catalog</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.resourceLink} onPress={() => Linking.openURL('http://graduatecatalog.uconn.edu/')}>
-                <Text style={styles.resourceLinkText}>Graduate Course Catalog</Text>
-              </TouchableOpacity>
-            </ScrollView>
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {renderModal("Academic Resources", academicResources, academicModalVisible, setAcademicModalVisible)}
 
       <ScrollView contentContainerStyle={styles.content}>
 
@@ -230,7 +247,7 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     width: 40,
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   scrollViewResources: {
     paddingVertical: 10,
@@ -245,18 +262,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_WHITE,
     borderRadius: 8,
     padding: 20,
-    height: '43%',
     width: '80%',
-    alignItems: 'center',
+    height: '43%',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.UCONN_NAVY,
     marginBottom: 16,
+    textAlign: 'center',
   },
   resourceLink: {
-    padding: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.UCONN_GREY,
     width: '100%',
@@ -264,12 +281,14 @@ const styles = StyleSheet.create({
   resourceLinkText: {
     fontSize: 16,
     color: COLORS.UCONN_NAVY,
+    textAlign: 'center',
   },
   closeButton: {
     marginTop: 20,
     padding: 12,
     backgroundColor: COLORS.UCONN_NAVY,
     borderRadius: 8,
+    alignItems: 'center',
   },
   closeButtonText: {
     color: COLORS.UCONN_WHITE,
