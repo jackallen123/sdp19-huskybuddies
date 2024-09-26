@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal } from 'react-native';
 import { COLORS } from '../constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 
 type EventCardProps = {
@@ -34,8 +35,9 @@ const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, pr
 );
 
 export default function HomePage() {
-  /* Mock events data */
+  const [modalVisible, setModalVisible] = useState(false);
 
+  /* Mock events data */
   const featuredEvents = [
     {
       id: 1,
@@ -58,7 +60,6 @@ export default function HomePage() {
   ];
 
   /* Mock study buddy data */
-
   const studyBuddies = [
     {
       id: 1,
@@ -82,10 +83,46 @@ export default function HomePage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */ }
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Husky Buddies</Text>
+        <View style={styles.headerLeftPlaceholder} />
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerText}>Husky Buddies</Text>
+        </View>
+        {/* Academic Resources icon */}
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.iconContainer}>
+          <Ionicons name="book-outline" size={24} color={COLORS.UCONN_WHITE} />
+        </TouchableOpacity>
       </View>
+
+      {/* Academic Resources Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Academic Resources</Text>
+            <TouchableOpacity style={styles.resourceLink}>
+              <Text style={styles.resourceLinkText}>Writing Center</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.resourceLink}>
+              <Text style={styles.resourceLinkText}>Q Center</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.resourceLink}>
+              <Text style={styles.resourceLinkText}>Library</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.resourceLink}>
+              <Text style={styles.resourceLinkText}>Academic Achievement Center</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView contentContainerStyle={styles.content}>
 
@@ -135,7 +172,6 @@ export default function HomePage() {
 }
 
 /* Styling */
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -144,11 +180,64 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.UCONN_NAVY,
     padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeftPlaceholder: {
+    width: 40,
+  },
+  headerTextContainer: {
+    flex: 1,
     alignItems: 'center',
   },
   headerText: {
     color: COLORS.UCONN_WHITE,
     fontSize: 20,
+    fontWeight: 'bold',
+  },
+  iconContainer: {
+    width: 40,
+    alignItems: 'flex-end',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: COLORS.UCONN_WHITE,
+    borderRadius: 8,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.UCONN_NAVY,
+    marginBottom: 16,
+  },
+  resourceLink: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.UCONN_GREY,
+    width: '100%',
+  },
+  resourceLinkText: {
+    fontSize: 16,
+    color: COLORS.UCONN_NAVY,
+  },
+  closeButton: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: COLORS.UCONN_NAVY,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: COLORS.UCONN_WHITE,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   content: {
