@@ -17,6 +17,14 @@ export default function RootLayout() {
       }}
     >
       <Tabs.Screen
+        name="index"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Home color={focused ? COLORS.UCONN_NAVY : COLORS.UCONN_GREY} size={24} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="messages/index"
         options={{
           tabBarIcon: ({ focused }) => (
@@ -28,16 +36,8 @@ export default function RootLayout() {
         name="student-matching/index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <Users color={focused ? COLORS.UCONN_NAVY : COLORS.UCONN_GREY} size={24} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
             <View style={styles.homeIconContainer}>
-              <Home color={COLORS.UCONN_WHITE} size={28} />
+              <Users color={COLORS.UCONN_WHITE} size={28} />
             </View>
           ),
         }}
