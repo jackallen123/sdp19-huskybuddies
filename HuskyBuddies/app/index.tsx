@@ -9,6 +9,7 @@ type EventCardProps = {
   location: string;
 }
 
+/* Card for featured events */
 const EventCard: React.FC<EventCardProps> = ({ name, date, location }) => (
   <View style={styles.eventCard}>
     <Text style={styles.eventName}>{name}</Text>
@@ -23,6 +24,7 @@ type StudyBuddyCardProps = {
   profilePicture: string;
 }
 
+/* Card for study buddies */
 const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, profilePicture }) => (
   <View style={styles.studyBuddyCard}>
     <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
@@ -32,6 +34,8 @@ const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, pr
 );
 
 export default function HomePage() {
+  /* Mock events data */
+
   const featuredEvents = [
     {
       id: 1,
@@ -52,6 +56,8 @@ export default function HomePage() {
       location: "Student Union",
     },
   ];
+
+  /* Mock study buddy data */
 
   const studyBuddies = [
     {
@@ -76,6 +82,7 @@ export default function HomePage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */ }
       <View style={styles.header}>
         <Text style={styles.headerText}>Husky Buddies</Text>
       </View>
@@ -126,6 +133,8 @@ export default function HomePage() {
     </SafeAreaView>
   );
 }
+
+/* Styling */
 
 const styles = StyleSheet.create({
   container: {
