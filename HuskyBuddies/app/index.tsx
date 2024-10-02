@@ -1,10 +1,15 @@
 /* Login/Signup Screen */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Input, Button } from 'react-native-elements';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/Colors';
+import { useRouter } from 'expo-router';
+
+// mock credentials
+const MOCK_EMAIL = 'admin@uconn.edu';
+const MOCK_PASSWORD = 'admin';
 
 // types for props for login and signup components
 type LoginProps = {
@@ -104,6 +109,7 @@ const Signup: React.FC<SignupProps> = ({ firstName, setFirstName, lastName, setL
 };
 
 export default function LoginSignup() {
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -112,8 +118,13 @@ export default function LoginSignup() {
 
   // login and signup handlers
   const handleLogin = () => {
-    // TODO: login logic
-    console.log('Logging in...', { email, password });
+    if (email === MOCK_EMAIL && password === MOCK_PASSWORD) {
+      // Successful login
+      router.replace('/screens');
+    } else {
+      // Incorrect credentials
+      Alert.alert('Login Failed', 'Invalid email or password');
+    }
   };
 
   const handleSignUp = () => {
