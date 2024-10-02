@@ -4,10 +4,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Input, Button } from 'react-native-elements';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const UCONN_NAVY = '#0E1E45';
-const UCONN_WHITE = '#FFFFFF';
-const UCONN_GREY = '#A7A9AC';
+import { COLORS } from '@/constants/Colors';
 
 // types for props for login and signup components
 type LoginProps = {
@@ -41,7 +38,7 @@ const Login: React.FC<LoginProps> = ({ email, setEmail, password, setPassword, h
         keyboardType="email-address"
         autoCapitalize="none"
         inputStyle={styles.input}
-        placeholderTextColor={UCONN_GREY}
+        placeholderTextColor={COLORS.UCONN_GREY}
       />
       <Input
         placeholder="Password"
@@ -49,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ email, setEmail, password, setPassword, h
         onChangeText={setPassword}
         secureTextEntry
         inputStyle={styles.input}
-        placeholderTextColor={UCONN_GREY}
+        placeholderTextColor={COLORS.UCONN_GREY}
       />
       <Button
         title="Log In"
@@ -70,14 +67,14 @@ const Signup: React.FC<SignupProps> = ({ firstName, setFirstName, lastName, setL
         value={firstName}
         onChangeText={setFirstName}
         inputStyle={styles.input}
-        placeholderTextColor={UCONN_GREY}
+        placeholderTextColor={COLORS.UCONN_GREY}
       />
       <Input
         placeholder="Last Name"
         value={lastName}
         onChangeText={setLastName}
         inputStyle={styles.input}
-        placeholderTextColor={UCONN_GREY}
+        placeholderTextColor={COLORS.UCONN_GREY}
       />
       <Input
         placeholder="UConn Email"
@@ -86,7 +83,7 @@ const Signup: React.FC<SignupProps> = ({ firstName, setFirstName, lastName, setL
         keyboardType="email-address"
         autoCapitalize="none"
         inputStyle={styles.input}
-        placeholderTextColor={UCONN_GREY}
+        placeholderTextColor={COLORS.UCONN_GREY}
       />
       <Input
         placeholder="Password"
@@ -94,7 +91,7 @@ const Signup: React.FC<SignupProps> = ({ firstName, setFirstName, lastName, setL
         onChangeText={setPassword}
         secureTextEntry
         inputStyle={styles.input}
-        placeholderTextColor={UCONN_GREY}
+        placeholderTextColor={COLORS.UCONN_GREY}
       />
       <Button
         title="Sign Up"
@@ -178,7 +175,7 @@ export default function LoginSignup() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: UCONN_NAVY,
+    backgroundColor: COLORS.UCONN_NAVY,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -191,21 +188,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: UCONN_WHITE,
+    color: COLORS.UCONN_WHITE,
     marginBottom: 30,
     textAlign: 'center',
   },
   input: {
-    color: UCONN_WHITE,
+    color: COLORS.UCONN_WHITE,
   },
   submitButton: {
-    backgroundColor: UCONN_WHITE,
+    backgroundColor: COLORS.UCONN_WHITE,
     borderRadius: 25,
     height: 50,
     marginTop: 20,
   },
   buttonTitle: {
-    color: UCONN_NAVY,
+    color: COLORS.UCONN_NAVY,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -214,7 +211,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleText: {
-    color: UCONN_WHITE,
+    color: COLORS.UCONN_WHITE,
     fontSize: 16,
   },
 });
