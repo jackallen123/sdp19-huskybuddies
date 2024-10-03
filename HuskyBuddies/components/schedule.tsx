@@ -29,7 +29,7 @@ const mockCourses: Course[] = [
   },
   {
     id: '2',
-    name: 'MATH 2002',
+    name: 'MATH 2002W',
     location: 'SCNC 201',
     section: '002',
     days: ['MON', 'WED', 'FRI'],
@@ -65,7 +65,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
   <View style={[styles.courseCard, { backgroundColor: course.color }]}>
     <Text style={styles.courseTime}>{course.startTime}</Text>
     <View style={styles.courseInfo}>
-      <Text style={styles.courseName}>{course.name}</Text>
+      <Text numberOfLines={1} style={styles.courseName}>{course.name}</Text>
       <Text style={styles.courseLocation}>{course.location}</Text>
       <Text style={styles.courseSection}>{course.section}</Text>
     </View>
@@ -128,15 +128,15 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
         </View>
       )}
       
-      <View style={styles.weekdaysHeader}>
-        {weekdays.map((day) => (
-          <Text key={day} style={styles.weekday}>
-            {day}
-          </Text>
-        ))}
-      </View>
-      
-      <View>
+      <View style={styles.scheduleWrapper}>
+        <View style={styles.weekdaysHeader}>
+          {weekdays.map((day) => (
+            <View key={day} style={styles.dayHeaderColumn}>
+              <Text style={styles.weekday}>{day}</Text>
+            </View>
+          ))}
+        </View>
+        
         <View style={styles.scheduleContainer}>
           {sortedCoursesByDay.map(({ day, courses }) => (
             <View key={day} style={styles.dayColumn}>
@@ -200,11 +200,17 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
   },
+  scheduleWrapper: {
+    flex: 1,
+  },
   weekdaysHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
     backgroundColor: COLORS.UCONN_NAVY,
+    paddingVertical: 16,
+  },
+  dayHeaderColumn: {
+    flex: 1,
+    alignItems: 'center',
   },
   weekday: {
     fontSize: 16,
@@ -213,18 +219,16 @@ const styles = StyleSheet.create({
   },
   scheduleContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 4,
+    flex: 1,
+    paddingHorizontal: 2,
+    paddingTop: 8,
   },
   dayColumn: {
-    width: '19%',
-  },
-  coursesContainer: {
     flex: 1,
-    padding: 16,
+    marginHorizontal: 1,
   },
   courseCard: {
-    padding: 8,
+    padding: 1,
     marginBottom: 8,
     borderRadius: 8,
     alignItems: 'center',
@@ -234,20 +238,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   courseInfo: {
+    width: '100%',
     alignItems: 'center',
     marginVertical: 4,
   },
   courseName: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginTop: 8,
   },
   courseLocation: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: 'center',
   },
   courseSection: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: 'center',
+    marginBottom: 8,
   },
 });
