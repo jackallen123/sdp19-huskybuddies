@@ -31,33 +31,24 @@ app.get('/courses/:courseId/sections', async (req, res) => {
       // fetch the course and retrieve only the sections
       const courseSections = await searchCourse(courseId, 'storrs', false, [SearchParts.SECTIONS]);
   
-      // simplifying structure for frontend consumption
-
-      /* TODO
-
-      Need the following:
-      - Term (semester)
-      - Section
-      - Location
-      - Instructor
-      - Schedule (meeting times)
-
-      */
-      const formattedSections = courseSections.sections.map(section => ({
-        sectionId: section.section,
-        meetingTimes: section.meetingTimes,
-        instructor: section.instructor,
-
+      // simplify the structure for frontend consumption
+      const formattedSections = courseSections.sections.map((section) => ({
+        term: section.term,                        
+        section: section.section,             
+        location: section.location.map(loc => loc.name), 
+        instructor: section.instructor,            
+        schedule: section.schedule,           
       }));
-      
+  
       res.status(200).json(formattedSections);
     } catch (error) {
       console.error(`Error fetching sections for course ${courseId}:`, error);
       res.status(500).json({ message: 'Error fetching course sections' });
     }
   });
+  
 
-// Starting the server
+// starting the server
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });
