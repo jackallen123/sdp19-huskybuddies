@@ -51,20 +51,23 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
+      <SafeAreaView edges={["left", "right"]} style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
           </TouchableOpacity>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerText}>Add Course</Text>
-          </View>
+          <Text style={styles.headerText}>Add Course</Text>
         </View>
       </SafeAreaView>
 
       <View style={styles.content}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={24} color="gray" style={styles.searchIcon} />
+          <Ionicons
+            name="search"
+            size={24}
+            color="gray"
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for a course"
@@ -72,7 +75,7 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
             onChangeText={setSearchQuery}
           />
         </View>
-        
+
         {loading ? (
           <View style={styles.centerContent}>
             <Text>Loading courses...</Text>
@@ -111,9 +114,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_NAVY,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 16,
+    position: 'relative',
   },
   backButton: {
+    position: 'absolute', 
+    left: 16,
     padding: 8,
   },
   headerTextContainer: {
@@ -124,6 +131,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.UCONN_WHITE,
+    textAlign: 'center',
   },
   content: {
     flex: 1,

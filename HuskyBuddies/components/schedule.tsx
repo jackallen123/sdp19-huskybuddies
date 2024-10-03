@@ -236,6 +236,7 @@ const styles = StyleSheet.create({
   courseTime: {
     fontSize: 10,
     fontWeight: 'bold',
+    marginVertical: 4,
   },
   courseInfo: {
     width: '100%',
