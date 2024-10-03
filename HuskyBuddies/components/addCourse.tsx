@@ -3,13 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Alert } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { COLORS } from '@/constants/Colors';
 
 interface Course {
   name: string;
   catalogName: string;
 }
 
-export default function AddCourseScreen() {
+export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,10 +22,11 @@ export default function AddCourseScreen() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      console.log('Fetching courses')
-      const response = await axios.get('http://10.194.28.212:3000/courses');
-      console.log('Fetched courses:')
-      setCourses(response.data);
+      const response = await axios.get('http://192.168.1.29:3000/courses');
+      const courseNames = response.data.map((course: any) => ({
+        name: course.name
+      }));
+      setCourses(courseNames);
     } catch (error) {
       console.error('Error fetching courses:', error);
       Alert.alert('Error', 'Failed to fetch courses');
@@ -33,56 +35,67 @@ export default function AddCourseScreen() {
     }
   };
 
-  const filteredCourses = courses.filter((course) =>
-    course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.catalogName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const formatCourseName = (name: string) => {
+    // adds a space between letters and numbers
+    return name.replace(/([A-Za-z]+)(\d+)/, '$1 $2');
+  };
+
+  const filteredCourses = courses
+    .filter((course) =>
+      course.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .map(course => ({
+      ...course,
+      name: formatCourseName(course.name)
+    }));
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="black" />
-          <Text style={styles.backButtonText}>Schedule</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Add Course</Text>
-      </View>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={24} color="gray" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search for a course"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
-      {loading ? (
-        <View style={styles.centerContent}>
-          <Text>Loading courses...</Text>
+    <View style={styles.container}>
+      <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerText}>Add Course</Text>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={filteredCourses}
-          keyExtractor={(item, index) => `${item.name}-${index}`}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.courseItem}>
-              <View>
+      </SafeAreaView>
+
+      <View style={styles.content}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={24} color="gray" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a course"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        
+        {loading ? (
+          <View style={styles.centerContent}>
+            <Text>Loading courses...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredCourses}
+            keyExtractor={(item, index) => `${item.name}-${index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.courseItem}>
                 <Text style={styles.courseName}>{item.name}</Text>
-                <Text style={styles.catalogName}>{item.catalogName}</Text>
+                <Ionicons name="chevron-forward" size={24} color="black" />
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={() => (
+              <View style={styles.centerContent}>
+                <Text>No courses found</Text>
               </View>
-              <Ionicons name="chevron-forward" size={24} color="black" />
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={() => (
-            <View style={styles.centerContent}>
-              <Text>No courses found</Text>
-            </View>
-          )}
-        />
-      )}
-    </SafeAreaView>
+            )}
+          />
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -90,25 +103,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f0f0f0',
-    padding: 16,
+  },
+  safeArea: {
+    backgroundColor: COLORS.UCONN_NAVY,
   },
   header: {
+    backgroundColor: COLORS.UCONN_NAVY,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 16,
   },
   backButton: {
-    flexDirection: 'row',
+    padding: 8,
+  },
+  headerTextContainer: {
+    flex: 1,
     alignItems: 'center',
   },
-  backButtonText: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
   headerText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginLeft: 16,
+    color: COLORS.UCONN_WHITE,
+  },
+  content: {
+    flex: 1,
+    padding: 16,
   },
   searchContainer: {
     flexDirection: 'row',

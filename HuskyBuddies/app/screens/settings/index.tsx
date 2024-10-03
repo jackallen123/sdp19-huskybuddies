@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Button, Alert, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import Schedule from '@/components/schedule';
@@ -14,11 +14,13 @@ export default function SettingsPage() {
   return (
     <SafeAreaView style={styles.container}>
       {showSchedule ? (
-        <Schedule />
+        <Schedule onBack={() => setShowSchedule(false)} />
       ) : (
         <View>
           <View style={styles.header}>
-            <Text style={styles.headerText}>Settings</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerText}>Settings</Text>
+            </View>
           </View>
           <TouchableOpacity style={styles.card} onPress={handleNav}>
             <Text style={styles.cardText}>Manage Courses</Text>
