@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { COLORS } from '@/constants/Colors';
+import AddSection from './addSection';
 
 interface Course {
   name: string;
@@ -12,6 +13,7 @@ interface Course {
 
 export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAddingSection, setIsAddingSection] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +50,12 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
       ...course,
       name: formatCourseName(course.name)
     }));
+  
+  if (isAddingSection) {
+    return (
+      <AddSection onBack={() => setIsAddingSection(false)} />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -85,7 +93,10 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
             data={filteredCourses}
             keyExtractor={(item, index) => `${item.name}-${index}`}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.courseItem}>
+              <TouchableOpacity 
+                style={styles.courseItem}
+                onPress={() => setIsAddingSection(true)}
+                >
                 <Text style={styles.courseName}>{item.name}</Text>
                 <Ionicons name="chevron-forward" size={24} color="black" />
               </TouchableOpacity>
