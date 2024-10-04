@@ -52,7 +52,7 @@ export default function AddSection({ onBack }: { onBack: () => void }) {
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => {
-                //TODO: navigate back to schedule
+                //TODO: this will add courses to the schedule and redirect users to schedule
               }}
             >
               <Ionicons name="add-circle-outline" size={24} color="black" />
