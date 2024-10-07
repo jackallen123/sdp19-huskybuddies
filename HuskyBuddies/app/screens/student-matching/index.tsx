@@ -31,6 +31,33 @@ export default function MatchingPage() {
     setMatchedStudents(matches);
   };
 
+  // Adds a student from the list of matches to the user's buddy list.
+  const addBuddy = (studentId) => {
+    const studentToAdd = studentProfiles.find(s => s.id === studentId);
+    if (!buddyList.some(buddy => buddy.id === studentId)) {
+      setBuddyList([...buddyList, studentToAdd]);
+    }
+  };
+
+  const renderStudentCard = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.profileHeader}>
+        <Image source={{ uri: item.image }} style={styles.avatar} />
+        <Text style={styles.profileName}>{item.name}</Text>
+      </View>
+      <Text style={styles.classesText}>Shared Classes: {item.classes.filter(cls => studentProfiles[0].classes.includes(cls)).join(', ')}</Text>
+      <TouchableOpacity 
+        style={styles.matchButton} 
+        onPress={() => addBuddy(item.id)}
+        disabled={buddyList.some(buddy => buddy.id === item.id)}
+      >
+        <Text style={styles.matchButtonText}>
+          {buddyList.some(buddy => buddy.id === item.id) ? 'Matched' : 'Match'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Student Matching Page</Text>
@@ -44,6 +71,34 @@ export default function MatchingPage() {
             <Text>Classes: {studentProfiles[0].classes.join(', ')}</Text>
           </View>
         </View>
+      </View>
+
+      <TouchableOpacity style={styles.matchButton} onPress={findMatches}>
+        <Text style={styles.matchButtonText}>Find Matches</Text>
+      </TouchableOpacity>
+
+      <View style={styles.matchesSection}>
+        <Text style={styles.sectionHeader}>Your Matches</Text>
+        <FlatList
+          data={matchedStudents}
+          renderItem={renderStudentCard}
+          keyExtractor={item => item.id}
+          ListEmptyComponent={<Text>No matches found. Try finding matches!</Text>}
+        />
+      </View>
+
+      <View style={styles.buddyListSection}>
+        <Text style={styles.sectionHeader}>Your Buddy List</Text>
+        {buddyList.length > 0 ? (
+          buddyList.map((buddy) => (
+            <View key={buddy.id} style={styles.buddyItem}>
+              <Image source={{ uri: buddy.image }} style={styles.smallAvatar} />
+              <Text style={styles.buddyName}>{buddy.name}</Text>
+            </View>
+          ))
+        ) : (
+          <Text>You haven't matched with anyone yet.</Text>
+        )}
       </View>
 
     </ScrollView>
@@ -120,5 +175,34 @@ const styles = StyleSheet.create({
   },
   classesText: {
     marginBottom: 8,
+  },
+  matchButton: {
+    backgroundColor: '#4CAF50',
+    padding: 8,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  matchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  buddyListSection: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+  },
+  buddyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  smallAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 8,
+  },
+  buddyName: {
+    fontSize: 14,
   },
 });
