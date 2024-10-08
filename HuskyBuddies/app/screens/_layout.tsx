@@ -24,8 +24,10 @@ export default function ScreenLayout() {
       <Tabs.Screen
         name="messages/index"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <MessageCircle color={focused ? COLORS.UCONN_NAVY : COLORS.UCONN_GREY} size={24} />
+          tabBarIcon: () => (
+            <View style={styles.messagesIconContainer}>
+              <MessageCircle color={COLORS.UCONN_WHITE} size={28} />
+            </View>
           ),
         }}
       />
@@ -71,6 +73,15 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   homeIconContainer: {
+    backgroundColor: COLORS.UCONN_NAVY,
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 30,
+  },
+  messagesIconContainer: {
     backgroundColor: COLORS.UCONN_NAVY,
     borderRadius: 30,
     width: 60,
