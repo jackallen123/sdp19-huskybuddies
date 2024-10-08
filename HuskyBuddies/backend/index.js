@@ -1,54 +1,63 @@
-const express = require('express');
-const { getMappingMatches, searchBySection, SearchParts, searchCourse } = require('@ilefa/husky');
+const axios = require('axios');
+const pdf = require('pdf-parse');
+const fs = require('fs');  
 
-const app = express();
-const port = 3000;
+// function to fetch and parse the PDF file
+async function fetchAndExtractCourses() {
+  try {
+    // fetch the PDF file using axios
+    const response = await axios.get('https://catalog.uconn.edu/pdf/UConn_2024_2025_Undergraduate_Catalog.pdf', {
+      responseType: 'arraybuffer',
+    });
+    const pdfBuffer = response.data;
 
-// endpoint to fetch courses
-app.get('/courses', async (req, res) => {
-    try {
-        // fetch courses from Husky static course mappings
-        const courses = getMappingMatches('name', () => true);
+    // extract text from the PDF using pdf-parse
+    const pdfData = await pdf(pdfBuffer, { pagerender: limitPages });
 
-        // simplify structure for frontend
-        const formattedCourses = courses.map(course =>({
-            name: course.name,
-            catalogName: course.catalogName,
-        }));
+    // process the extracted text and sort courses alphabetically
+    let courseNames = extractCourseNames(pdfData.text);
+    courseNames = courseNames.sort(); // Sorting course names alphabetically
 
-        res.status(200).json(formattedCourses);
-    } catch (error) {
-        console.error('Error fetching courses:', error);
-        res.status(500).json({ message: 'Error fetching courses' });
-    }
-});
+    // output the course names to a text file
+    fs.writeFileSync('extracted_courses.json', JSON.stringify(courseNames, null, 2), 'utf8');
+    console.log('Courses extracted and written to extracted_courses.json.');
 
-// endpoint to fetch sections for a specific course
-app.get('/courses/:courseId/sections', async (req, res) => {
-    try {
-      const { courseId } = req.params;
-  
-      // fetch the course and retrieve only the sections
-      const courseSections = await searchCourse(courseId, 'storrs', false, [SearchParts.SECTIONS]);
-  
-      // simplify the structure for frontend consumption
-      const formattedSections = courseSections.sections.map((section) => ({
-        term: section.term,                        
-        section: section.section,             
-        location: section.location.map(loc => loc.name), 
-        instructor: section.instructor,            
-        schedule: section.schedule,           
-      }));
-  
-      res.status(200).json(formattedSections);
-    } catch (error) {
-      console.error(`Error fetching sections for course ${courseId}:`, error);
-      res.status(500).json({ message: 'Error fetching course sections' });
-    }
+    return courseNames;
+  } catch (error) {
+    console.error('Error fetching or parsing the PDF:', error);
+    return [];
+  }
+}
+
+// function to limit the pages to start scraping from page 364
+function limitPages(pageData) {
+  if (pageData.pageIndex < 363) {
+    // ignore pages before 364
+    return '';
+  }
+  return pageData.getTextContent().then((textContent) => {
+    return textContent.items.map((item) => item.str).join(' ');
   });
-  
+}
 
-// starting the server
-app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
-});
+// function to extract course names from the raw PDF text
+function extractCourseNames(pdfText) {
+  const courseNames = [];
+
+  // regex to match course codes like "ACCT 2001"
+  const courseRegex = /([A-Z]{2,4}\s\d{4}[WEQ]?)\.\s{2}([^.]+)\.\s{2}/g;
+  let match;
+
+  while ((match = courseRegex.exec(pdfText)) !== null) {
+    const course = {
+      courseId: match[1].trim(),
+      courseName: match[2].trim(),
+    }
+    courseNames.push(course);
+  };
+
+  return courseNames;
+}
+
+// call the function
+fetchAndExtractCourses();
