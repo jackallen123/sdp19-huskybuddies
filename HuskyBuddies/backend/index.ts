@@ -1,182 +1,181 @@
-// const axios = require('axios');
-// const pdf = require('pdf-parse');
-// const fs = require('fs');  
-
-// // function to fetch and parse the PDF file
-// async function fetchAndExtractCourses() {
-//   try {
-//     // fetch the PDF file using axios
-//     const response = await axios.get('https://catalog.uconn.edu/pdf/UConn_2024_2025_Undergraduate_Catalog.pdf', {
-//       responseType: 'arraybuffer',
-//     });
-//     const pdfBuffer = response.data;
-
-//     // extract text from the PDF using pdf-parse
-//     const pdfData = await pdf(pdfBuffer, { pagerender: limitPages });
-
-//     // process the extracted text and sort courses alphabetically
-//     let courseNames = extractCourseNames(pdfData.text);
-//     courseNames = courseNames.sort(); // Sorting course names alphabetically
-
-//     // output the course names to a text file
-//     fs.writeFileSync('extracted_courses.json', JSON.stringify(courseNames, null, 2), 'utf8');
-//     console.log('Courses extracted and written to extracted_courses.json.');
-
-//     return courseNames;
-//   } catch (error) {
-//     console.error('Error fetching or parsing the PDF:', error);
-//     return [];
-//   }
-// }
-
-// // function to limit the pages to start scraping from page 364
-// function limitPages(pageData) {
-//   if (pageData.pageIndex < 363) {
-//     // ignore pages before 364
-//     return '';
-//   }
-//   return pageData.getTextContent().then((textContent) => {
-//     return textContent.items.map((item) => item.str).join(' ');
-//   });
-// }
-
-// // function to extract course names from the raw PDF text
-// function extractCourseNames(pdfText) {
-//   const courseNames = [];
-
-//   // regex to match course codes like "ACCT 2001"
-//   const courseRegex = /([A-Z]{2,4}\s\d{4}[WEQ]?)\.\s{2}([^.]+)\.\s{2}/g;
-//   let match;
-
-//   while ((match = courseRegex.exec(pdfText)) !== null) {
-//     const course = {
-//       courseId: match[1].trim(),
-//       courseName: match[2].trim(),
-//     }
-//     courseNames.push(course);
-//   };
-
-//   return courseNames;
-// }
-
-// // call the function
-// fetchAndExtractCourses();
-
 import axios from 'axios';
-import moment from 'moment';
-import cheerio from 'cheerio';
-import tableparse from 'cheerio-tableparser';
+import * as cheerio from 'cheerio';
+import fs from 'fs';
+import { setTimeout } from 'timers/promises';
 
-interface SectionInfo {
-    section: string;
-    instructor: string;
-    schedule: string;
-    term: string;
-    location: string[];
-    enrollment: {
-        current: string;
-        max: string;
-        full: boolean;
-    };
+const baseUrl = 'https://catalog.uconn.edu';
+
+// configure axios defaults
+const axiosInstance = axios.create({
+    timeout: 10000,
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+});
+
+// configure retries and batch sizes
+const MAX_RETRIES = 3;          // maximum retry attempts for failed requests
+const RETRY_DELAY = 100;        // initial delay between retries
+const BATCH_SIZE = 48;          // # subjects to process concurrently
+const BATCH_DELAY = 100;        // delay between processing batches
+
+
+/**
+ * retry function that attempts an operation multiple times
+ * @param operation - async operation to retry
+ * @param retries - number of remaining attempts
+ * @param delay - current delay before the next retry
+ * @returns promise resolving to the operation's result
+ * @throws original error if all retries are exhausted
+ */
+async function retryOperation<T>(
+    operation: () => Promise<T>,
+    retries = MAX_RETRIES,
+    delay = RETRY_DELAY
+): Promise<T> {
+    try {
+        return await operation();
+    } catch (error) {
+        if (retries > 0) {
+            // wait for specified delay before retrying
+            await setTimeout(delay);
+            // retry with one fewer attempt and longer delay
+            return retryOperation(operation, retries - 1, delay * 1.5);
+        }
+        throw error;
+    }
 }
 
 /**
- * Gets course information for a specific course at Storrs campus
- * @param identifier Course identifier (e.g., "CSE2050")
- * @returns Promise containing section information or null if course not found
+ * fetches and extracts subject links from undergraduate course catalog page
+ * @returns array of subject URL paths
  */
-export const getCourseInfo = async (identifier: string): Promise<SectionInfo[] | null> => {
-    // This regex tests if the identifier follows the pattern of letters followed by numbers
-    const COURSE_IDENTIFIER = /^[a-zA-Z]{2,4}[0-9]{4}(?:Q|E|W)*$/;  // Assuming this is the pattern from original code
-    
-    if (!COURSE_IDENTIFIER.test(identifier))
-        return null;
-    
-    let prefix = identifier.split(/[0-9]/)[0].toUpperCase();
-    let number = identifier.split(/[a-zA-Z]{2,4}/)[1];
+async function getSubjectLinks(): Promise<string[]> {
+    try {
+        const { data } = await retryOperation(() => 
+            axiosInstance.get(`${baseUrl}/undergraduate/courses/#coursetext`)
+        );
+        const $ = cheerio.load(data);
 
-    // NOTE: getCatalogUrl would need to be implemented or imported
-    // It should return the URL for the course catalog page
-    let target = getCatalogUrl(prefix, number);
-    
-    let res = await axios
-        .get(target)
-        .then(res => res.data)
-        .catch(_ => null);
+        // extract subject links and filter out anchor links
+        const subjectLinks = $('div.az_sitemap a')
+            .map((_, el) => $(el).attr('href'))
+            .get()
+            .filter(link => link && !link.startsWith('#'));
 
-    if (!res)
-        return null;
-
-    let $ = cheerio.load(res);
-    
-    tableparse($);
-    
-    let sections: SectionInfo[] = [];
-    let data: string[][] = ($('.tablesorter') as any).parsetable();
-    
-    if (!data[0]) return null;
-
-    let sectionCount = data[0].length - 1;
-
-    // Start from 1 to skip header row
-    for (let i = 1; i < sectionCount + 1; i++) {
-        let campus = data[2][i].replace(/&nbsp;/g, ' ').trim();
-        
-        // Only process Storrs campus sections
-        if (campus.toLowerCase() !== 'storrs')
-            continue;
-
-        let instructor = data[4][i]
-            .replace(/\&nbsp;/g, ' ')
-            .replace(/<br\s*\/*>/g, ' | ')
-            .split(' | ')
-            .map(ent => ent.split(', ').reverse().join(' '))
-            .join(' & ');
-
-        let section = data[5][i];
-        let schedule = data[7][i];
-        schedule = schedule.substring(0, schedule.length - 4);
-        
-        let location: string[] = [];
-        let locationData = data[8][i];
-        
-        // Parse location data
-        if (locationData?.includes('classrooms.uconn.edu')) {
-            let locationEl = cheerio.load(locationData);
-            locationEl('a').each((_, el) => {
-                location.push($(el).text());
-            });
-        } else {
-            location.push(locationData);
-        }
-
-        let enrollment = data[9][i];
-        let spaces = enrollment.split('<')[0];
-        let current = spaces.split('/')[0];
-        let seats = spaces.split('/')[1];
-
-        sections.push({
-            section,
-            instructor,
-            schedule,
-            term: data[1][i],
-            location,
-            enrollment: {
-                current,
-                max: seats,
-                full: parseInt(current) >= parseInt(seats)
-            }
-        });
+        return subjectLinks;
+    } catch (error) {
+        console.error('Error fetching subject links:', error);
+        return [];
     }
-
-    return sections;
-};
-
-export const getCatalogUrl = (prefix: string, number: string) => {
-    let num = parseInt(number.replace(/[^0-9]/g, ''));
-    if (num > 5000 && (prefix !== 'PHRX' || (prefix === 'PHRX' && num < 5199)))
-        return `https://gradcatalog.uconn.edu/course-descriptions/course/${prefix}/${number}/`;
-    return `https://catalog.uconn.edu/directory-of-courses/course/${prefix}/${number.length === 3 ? ' ' + number : number}/`;
 }
 
-console.log(getCourseInfo('CSE 1010'))
+/**
+ * scrapes course info from a specific subject page
+ * @param subjectUrl - url of the subject page to scrape
+ * @returns array of course objects containing code (i.e., CSE 2050) and name (i.e., Data Structures and Algorithms)
+ */
+async function getCoursesFromSubjectPage(subjectUrl: string) {
+    try {
+        const { data } = await retryOperation(() => 
+            axiosInstance.get(subjectUrl)
+        );
+        const $ = cheerio.load(data);
+
+        // find each course block and extract info
+        const courses: { code: string, name: string }[] = [];
+        $('.courseblock .cols.noindent').each((_, element) => {
+            const courseCode = $(element).find('.text.detail-code strong').text().trim();
+            const courseName = $(element).find('.text.detail-title strong').text().trim();
+            if (courseCode && courseName) {
+                courses.push({ code: courseCode, name: courseName });
+            }
+        });
+
+        return courses;
+    } catch (error) {
+        console.error(`Error fetching courses from ${subjectUrl}:`, error);
+        return [];
+    }
+}
+
+/**
+ * processes a batch of subject URLs concurrently
+ * @param subjectUrls - array of all subject urls being processed
+ * @param startIdx - starting index for current batch
+ * @param batchSize - number of subjects to process in each batch
+ * @returns array of course objects from entire batch
+ */
+async function processBatch(
+    subjectUrls: string[], 
+    startIdx: number, 
+    batchSize: number
+): Promise<{ code: string, name: string }[]> {
+    // get the subset of URLs for this batch
+    const batch = subjectUrls.slice(startIdx, startIdx + batchSize);
+
+    // process all URLs concurrently
+    const batchResults = await Promise.all(
+        batch.map(async (subjectUrl) => {
+            const fullUrl = `${baseUrl}${subjectUrl}`;
+            try {
+                return await getCoursesFromSubjectPage(fullUrl);
+            } catch (error) {
+                console.error(`Failed to process ${fullUrl}:`, error);
+                return [];
+            }
+        })
+    );
+
+    // combines all results into a single array
+    return batchResults.flat();
+}
+
+/**
+ * main function to scrape all courses from UConn catalog
+ * @returns promise resolving to an array of all courses
+ */
+async function scrapeAllCourses() {
+    try {
+        // get all subject links
+        const subjectLinks = await getSubjectLinks();
+        if (!subjectLinks || subjectLinks.length === 0) {
+            throw new Error("No subject links found.");
+        }
+
+        const allCourses: { code: string, name: string }[] = [];
+        let processedCount = 0;
+        const totalSubjects = subjectLinks.length;
+
+        // process subjects in batches
+        for (let i = 0; i < subjectLinks.length; i += BATCH_SIZE) {
+            // process current batch
+            const batchCourses = await processBatch(subjectLinks, i, BATCH_SIZE);
+            allCourses.push(...batchCourses);
+            
+            // update and log process
+            processedCount += Math.min(BATCH_SIZE, subjectLinks.length - i);
+            console.log(`Processed ${processedCount}/${totalSubjects} subjects`);
+            
+            // add delay between batches to prevent overloading
+            if (i + BATCH_SIZE < subjectLinks.length) {
+                await setTimeout(BATCH_DELAY);
+            }
+        }
+
+        // output courses to json file
+        fs.writeFileSync('courses.json', JSON.stringify(allCourses, null, 2));
+        console.log(`Course data saved to courses.json (${allCourses.length} courses)`);
+        
+        return allCourses;
+    } catch (error) {
+        console.error("Error in scrapeAllCourses:", error);
+        throw error;
+    }
+}
+
+// main execution
+scrapeAllCourses()
+    .then(() => console.log('Scraping completed successfully'))
+    .catch(error => console.error('Scraping failed:', error))
+    .finally(() => console.log('Script finished'));
