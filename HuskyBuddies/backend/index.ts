@@ -16,7 +16,7 @@ const axiosInstance = axios.create({
 // configure retries and batch sizes
 const MAX_RETRIES = 3;          // maximum retry attempts for failed requests
 const RETRY_DELAY = 100;        // initial delay between retries
-const BATCH_SIZE = 48;          // # subjects to process concurrently
+const BATCH_SIZE = 62;          // # subjects to process concurrently
 const BATCH_DELAY = 100;        // delay between processing batches
 
 
@@ -174,8 +174,96 @@ async function scrapeAllCourses() {
     }
 }
 
+import puppeteer from 'puppeteer';
+
+async function fetchCourseSections(courseCode: string): Promise<any[]> {
+  const browser = await puppeteer.launch({ headless: false }); // Set to true for production
+  const page = await browser.newPage();
+  
+  try {
+    await page.goto('https://catalog.uconn.edu/course-search/');
+    
+    // Wait for the form to load
+    await page.waitForSelector('#search-form');
+    
+    // Select Fall 2024 term
+    await page.select('#crit-srcdb', '1248');
+    
+    // Select Storrs campus
+    await page.select('#crit-camp', 'STORR@STORRS');
+    
+    // Select Undergraduate course type
+    await page.select('#crit-coursetype', 'coursetype_ugrad');
+    
+    // Type the course code into the keyword input
+    await page.type('#crit-keyword', courseCode);
+    
+    // Click the search button and wait for results
+    await Promise.all([
+      page.click('#search-button'),
+      page.waitForNavigation({ waitUntil: 'networkidle0' }),
+    ]);
+    
+    // Wait for the results to load
+    await page.waitForSelector('.result', { timeout: 10000 });
+    
+    // Extract the section information
+    const sections = await page.evaluate((courseCode) => {
+      const results = Array.from(document.querySelectorAll('.result'));
+      const sections = [];
+      let currentSection: any = {};
+
+      for (const result of results) {
+        const headline = result.querySelector('.result__headline');
+        if (headline) {
+          // This is a main section
+          if (currentSection.sectionNumber) {
+            sections.push(currentSection);
+          }
+          currentSection = {
+            courseCode: headline.querySelector('.result__code')?.textContent?.trim(),
+            title: headline.querySelector('.result__title')?.textContent?.trim(),
+            sectionNumber: result.querySelector('.result__flex--3')?.textContent?.trim().replace('Section Number:', '').trim(),
+            meets: result.querySelector('.flex--grow')?.textContent?.trim().replace('Meets:', '').trim(),
+            instructor: result.querySelector('.result__flex--9')?.textContent?.trim().replace('Instructor:', '').trim(),
+            subsections: []
+          };
+        } else {
+          // This is a subsection
+          const subsection = {
+            sectionNumber: result.querySelector('.result__flex--3')?.textContent?.trim().replace('Section Number:', '').trim(),
+            meets: result.querySelector('.flex--grow')?.textContent?.trim().replace('Meets:', '').trim(),
+            instructor: result.querySelector('.result__flex--9')?.textContent?.trim().replace('Instructor:', '').trim()
+          };
+          currentSection.subsections.push(subsection);
+        }
+      }
+
+      if (currentSection.sectionNumber) {
+        sections.push(currentSection);
+      }
+
+      return sections.filter(section => section.courseCode === courseCode);
+    }, courseCode);
+    
+    return sections;
+  } catch (error) {
+    console.error(`Error fetching sections for ${courseCode}:`, error);
+    return [];
+  } finally {
+    await browser.close();
+  }
+}
+
+async function main() {
+    const sections = await fetchCourseSections('ACCT 2001');
+    console.log(sections);
+}
+
+main().catch(console.error)
+
 // main execution
-scrapeAllCourses()
-    .then(() => console.log('Scraping completed successfully'))
-    .catch(error => console.error('Scraping failed:', error))
-    .finally(() => console.log('Script finished'));
+// scrapeAllCourses()
+//     .then(() => console.log('Scraping completed successfully'))
+//     .catch(error => console.error('Scraping failed:', error))
+//     .finally(() => console.log('Script finished'));
