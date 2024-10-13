@@ -23,7 +23,6 @@ app.get('/courses', async (_, res) => {
 app.get('/sections/:courseCode', async (req, res) => {
     try {
         const { courseCode } = req.params;
-        console.log(courseCode)
         const sections = await fetchCourseSections(courseCode);
         res.json(sections);
     } catch (error) {
