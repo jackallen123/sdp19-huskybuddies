@@ -1,30 +1,41 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
+import axios from 'axios';
 
 interface Section {
-  id: string;
-  term: string;
-  section: string;
-  location: string;
+  sectionNumber: string;
+  meets: string;
   instructor: string;
-  schedule: string;
 }
 
-const mockSections: Section[] = [
-  { id: '1', term: 'Fall 2024', section: '001', location: 'ITE C28', instructor: 'Jack Allen', schedule: 'MoWeFr 3:35 - 4:25pm' },
-  { id: '2', term: 'Fall 2024', section: '002L', location: 'ITE 231', instructor: 'Jane Smith', schedule: 'TuTh 2:00 - 3:15pm' },
-  { id: '3', term: 'Fall 2024', section: '003D', location: 'PHYS 101', instructor: 'Bob Johnson', schedule: 'MoWe 10:00 - 10:50am' },
-  { id: '4', term: 'Fall 2024', section: '004', location: 'MATH 220', instructor: 'Alice Brown', schedule: 'TuTh 11:30am - 12:45pm' },
-];
+export default function AddSection({ onBack, courseCode }: { onBack: () => void, courseCode: string }) {
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function AddSection({ onBack }: { onBack: () => void }) {
+  useEffect(() => {
+    fetchSections();
+  }, []);
 
-  const sortedSections = [...mockSections].sort((a, b) => {
-    const sectionA = parseInt(a.section.replace(/\D/g, ''));
-    const sectionB = parseInt(b.section.replace(/\D/g, ''));
+  const ip_address = '' // set your IP address here
+
+  const fetchSections = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`http://${ip_address}:3000/sections/${courseCode}`);
+      setSections(response.data[0]?.sections || []);
+    } catch (error) {
+      console.error('Error fetching sections:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sortedSections = [...sections].sort((a, b) => {
+    const sectionA = parseInt(a.sectionNumber.replace(/\D/g, ''));
+    const sectionB = parseInt(b.sectionNumber.replace(/\D/g, ''));
     return sectionA - sectionB;
   });
 
@@ -38,28 +49,38 @@ export default function AddSection({ onBack }: { onBack: () => void }) {
           <Text style={styles.headerText}>Add Section</Text>
         </View>
       </SafeAreaView>
-      <FlatList
-        data={sortedSections}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionInfo}>
-              <Text style={styles.sectionText}>{item.term} - Section {item.section}</Text>
-              <Text style={styles.sectionDetails}>{item.location}</Text>
-              <Text style={styles.sectionDetails}>{item.instructor}</Text>
-              <Text style={styles.sectionDetails}>{item.schedule}</Text>
+      {loading ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+        </View>
+      ) : (
+        <FlatList
+          data={sortedSections}
+          keyExtractor={(item) => item.sectionNumber}
+          renderItem={({ item }) => (
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionInfo}>
+                <Text style={styles.sectionText}>Section {item.sectionNumber}</Text>
+                <Text style={styles.sectionDetails}>{item.instructor}</Text>
+                <Text style={styles.sectionDetails}>{item.meets}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => {
+                  // TODO: Add this section to the user's schedule
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={24} color="black" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => {
-                //TODO: this will add courses to the schedule and redirect users to schedule
-              }}
-            >
-              <Ionicons name="add-circle-outline" size={24} color="black" />
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+          )}
+          ListEmptyComponent={() => (
+            <View style={styles.centerContent}>
+              <Text>No sections found</Text>
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -99,6 +120,11 @@ container: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sectionCard: {
     flexDirection: 'row',

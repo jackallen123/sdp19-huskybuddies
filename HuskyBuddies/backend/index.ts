@@ -1,269 +1,38 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
-import fs from 'fs';
-import { setTimeout } from 'timers/promises';
+import express from 'express'
+import { scrapeAllCourses, fetchCourseSections } from './helper'
 
-const baseUrl = 'https://catalog.uconn.edu';
+const app = express();
+const port = 3000;
+const host = ''; // put IP address here (server needs to run on IP address instead of localhost to work on mobile device)
 
-// configure axios defaults
-const axiosInstance = axios.create({
-    timeout: 10000,
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+// middleware to parse JSON bodies
+app.use(express.json());
+
+// endpoint for getting courses
+app.get('/courses', async (_, res) => {
+    try {
+        const courses = await scrapeAllCourses();
+        res.json(courses)
+    } catch (error) {
+        console.error('Error fetching courses:', error)
+        res.status(500).json({ error: 'Failed to fetch courses' });
     }
 });
 
-// configure retries and batch sizes
-const MAX_RETRIES = 3;          // maximum retry attempts for failed requests
-const RETRY_DELAY = 100;        // initial delay between retries
-const BATCH_SIZE = 62;          // # subjects to process concurrently
-const BATCH_DELAY = 100;        // delay between processing batches
-
-
-/**
- * retry function that attempts an operation multiple times
- * @param operation - async operation to retry
- * @param retries - number of remaining attempts
- * @param delay - current delay before the next retry
- * @returns promise resolving to the operation's result
- * @throws original error if all retries are exhausted
- */
-async function retryOperation<T>(
-    operation: () => Promise<T>,
-    retries = MAX_RETRIES,
-    delay = RETRY_DELAY
-): Promise<T> {
+// endpoint to get sections for a specific course
+app.get('/sections/:courseCode', async (req, res) => {
     try {
-        return await operation();
+        const { courseCode } = req.params;
+        console.log(courseCode)
+        const sections = await fetchCourseSections(courseCode);
+        res.json(sections);
     } catch (error) {
-        if (retries > 0) {
-            // wait for specified delay before retrying
-            await setTimeout(delay);
-            // retry with one fewer attempt and longer delay
-            return retryOperation(operation, retries - 1, delay * 1.5);
-        }
-        throw error;
+        console.error(`Error fetching sections for ${req.params.courseCode}:`, error)
+        res.status(500).json({ error: 'Failed to fetch sections' });
     }
-}
+});
 
-/**
- * fetches and extracts subject links from undergraduate course catalog page
- * @returns array of subject URL paths
- */
-async function getSubjectLinks(): Promise<string[]> {
-    try {
-        const { data } = await retryOperation(() => 
-            axiosInstance.get(`${baseUrl}/undergraduate/courses/#coursetext`)
-        );
-        const $ = cheerio.load(data);
-
-        // extract subject links and filter out anchor links
-        const subjectLinks = $('div.az_sitemap a')
-            .map((_, el) => $(el).attr('href'))
-            .get()
-            .filter(link => link && !link.startsWith('#'));
-
-        return subjectLinks;
-    } catch (error) {
-        console.error('Error fetching subject links:', error);
-        return [];
-    }
-}
-
-/**
- * scrapes course info from a specific subject page
- * @param subjectUrl - url of the subject page to scrape
- * @returns array of course objects containing code (i.e., CSE 2050) and name (i.e., Data Structures and Algorithms)
- */
-async function getCoursesFromSubjectPage(subjectUrl: string) {
-    try {
-        const { data } = await retryOperation(() => 
-            axiosInstance.get(subjectUrl)
-        );
-        const $ = cheerio.load(data);
-
-        // find each course block and extract info
-        const courses: { code: string, name: string }[] = [];
-        $('.courseblock .cols.noindent').each((_, element) => {
-            const courseCode = $(element).find('.text.detail-code strong').text().trim();
-            const courseName = $(element).find('.text.detail-title strong').text().trim();
-            if (courseCode && courseName) {
-                courses.push({ code: courseCode, name: courseName });
-            }
-        });
-
-        return courses;
-    } catch (error) {
-        console.error(`Error fetching courses from ${subjectUrl}:`, error);
-        return [];
-    }
-}
-
-/**
- * processes a batch of subject URLs concurrently
- * @param subjectUrls - array of all subject urls being processed
- * @param startIdx - starting index for current batch
- * @param batchSize - number of subjects to process in each batch
- * @returns array of course objects from entire batch
- */
-async function processBatch(
-    subjectUrls: string[], 
-    startIdx: number, 
-    batchSize: number
-): Promise<{ code: string, name: string }[]> {
-    // get the subset of URLs for this batch
-    const batch = subjectUrls.slice(startIdx, startIdx + batchSize);
-
-    // process all URLs concurrently
-    const batchResults = await Promise.all(
-        batch.map(async (subjectUrl) => {
-            const fullUrl = `${baseUrl}${subjectUrl}`;
-            try {
-                return await getCoursesFromSubjectPage(fullUrl);
-            } catch (error) {
-                console.error(`Failed to process ${fullUrl}:`, error);
-                return [];
-            }
-        })
-    );
-
-    // combines all results into a single array
-    return batchResults.flat();
-}
-
-/**
- * main function to scrape all courses from UConn catalog
- * @returns promise resolving to an array of all courses
- */
-async function scrapeAllCourses() {
-    try {
-        // get all subject links
-        const subjectLinks = await getSubjectLinks();
-        if (!subjectLinks || subjectLinks.length === 0) {
-            throw new Error("No subject links found.");
-        }
-
-        const allCourses: { code: string, name: string }[] = [];
-        let processedCount = 0;
-        const totalSubjects = subjectLinks.length;
-
-        // process subjects in batches
-        for (let i = 0; i < subjectLinks.length; i += BATCH_SIZE) {
-            // process current batch
-            const batchCourses = await processBatch(subjectLinks, i, BATCH_SIZE);
-            allCourses.push(...batchCourses);
-            
-            // update and log process
-            processedCount += Math.min(BATCH_SIZE, subjectLinks.length - i);
-            console.log(`Processed ${processedCount}/${totalSubjects} subjects`);
-            
-            // add delay between batches to prevent overloading
-            if (i + BATCH_SIZE < subjectLinks.length) {
-                await setTimeout(BATCH_DELAY);
-            }
-        }
-
-        // output courses to json file
-        fs.writeFileSync('courses.json', JSON.stringify(allCourses, null, 2));
-        console.log(`Course data saved to courses.json (${allCourses.length} courses)`);
-        
-        return allCourses;
-    } catch (error) {
-        console.error("Error in scrapeAllCourses:", error);
-        throw error;
-    }
-}
-
-import puppeteer from 'puppeteer';
-
-async function fetchCourseSections(courseCode: string): Promise<any[]> {
-  const browser = await puppeteer.launch({ headless: false }); // Set to true for production
-  const page = await browser.newPage();
-  
-  try {
-    await page.goto('https://catalog.uconn.edu/course-search/');
-    
-    // Wait for the form to load
-    await page.waitForSelector('#search-form');
-    
-    // Select Fall 2024 term
-    await page.select('#crit-srcdb', '1248');
-    
-    // Select Storrs campus
-    await page.select('#crit-camp', 'STORR@STORRS');
-    
-    // Select Undergraduate course type
-    await page.select('#crit-coursetype', 'coursetype_ugrad');
-    
-    // Type the course code into the keyword input
-    await page.type('#crit-keyword', courseCode);
-    
-    // Click the search button and wait for results
-    await Promise.all([
-      page.click('#search-button'),
-      page.waitForNavigation({ waitUntil: 'networkidle0' }),
-    ]);
-    
-    // Wait for the results to load
-    await page.waitForSelector('.result', { timeout: 10000 });
-    
-    // Extract the section information
-    const sections = await page.evaluate((courseCode) => {
-      const results = Array.from(document.querySelectorAll('.result'));
-      const sections = [];
-      let currentSection: any = {};
-
-      for (const result of results) {
-        const headline = result.querySelector('.result__headline');
-        if (headline) {
-          // This is a main section
-          if (currentSection.sectionNumber) {
-            sections.push(currentSection);
-          }
-          currentSection = {
-            courseCode: headline.querySelector('.result__code')?.textContent?.trim(),
-            title: headline.querySelector('.result__title')?.textContent?.trim(),
-            sectionNumber: result.querySelector('.result__flex--3')?.textContent?.trim().replace('Section Number:', '').trim(),
-            meets: result.querySelector('.flex--grow')?.textContent?.trim().replace('Meets:', '').trim(),
-            instructor: result.querySelector('.result__flex--9')?.textContent?.trim().replace('Instructor:', '').trim(),
-            subsections: []
-          };
-        } else {
-          // This is a subsection
-          const subsection = {
-            sectionNumber: result.querySelector('.result__flex--3')?.textContent?.trim().replace('Section Number:', '').trim(),
-            meets: result.querySelector('.flex--grow')?.textContent?.trim().replace('Meets:', '').trim(),
-            instructor: result.querySelector('.result__flex--9')?.textContent?.trim().replace('Instructor:', '').trim()
-          };
-          currentSection.subsections.push(subsection);
-        }
-      }
-
-      if (currentSection.sectionNumber) {
-        sections.push(currentSection);
-      }
-
-      return sections.filter(section => section.courseCode === courseCode);
-    }, courseCode);
-    
-    return sections;
-  } catch (error) {
-    console.error(`Error fetching sections for ${courseCode}:`, error);
-    return [];
-  } finally {
-    await browser.close();
-  }
-}
-
-async function main() {
-    const sections = await fetchCourseSections('ACCT 2001');
-    console.log(sections);
-}
-
-main().catch(console.error)
-
-// main execution
-// scrapeAllCourses()
-//     .then(() => console.log('Scraping completed successfully'))
-//     .catch(error => console.error('Scraping failed:', error))
-//     .finally(() => console.log('Script finished'));
+// runs the server
+app.listen(port, host, () => {
+    console.log(`Server running at http://${host}:${port}`)
+})

@@ -7,13 +7,14 @@ import { COLORS } from '@/constants/Colors';
 import AddSection from './addSection';
 
 interface Course {
+  code: string;
   name: string;
-  catalogName: string;
 }
 
 export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddingSection, setIsAddingSection] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,14 +22,13 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
     fetchCourses();
   }, []);
 
+  const ip_address = '' // set your IP address here
+
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://192.168.1.29:3000/courses');
-      const courseNames = response.data.map((course: any) => ({
-        name: course.name
-      }));
-      setCourses(courseNames);
+      const response = await axios.get(`http://${ip_address}:3000/courses`);
+      setCourses(response.data);
     } catch (error) {
       console.error('Error fetching courses:', error);
       Alert.alert('Error', 'Failed to fetch courses');
@@ -37,23 +37,17 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const formatCourseName = (name: string) => {
-    // adds a space between letters and numbers
-    return name.replace(/([A-Za-z]+)(\d+)/, '$1 $2');
-  };
-
-  const filteredCourses = courses
-    .filter((course) =>
-      course.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .map(course => ({
-      ...course,
-      name: formatCourseName(course.name)
-    }));
+  const filteredCourses = courses.filter((course) =>
+    course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
   if (isAddingSection) {
     return (
-      <AddSection onBack={() => setIsAddingSection(false)} />
+      <AddSection 
+        onBack={() => setIsAddingSection(false)} 
+        courseCode={selectedCourse?.code || ''}
+      />
     );
   }
 
@@ -91,13 +85,18 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
         ) : (
           <FlatList
             data={filteredCourses}
-            keyExtractor={(item, index) => `${item.name}-${index}`}
+            keyExtractor={(item) => item.code}
             renderItem={({ item }) => (
               <TouchableOpacity 
                 style={styles.courseItem}
-                onPress={() => setIsAddingSection(true)}
-                >
-                <Text style={styles.courseName}>{item.name}</Text>
+                onPress={() => {
+                  setSelectedCourse(item);
+                  setIsAddingSection(true);
+                }}
+              >
+                <View>
+                  <Text style={styles.courseName}>{item.code}</Text>
+                </View>
                 <Ionicons name="chevron-forward" size={24} color="black" />
               </TouchableOpacity>
             )}
