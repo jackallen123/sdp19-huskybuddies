@@ -24,9 +24,9 @@ const MessagingPage = () => {
 };
 
 const chatData = [
-  { id: '1', firstName: 'Always', lastName: 'Sunny', lastMessage: 'Thanks for the chili powder.', time: '2:15 PM' },
-  { id: '2', firstName: 'Walking', lastName: 'Dead', lastMessage: 'Coral!', time: '2:15 PM' },
-  { id: '3', firstName: 'Spongebob', lastName: 'Squarepants', lastMessage: 'Is this Squidward?', time: '2:15 PM' },
+  { id: '1', firstName: 'John', lastName: 'Doe', lastMessage: 'Thanks for the chili powder.', time: '2:15 PM' },
+  { id: '2', firstName: 'Jane', lastName: 'Smith', lastMessage: 'Coral!', time: '2:15 PM' },
+  { id: '3', firstName: 'Alex', lastName: 'Johnson', lastMessage: 'Is this Squidward?', time: '2:15 PM' },
 ];
 
 const ChatItem = ({ firstName, lastName, lastMessage, time }) => {
@@ -63,23 +63,16 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     paddingRight: 20,
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
-    marginBottom: 10,
-    paddingLeft: 20, 
-  },
   banner: {
     width: Dimensions.get('window').width, //full width according to window
     padding: 20,
     paddingTop: 60,
     marginBottom: 20,
-    borderRadius:1, 
+    borderRadius:1,
     backgroundColor: COLORS.UCONN_NAVY,
   },
   bannerText: {
-    color: COLORS.UCONN_NAVY,
+    color: COLORS.UCONN_WHITE,
     fontSize: 18,
     textAlign: 'center',
     fontWeight: 'bold',
@@ -88,7 +81,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 2,
     borderColor: '#ccc', 
-    borderRadius: 1,
+    borderRadius: 25,
     marginBottom: 10,
     padding: 15,
     paddingHorizontal: 10,
@@ -103,14 +96,15 @@ const styles = StyleSheet.create({
   chatName: {
     fontWeight: 'bold',
     fontSize: 16,
+    color: COLORS.UCONN_NAVY,
   },
   chatMessage: {
-    color: COLORS.UCONN_GREY,
+    color: 'black',
     fontSize: 14,
   },
   chatTime: {
     color: COLORS.UCONN_GREY,
-    fontSize: 12,
+    fontSize: 14,
   },
 });
 
