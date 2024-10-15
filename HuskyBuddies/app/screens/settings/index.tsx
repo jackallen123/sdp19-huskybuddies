@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView} from 'react-native';
+import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal} from 'react-native';
 import { COLORS } from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
 import Schedule from '@/components/schedule';
+import ProfileEditor from '@/components/ProfileEditor';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function SettingsScreen() {
@@ -11,6 +12,7 @@ export default function SettingsScreen() {
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [textSize, setTextSize] = useState(16);
   const [showSchedule, setShowSchedule] = React.useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
   const router = useRouter();
   
   const handleManageCourses = () => {
@@ -101,6 +103,15 @@ export default function SettingsScreen() {
               <Text style={styles.buttonText}>Delete Account</Text>
             </TouchableOpacity>
           </ScrollView>
+
+          <Modal
+            animationType="slide"
+            transparent={false}
+            visible={showProfileEditor}
+            onRequestClose={() => setShowProfileEditor(false)}
+            >
+              <ProfileEditor onClose={() => setShowProfileEditor(false)} />
+            </Modal>
         </>
       )}
     </SafeAreaView>
