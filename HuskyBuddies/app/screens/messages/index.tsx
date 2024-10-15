@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/Colors';
+import { COLORS } from '@/constants/Colors';
 
 const Banner = () => {
   return (
@@ -57,7 +57,7 @@ const ChatList = () => {
 const styles = StyleSheet.create({
   pageContainer:{
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.UCONN_WHITE,
   },
   container: {
     paddingLeft: 20,
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.UCONN_NAVY,
     marginBottom: 10,
     paddingLeft: 20, 
   },
@@ -76,10 +76,10 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     marginBottom: 20,
     borderRadius:1, 
-    backgroundColor: '#4caf50',
+    backgroundColor: COLORS.UCONN_NAVY,
   },
   bannerText: {
-    color: '#fff',
+    color: COLORS.UCONN_NAVY,
     fontSize: 18,
     textAlign: 'center',
     fontWeight: 'bold',
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 15,
     paddingHorizontal: 10,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.UCONN_WHITE,
   },
   icon: {
     marginRight: 10,
@@ -105,11 +105,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   chatMessage: {
-    color: 'gray',
+    color: COLORS.UCONN_GREY,
     fontSize: 14,
   },
   chatTime: {
-    color: 'gray',
+    color: COLORS.UCONN_GREY,
     fontSize: 12,
   },
 });
