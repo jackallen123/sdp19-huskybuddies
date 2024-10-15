@@ -3,13 +3,20 @@ import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaV
 import { COLORS } from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
+import Schedule from '@/components/schedule';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [textSize, setTextSize] = useState(16);
+  const [showSchedule, setShowSchedule] = React.useState(false);
   const router = useRouter();
   
+  const handleManageCourses = () => {
+    // navigate to schedule page
+    setShowSchedule(true);
+  }
 
   const handleSignOut = () => {
     // sign out logic
@@ -23,66 +30,79 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* headers */}
-      <View style={styles.header}>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerText}>Settings</Text>
-        </View>
-      </View>
-
-      <ScrollView style={styles.scrollView}>
-        {/* enable notifications */}
-        <View style={styles.settingItem}>
-          <Text style={[styles.settingText, { fontSize: textSize }]}>Enable Notifications</Text>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-            trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
-            thumbColor={notificationsEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
-          />
-        </View>
-
-        {/* enable dark mode */}
-        <View style={styles.settingItem}>
-          <Text style={[styles.settingText, { fontSize: textSize }]}>Dark Mode</Text>
-          <Switch
-            value={darkModeEnabled}
-            onValueChange={setDarkModeEnabled}
-            trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
-            thumbColor={darkModeEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
-          />
-        </View>
-
-        {/* change font size */}
-        <View style={styles.settingItem}>
-          <Text style={[styles.settingText, { fontSize: textSize }]}>Text Size</Text>
-          <View style={styles.sliderContainer}>
-            <Text style={[styles.sliderLabel, { fontSize: textSize }]}>A</Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={12}
-              maximumValue={24}
-              step={1}
-              value={textSize}
-              onValueChange={setTextSize}
-              minimumTrackTintColor={COLORS.UCONN_NAVY}
-              maximumTrackTintColor={COLORS.UCONN_GREY}
-              thumbTintColor={COLORS.UCONN_NAVY}
-            />
-            <Text style={[styles.sliderLabel, { fontSize: textSize * 1.5 }]}>A</Text>
+      {showSchedule ? (
+        <Schedule onBack={() => setShowSchedule(false)} /> // Conditional rendering for schedule page
+      ) : (
+        <>
+          {/* headers */}
+          <View style={styles.header}>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerText}>Settings</Text>
+            </View>
           </View>
-        </View>
 
-        {/* sign out */}
-        <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-          <Text style={styles.buttonText}>Sign Out</Text>
-        </TouchableOpacity>
+          <ScrollView style={styles.scrollView}>
 
-        {/* delete account */}
-        <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDeleteAccount}>
-          <Text style={styles.buttonText}>Delete Account</Text>
-        </TouchableOpacity>
-      </ScrollView>
+            {/* Manage Courses */}
+            <TouchableOpacity style={styles.settingItem} onPress={handleManageCourses}>
+              <Text style={[styles.settingText, { fontSize: textSize }]}>Manage Courses</Text>
+              <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
+            </TouchableOpacity>
+
+            {/* enable notifications */}
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingText, { fontSize: textSize }]}>Enable Notifications</Text>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={setNotificationsEnabled}
+                trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
+                thumbColor={notificationsEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
+              />
+            </View>
+
+            {/* enable dark mode */}
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingText, { fontSize: textSize }]}>Dark Mode</Text>
+              <Switch
+                value={darkModeEnabled}
+                onValueChange={setDarkModeEnabled}
+                trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
+                thumbColor={darkModeEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
+              />
+            </View>
+
+            {/* change font size */}
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingText, { fontSize: textSize }]}>Text Size</Text>
+              <View style={styles.sliderContainer}>
+                <Text style={[styles.sliderLabel, { fontSize: textSize }]}>A</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={12}
+                  maximumValue={24}
+                  step={1}
+                  value={textSize}
+                  onValueChange={setTextSize}
+                  minimumTrackTintColor={COLORS.UCONN_NAVY}
+                  maximumTrackTintColor={COLORS.UCONN_GREY}
+                  thumbTintColor={COLORS.UCONN_NAVY}
+                />
+                <Text style={[styles.sliderLabel, { fontSize: textSize * 1.5 }]}>A</Text>
+              </View>
+            </View>
+
+            {/* sign out */}
+            <TouchableOpacity style={styles.button} onPress={handleSignOut}>
+              <Text style={styles.buttonText}>Sign Out</Text>
+            </TouchableOpacity>
+
+            {/* delete account */}
+            <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDeleteAccount}>
+              <Text style={styles.buttonText}>Delete Account</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </>
+      )}
     </SafeAreaView>
   );
 }
