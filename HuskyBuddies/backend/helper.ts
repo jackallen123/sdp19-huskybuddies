@@ -293,3 +293,68 @@ export async function fetchCourseSections(
     await browser.close();
   }
 }
+
+export async function fetchSectionLocation(courseCode: string, sectionNumber: string): Promise<string | null> {
+  const browser = await puppeteer.launch({ headless: false });
+  const page = await browser.newPage();
+
+  try {
+    await page.goto("https://catalog.uconn.edu/course-search");
+
+    // wait for form to load
+    await page.waitForSelector("#search-form");
+
+    // fill out form
+    await page.select("#crit-srcdb", "1248");
+    await page.select("#crit-camp", "STORRS@STORRS");
+    await page.select("#crit-coursetype", "coursetype_ugrad");
+    await page.type("#crit-keyword", courseCode);
+
+    // click search button and wait for results
+    await Promise.all([
+      page.click("#search-button"),
+      page.waitForSelector(".result")
+    ]);
+
+    // click on the course to open the more detailed panel containing meeting info
+    await Promise.all([
+      page.click(`.result__link[data-group="code:${courseCode}"]`),
+      setTimeout(3000),
+      page.waitForSelector(".course-sections"),
+    ]);
+
+    // find and click on the specific section in order to render the meeting info on the page
+    await page.evaluate((sectionNumber) => {
+      const sectionElements = document.querySelectorAll('.course-section');
+      for (const element of sectionElements) {
+        const sectionText = element.querySelector('.course-section-section')?.textContent;
+        if (sectionText && sectionText.includes(sectionNumber)) {
+          (element as HTMLElement).click();
+          return;
+        }
+      }
+    }, sectionNumber);
+
+    await setTimeout(1000);
+
+    // extract the location
+    const location = await page.evaluate(() => {
+      const meetElement = document.querySelector('.meet');
+      if (meetElement) {
+        const roomSpan = meetElement.querySelector('.meet-room-1248');
+        if (roomSpan) {
+          return roomSpan.textContent?.trim().replace(/^in\s+/, '') || null;
+        }
+      }
+      return null
+    });
+    console.log("Location: ", location)
+
+    return location
+  } catch (error) {
+    console.error(`Error fetching location for ${courseCode} section ${sectionNumber}: `, error)
+    return null;
+  } finally {
+    await browser.close();
+  }
+}

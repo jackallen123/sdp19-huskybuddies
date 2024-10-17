@@ -14,12 +14,16 @@ interface Section {
 export default function AddSection({ onBack, courseCode }: { onBack: () => void, courseCode: string }) {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locationPopup, setLocationPopup] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: '',
+  });
 
   useEffect(() => {
     fetchSections();
   }, []);
 
-  const ip_address = '' // set your IP address here
+  const ip_address = '192.168.1.46' // set your IP address here
 
   const fetchSections = async () => {
     try {
@@ -31,6 +35,27 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchLocation = async (sectionNumber: string) => {
+    try {
+      const response = await axios.get(`http://${ip_address}:3000/section-location/${courseCode}/${sectionNumber}`);
+      return response.data.location;
+    } catch (error) {
+      console.error('Error fetching location:', error);
+      return 'Location not found';
+    }
+  };
+
+  const handleAddSection = async (section: Section) => {
+    setLocationPopup({ visible: true, message: 'Fetching location...' });
+    const location = await fetchLocation(section.sectionNumber);
+    setLocationPopup({ visible: true, message: `Location: ${location}` });
+    
+    // Automatically hide the pop-up after 3 seconds
+    setTimeout(() => {
+      setLocationPopup({ visible: false, message: '' });
+    }, 3000);
   };
 
   const sortedSections = [...sections].sort((a, b) => {
@@ -66,9 +91,7 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
               </View>
               <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => {
-                  // TODO: Add this section to the user's schedule
-                }}
+                onPress={() => handleAddSection(item)}
               >
                 <Ionicons name="add-circle-outline" size={24} color="black" />
               </TouchableOpacity>
@@ -80,6 +103,11 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
             </View>
           )}
         />
+      )}
+      {locationPopup.visible && (
+        <View style={styles.popupContainer}>
+          <Text style={styles.popupText}>{locationPopup.message}</Text>
+        </View>
       )}
     </View>
   );
@@ -149,5 +177,19 @@ container: {
   },
   addButton: {
     padding: 8,
+  },
+  popupContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  popupText: {
+    color: 'white',
+    fontSize: 16,
   },
 });

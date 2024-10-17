@@ -1,9 +1,9 @@
 import express from 'express';
-import { scrapeAllCourses, fetchCourseSections } from './helper'
+import { scrapeAllCourses, fetchCourseSections, fetchSectionLocation } from './helper'
 
 const app = express();
 const port = 3000;
-const host = ''; // put IP address here (server needs to run on IP address instead of localhost to work on mobile device)
+const host = '192.168.1.46'; // put IP address here (server needs to run on IP address instead of localhost to work on mobile device)
 
 // middleware to parse JSON bodies
 app.use(express.json());
@@ -28,6 +28,24 @@ app.get('/sections/:courseCode', async (req, res) => {
     } catch (error) {
         console.error(`Error fetching sections for ${req.params.courseCode}:`, error)
         res.status(500).json({ error: 'Failed to fetch sections' });
+    }
+});
+
+// endpoint to get location for section
+app.get('/section-location/:courseCode/:sectionNumber', async (req, res) => {
+    try {
+        const {courseCode, sectionNumber } = req.params;
+        console.log(`Course code: ${courseCode}`);
+        console.log(`Section Number: ${sectionNumber}`);
+        const location = await fetchSectionLocation(courseCode, sectionNumber);
+        if (location) {
+            res.json({ location })
+        } else {
+            res.status(404).json({ error: 'Location not found' })
+        }
+    } catch (error) {
+        console.error(`Error fetching location for ${req.params.courseCode} section ${req.params.sectionNumber}:`, error);
+        res.status(500).json({ error: 'Failed to fetch location' });
     }
 });
 
