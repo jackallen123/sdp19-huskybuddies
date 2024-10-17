@@ -295,7 +295,7 @@ export async function fetchCourseSections(
 }
 
 export async function fetchSectionLocation(courseCode: string, sectionNumber: string): Promise<string | null> {
-  const browser = await puppeteer.launch({ headless: false });
+  const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
   try {
