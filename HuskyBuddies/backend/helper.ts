@@ -294,6 +294,12 @@ export async function fetchCourseSections(
   }
 }
 
+/**
+ * fetches location for a specific section
+ * @param courseCode - the course code for the section we want the location for
+ * @param sectionNumber - the section number we want the location for
+ * @returns promise resolving to a string of the section's location
+ */
 export async function fetchSectionLocation(courseCode: string, sectionNumber: string): Promise<string | null> {
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
@@ -335,6 +341,7 @@ export async function fetchSectionLocation(courseCode: string, sectionNumber: st
       }
     }, sectionNumber);
 
+    // add delay to allow time for changes to process
     await setTimeout(1000);
 
     // extract the location
@@ -348,7 +355,6 @@ export async function fetchSectionLocation(courseCode: string, sectionNumber: st
       }
       return null
     });
-    console.log("Location: ", location)
 
     return location
   } catch (error) {
