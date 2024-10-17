@@ -51,8 +51,6 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     setLocationPopup({ visible: true, message: 'Fetching location...' });
     const location = await fetchLocation(section.sectionNumber);
     setLocationPopup({ visible: true, message: `Location: ${location}` });
-    
-    // Automatically hide the pop-up after 3 seconds
     setTimeout(() => {
       setLocationPopup({ visible: false, message: '' });
     }, 3000);
