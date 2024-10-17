@@ -35,8 +35,6 @@ app.get('/sections/:courseCode', async (req, res) => {
 app.get('/section-location/:courseCode/:sectionNumber', async (req, res) => {
     try {
         const {courseCode, sectionNumber } = req.params;
-        console.log(`Course code: ${courseCode}`);
-        console.log(`Section Number: ${sectionNumber}`);
         const location = await fetchSectionLocation(courseCode, sectionNumber);
         if (location) {
             res.json({ location })
