@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
+import { useRouter } from 'expo-router';
 
 const Banner = () => {
   return (
@@ -29,9 +30,9 @@ const chatData = [
   { id: '3', firstName: 'Alex', lastName: 'Johnson', lastMessage: 'Is this Squidward?', time: '2:15 PM' },
 ];
 
-const ChatItem = ({ firstName, lastName, lastMessage, time }) => {
+const ChatItem = ({ firstName, lastName, lastMessage, time, onPress }) => {
   return (
-    <TouchableOpacity style={styles.chatItem}>
+    <TouchableOpacity style={styles.chatItem} onPress={onPress}>
       <Ionicons name="person-circle-outline" size={40} color="gray" style={styles.icon} />
       <View style={styles.chatInfo}>
         <Text style={styles.chatName}>{`${firstName} ${lastName}`}</Text>
@@ -43,13 +44,20 @@ const ChatItem = ({ firstName, lastName, lastMessage, time }) => {
 };
 
 const ChatList = () => {
+  const router = useRouter();  // Use useRouter from expo-router
+
   return (
     <FlatList
       data={chatData}
       renderItem={({ item }) => (
-        <ChatItem firstName={item.firstName} lastName={item.lastName} lastMessage={item.lastMessage} time={item.time} />
+        <ChatItem firstName={item.firstName} lastName={item.lastName} lastMessage={item.lastMessage} time={item.time}
+          onPress={() => router.push({
+            pathname: './singleChatView',
+            params: { userId: item.id, firstName: item.firstName, lastName: item.lastName, lastMessage: item.lastMessage},
+          })}
+        />
       )}
-      keyExtractor={item => item.id}
+      keyExtractor={(item) => item.id}
     />
   );
 };
