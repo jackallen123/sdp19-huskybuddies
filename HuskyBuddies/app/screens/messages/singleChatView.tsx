@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ const UserBanner = ({ firstName, lastName}) => {
         </View>
       );
     };
-
+    
 const HorizontalLine = () => {
     return <View style={styles.horizontalLine} />;
     };
@@ -37,6 +37,7 @@ const Message = ({ sender, message, time }) => {
 
 const SingleChatView = () => {
   const { userid, firstName, lastName, lastMessage } = useLocalSearchParams(); // extract parameters
+
   const chatMessages = [
     { id: '1', message: "Hey, how are you?", sender: `${firstName} ${lastName}`, time: '2:00 PM' },
     { id: '2', message: `${lastMessage}`, sender: 'You', time: '2:05 PM' },
@@ -44,13 +45,24 @@ const SingleChatView = () => {
 
   return (
     <View style={styles.pageContainer}>
+        <View style={styles.chatContainer}>
     <Banner />
     <UserBanner firstName={firstName} lastName={lastName} />
     <HorizontalLine />
     {chatMessages.map((msg) => (
       <Message key={msg.id} sender={msg.sender} message={msg.message} time={msg.time} />
     ))}
-  </View>
+    </View>
+
+    {/* Message input component*/}
+    <View style={styles.inputContainer}>
+        <TextInput
+        style={styles.input}/>
+        <TouchableOpacity style={styles.sendButton} onPress={() => {}}>
+            <Text style={styles.sendButtonText}>Send</Text>
+            </TouchableOpacity>
+            </View>
+        </View>
   );
 };
 
@@ -63,7 +75,12 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     paddingRight: 20,
     },
-  banner: {
+  chatContainer: {
+    flex: 1,
+    },
+
+  // "Let's Chat" banner
+  banner: { 
     width: Dimensions.get('window').width, //full width according to window
     padding: 20,
     paddingTop: 60,
@@ -91,6 +108,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginRight: 5,
   },
+
   horizontalLine: {
     height: 1,
     marginLeft: 10,
@@ -98,6 +116,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_GREY,
     marginBottom: 10,
   },
+
+  // Messages layout:
   chatItem: {
     flexDirection: 'row',
     borderWidth: 2,
@@ -107,11 +127,6 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingHorizontal: 10,
     backgroundColor: COLORS.UCONN_WHITE,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
   },
   messageContainer: {
     marginBottom: 10,
@@ -133,6 +148,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.UCONN_GREY,
   },
+
+  // Message input bar
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderTopWidth: 1,
+    borderColor: COLORS.UCONN_GREY,
+  },
+  input: {
+    flex: 1,
+    borderColor: COLORS.UCONN_GREY,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 10,
+    marginRight: 10,
+    fontSize: 15,
+},
+  sendButton: {
+    backgroundColor: COLORS.UCONN_NAVY,
+    borderRadius: 20,
+    padding: 10,
+  },
+  sendButtonText: {
+    color: COLORS.UCONN_WHITE,
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+
 });
 
 export default SingleChatView;
