@@ -1,3 +1,5 @@
+/* Home Screen */
+
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal, Linking } from 'react-native';
 import { COLORS } from '../../constants/Colors';
