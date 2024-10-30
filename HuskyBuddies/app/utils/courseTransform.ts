@@ -17,7 +17,7 @@ let colorIndex = 0;
 
 export const getNextColor = (usedColors: string[]): string => {
   // filter available colors based on the used colors
-  const availableColors = COLORS.filter(color => !usedColors.includes(color));
+  const availableColors = COLORS.filter((color) => !usedColors.includes(color));
 
   // assign the next color from the available pool and cycle through if necessary
   const color = availableColors[colorIndex % availableColors.length];
@@ -34,41 +34,40 @@ const dayMappings: { [key: string]: string } = {
 };
 
 export const parseDays = (meetString: string): string[] => {
-    const days: string[] = [];
-    let remaining = meetString;
-  
-    while (remaining.length > 0) {
-      let matched = false;
-      // check for "Th" first, then single letters
-      if (remaining.startsWith("Th")) {
-        days.push(dayMappings["Th"]);
-        remaining = remaining.slice(2);
-        matched = true;
-      } else {
-        for (const [key, value] of Object.entries(dayMappings)) {
-          if (remaining.startsWith(key) && key !== "Th") {
-            days.push(value);
-            remaining = remaining.slice(key.length);
-            matched = true;
-            break;
-          }
+  const days: string[] = [];
+  let remaining = meetString;
+
+  while (remaining.length > 0) {
+    let matched = false;
+    // check for "Th" first, then single letters
+    if (remaining.startsWith("Th")) {
+      days.push(dayMappings["Th"]);
+      remaining = remaining.slice(2);
+      matched = true;
+    } else {
+      for (const [key, value] of Object.entries(dayMappings)) {
+        if (remaining.startsWith(key) && key !== "Th") {
+          days.push(value);
+          remaining = remaining.slice(key.length);
+          matched = true;
+          break;
         }
       }
-      
-      if (!matched) {
-        // skip any character that doesn't match a day
-        remaining = remaining.slice(1);
-      }
     }
-  
-    return days;
-  };
+
+    if (!matched) {
+      // skip any character that doesn't match a day
+      remaining = remaining.slice(1);
+    }
+  }
+
+  return days;
+};
 
 // TODO: need to support data like: "11-12:05p" (i.e. no ":" in number)
 export const parseTime = (
   meetString: string
 ): { startTime: string; endTime: string } => {
-
   const timePattern = /(\d{1,2}):?(\d{2})?-?(\d{1,2}):?(\d{2})?([ap])([ap])?/;
   const match = meetString.match(timePattern);
 
@@ -85,7 +84,7 @@ export const parseTime = (
     if (meridiem === "p" && formattedHour !== 12) {
       formattedHour += 12;
     } else if (meridiem === "a" && formattedHour === 12) {
-      formattedHour = 0; 
+      formattedHour = 0;
     }
     return `${formattedHour.toString().padStart(2, "0")}:${minute}`;
   };
@@ -108,7 +107,7 @@ export const parseTime = (
     endTime,
   };
 };
-  
+
 export const transformSectionToCourse = (
   courseCode: string,
   section: Section,

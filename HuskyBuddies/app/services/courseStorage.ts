@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Course } from "../types/course";
-import { getNextColor } from "../utils/courseTransform"
+import { getNextColor } from "../utils/courseTransform";
 
 const COURSES_STORAGE_KEY = "@courses";
 
@@ -18,7 +18,7 @@ export const storeCourse = async (course: Course): Promise<void> => {
     }
 
     // collect colors of existing courses
-    const usedColors = existingCourses.map(course => course.color);
+    const usedColors = existingCourses.map((course) => course.color);
 
     // assign a unique color that is not already in use
     course.color = getNextColor(usedColors);
