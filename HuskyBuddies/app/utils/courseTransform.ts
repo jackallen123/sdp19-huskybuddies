@@ -1,18 +1,26 @@
 import { Course, Section } from "../types/course";
 
 const COLORS = [
-  "#FFB3BA", // Pink
-  "#BAFFC9", // Green
-  "#BAE1FF", // Blue
-  "#FFFFBA", // Yellow
-  "#E0B3FF", // Purple
-  "#FFD8B3", // Orange
+  "#FF6F61", // Coral
+  "#6B5B93", // Slate Blue
+  "#88B04B", // Olive Green
+  "#F7CAC9", // Light Pink
+  "#92A8D1", // Light Blue
+  "#955251", // Deep Red
+  "#B9B3C2", // Lavender Gray
+  "#FFD700", // Gold
+  "#40E0D0", // Turquoise
+  "#FF7F50", // Coral Red
 ];
 
 let colorIndex = 0;
 
-const getNextColor = (): string => {
-  const color = COLORS[colorIndex];
+export const getNextColor = (usedColors: string[]): string => {
+  // filter available colors based on the used colors
+  const availableColors = COLORS.filter(color => !usedColors.includes(color));
+
+  // assign the next color from the available pool and cycle through if necessary
+  const color = availableColors[colorIndex % availableColors.length];
   colorIndex = (colorIndex + 1) % COLORS.length;
   return color;
 };
@@ -116,6 +124,6 @@ export const transformSectionToCourse = (
     days,
     startTime,
     endTime,
-    color: getNextColor(),
+    color: "", // color to be assigned in courseStorage
   };
 };
