@@ -64,6 +64,7 @@ export const parseDays = (meetString: string): string[] => {
     return days;
   };
 
+// TODO: need to support data like: "11-12:05p" (i.e. no ":" in number)
 export const parseTime = (
   meetString: string
 ): { startTime: string; endTime: string } => {
