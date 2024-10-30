@@ -26,7 +26,7 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     fetchSections();
   }, []);
 
-  const ip_address = '192.168.1.40' // set your IP address here
+  const ip_address = '10.194.248.24' // set your IP address here
 
   const fetchSections = async () => {
     try {
@@ -52,17 +52,18 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
 
   const handleAddSection = async (section: Section) => {
     try {
-      setLocationPopup({ visible: true, message: 'Fetching location...' });
+      setLocationPopup({ visible: true, message: 'Adding course...' });
       const location = await fetchLocation(section.sectionNumber);
       
       const course = transformSectionToCourse(courseCode, section, location);
+      console.log(course)
       await storeCourse(course);
       
-      // Success message
+      // success message
       setLocationPopup({ visible: true, message: 'Course added successfully!' });
       setTimeout(() => {
         setLocationPopup({ visible: false, message: '' });
-        onBack(); // Return to schedule
+        onBack(); // return to addCourse
       }, 1500);
     } catch (error:any) {
       Alert.alert('Error', error.message || 'Failed to add course');

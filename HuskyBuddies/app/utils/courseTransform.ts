@@ -31,7 +31,7 @@ export const parseDays = (meetString: string): string[] => {
   
     while (remaining.length > 0) {
       let matched = false;
-      // Check for "Th" first, then single letters
+      // check for "Th" first, then single letters
       if (remaining.startsWith("Th")) {
         days.push(dayMappings["Th"]);
         remaining = remaining.slice(2);
@@ -48,7 +48,7 @@ export const parseDays = (meetString: string): string[] => {
       }
       
       if (!matched) {
-        // Skip any character that doesn't match a day
+        // skip any character that doesn't match a day
         remaining = remaining.slice(1);
       }
     }
@@ -59,7 +59,8 @@ export const parseDays = (meetString: string): string[] => {
 export const parseTime = (
   meetString: string
 ): { startTime: string; endTime: string } => {
-  const timePattern = /(\d{1,2}):?(\d{2})?-(\d{1,2}):?(\d{2})?([ap])/;
+
+  const timePattern = /(\d{1,2}):?(\d{2})?-?(\d{1,2}):?(\d{2})?([ap])([ap])?/;
   const match = meetString.match(timePattern);
 
   if (!match) {
@@ -74,16 +75,31 @@ export const parseTime = (
     let formattedHour = parseInt(hour);
     if (meridiem === "p" && formattedHour !== 12) {
       formattedHour += 12;
+    } else if (meridiem === "a" && formattedHour === 12) {
+      formattedHour = 0; 
     }
     return `${formattedHour.toString().padStart(2, "0")}:${minute}`;
   };
 
+  const startHour = match[1];
+  const startMinute = match[2];
+  const endHour = match[3];
+  const endMinute = match[4];
+  const startMeridiem = match[5];
+  const endMeridiem = match[6] || startMeridiem;
+
+  const startTime = formatTime(startHour, startMinute, startMeridiem);
+  const endTime = formatTime(endHour, endMinute, endMeridiem);
+
+  console.log("Formatted Start Time:", startTime);
+  console.log("Formatted End Time:", endTime);
+
   return {
-    startTime: formatTime(match[1], match[2], match[5]),
-    endTime: formatTime(match[3], match[4], match[5]),
+    startTime,
+    endTime,
   };
 };
-
+  
 export const transformSectionToCourse = (
   courseCode: string,
   section: Section,
