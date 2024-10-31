@@ -20,6 +20,10 @@ export default function SettingsScreen() {
     setShowSchedule(true);
   }
 
+  const handleEditProfile = () => {
+    setShowProfileEditor(true);
+  }
+
   const handleSignOut = () => {
     // sign out logic
     router.replace('/');
@@ -44,6 +48,12 @@ export default function SettingsScreen() {
           </View>
 
           <ScrollView style={styles.scrollView}>
+
+            {/* edit profile */}
+            <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
+              <Text style={[styles.settingText, { fontSize: textSize }]}>Edit Profile</Text>
+              <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
+            </TouchableOpacity>
 
             {/* Manage Courses */}
             <TouchableOpacity style={styles.settingItem} onPress={handleManageCourses}>
@@ -104,6 +114,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </ScrollView>
 
+          {/* profile editor */}
           <Modal
             animationType="slide"
             transparent={false}
