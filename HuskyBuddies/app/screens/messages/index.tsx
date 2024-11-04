@@ -1,25 +1,13 @@
+import { COLORS } from '@/constants/Colors'; 
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/Colors';
 import { useRouter } from 'expo-router';
 
 const Banner = () => {
   return (
     <View style={styles.banner}>
       <Text style={styles.bannerText}>Let's Chat!</Text>
-    </View>
-  );
-};
-
-const MessagingPage = () => {
-  return (
-    // Separate containers for banner to be full-width
-    <View style={styles.pageContainer}>
-      <Banner />
-      <View style={styles.container}>
-        <ChatList />
-      </View>
     </View>
   );
 };
@@ -43,6 +31,17 @@ const ChatItem = ({ firstName, lastName, lastMessage, time, onPress }) => {
   );
 };
 
+const MessagingPage = () => {
+  return (
+    // Separate containers for banner to be full-width
+    <View style={styles.pageContainer}>
+      <Banner />
+      <View style={styles.container}>
+        <ChatList />
+      </View>
+    </View>
+  );
+};
 const ChatList = () => {
   const router = useRouter();  // Use useRouter from expo-router
 
