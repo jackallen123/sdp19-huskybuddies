@@ -1,63 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AddCourseScreen from './addCourse';
 import { COLORS } from '@/constants/Colors';
-
-interface Course {
-  id: string;
-  name: string;
-  location: string;
-  section: string;
-  days: string[];
-  startTime: string;
-  endTime: string;
-  color: string;
-}
-
-const mockCourses: Course[] = [
-  {
-    id: '1',
-    name: 'PP 1001',
-    location: 'MONT 104',
-    section: '001',
-    days: ['TUE', 'THU'],
-    startTime: '09:30',
-    endTime: '10:45',
-    color: '#FFB3BA',
-  },
-  {
-    id: '2',
-    name: 'MATH 2002W',
-    location: 'SCNC 201',
-    section: '002',
-    days: ['MON', 'WED', 'FRI'],
-    startTime: '11:00',
-    endTime: '11:50',
-    color: '#BAFFC9',
-  },
-  {
-    id: '3',
-    name: 'CHEM 3003',
-    location: 'LAB 305',
-    section: '003',
-    days: ['MON', 'WED'],
-    startTime: '13:30',
-    endTime: '14:45',
-    color: '#BAE1FF',
-  },
-  {
-    id: '4',
-    name: 'HIST 4004',
-    location: 'HUMN 102',
-    section: '004',
-    days: ['TUE', 'THU'],
-    startTime: '15:00',
-    endTime: '16:15',
-    color: '#FFFFBA',
-  },
-];
+import { Course } from '@/app/types/course';
+import { getAllCourses, deleteCourse } from '@/app/services/courseStorage';
 
 const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 
@@ -73,19 +21,101 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
   </View>
 );
 
+const DeleteCourseModal = ({ 
+  visible, 
+  courses, 
+  onClose, 
+  onDelete 
+}: { 
+  visible: boolean; 
+  courses: Course[]; 
+  onClose: () => void; 
+  onDelete: (courseId: string) => Promise<void>; 
+}) => (
+  <Modal
+    visible={visible}
+    transparent={true}
+    animationType="fade"
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Select Course to Delete</Text>
+        {courses.map((course) => (
+          <TouchableOpacity
+            key={course.id}
+            style={styles.courseDeleteItem}
+            onPress={async () => {
+              await onDelete(course.id);
+              onClose();
+            }}
+          >
+            <Text style={styles.courseDeleteText}>
+              {course.name} - Section {course.section}
+            </Text>
+            <Ionicons name="trash-outline" size={20} color="red" />
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity 
+          style={styles.cancelButton}
+          onPress={onClose}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+);
+
 export default function Schedule({ onBack }: { onBack: () => void }) {
   const [showOptions, setShowOptions] = useState(false);
   const [isAddingCourse, setIsAddingCourse] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // load courses when component mounts
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const storedCourses = await getAllCourses();
+        setCourses(storedCourses);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to load courses');
+      }
+    };
+    loadCourses();
+  }, []);
+
+  // refresh courses when returning from AddCourseScreen
+  useEffect(() => {
+    if (!isAddingCourse) {
+      const refreshCourses = async () => {
+        const storedCourses = await getAllCourses();
+        setCourses(storedCourses);
+      };
+      refreshCourses();
+    }
+  }, [isAddingCourse]);
+
+  const handleDeleteCourse = async (courseId: string) => {
+    try {
+      await deleteCourse(courseId);
+      const updatedCourses = await getAllCourses();
+      setCourses(updatedCourses);
+      Alert.alert('Success', 'Course deleted successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete course');
+    }
+  };
 
   const sortedCoursesByDay = useMemo(() => {
-    const sorted = weekdays.map(day => ({
+    return weekdays.map(day => ({
       day,
-      courses: mockCourses
+      courses: courses
         .filter(course => course.days.includes(day))
         .sort((a, b) => a.startTime.localeCompare(b.startTime))
     }));
-    return sorted;
-  }, []);
+  }, [courses]);
 
   if (isAddingCourse) {
     return (
@@ -121,12 +151,25 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
             <Ionicons name="add" size={24} color="black" />
             <Text style={styles.optionText}>Add Course</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.option}>
+          <TouchableOpacity 
+            style={styles.option}
+            onPress={() => {
+              setShowOptions(false);
+              setShowDeleteModal(true);
+            }}
+          >
             <Ionicons name="trash" size={24} color="black" />
             <Text style={styles.optionText}>Delete Course</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      <DeleteCourseModal
+        visible={showDeleteModal}
+        courses={courses}
+        onClose={() => setShowDeleteModal(false)}
+        onDelete={handleDeleteCourse}
+      />
       
       <View style={styles.scheduleWrapper}>
         <View style={styles.weekdaysHeader}>
@@ -257,5 +300,49 @@ const styles = StyleSheet.create({
     fontSize: 9,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 20,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  courseDeleteItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  courseDeleteText: {
+    fontSize: 16,
+    flex: 1,
+    marginRight: 8,
+  },
+  cancelButton: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: COLORS.UCONN_NAVY,
+    fontWeight: 'bold',
   },
 });
