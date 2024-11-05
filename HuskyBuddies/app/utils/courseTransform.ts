@@ -1,3 +1,8 @@
+/**
+ * courseTransform.ts
+ * contains utility functions for transforming and parsing course data
+ */
+
 import { Course, Section } from "../types/course";
 
 const COLORS = [
@@ -15,6 +20,11 @@ const COLORS = [
 
 let colorIndex = 0;
 
+/**
+ * assigns the next available color from the COLORS array to a course
+ * @param usedColors - an array of colors that have already been used
+ * @returns {string} - the next available color
+ */
 export const getNextColor = (usedColors: string[]): string => {
   // filter available colors based on the used colors
   const availableColors = COLORS.filter((color) => !usedColors.includes(color));
@@ -33,6 +43,11 @@ const dayMappings: { [key: string]: string } = {
   F: "FRI",
 };
 
+/**
+ * parses the "meets" string from a course section to find meeting days
+ * @param meetString - the "meets" string from the course section
+ * @returns {string[]} - an array of weekdays
+ */
 export const parseDays = (meetString: string): string[] => {
   const days: string[] = [];
   let remaining = meetString;
@@ -64,6 +79,11 @@ export const parseDays = (meetString: string): string[] => {
   return days;
 };
 
+/**
+ * parses the "meets" string from a course section to find meeting times
+ * @param meetString - the "meets" string from the course section
+ * @returns { startTime: string, endTime: string} - the start and end times of the course section
+ */
 export const parseTime = (
   meetString: string
 ): { startTime: string; endTime: string } => {
@@ -115,6 +135,13 @@ export const parseTime = (
   };
 };
 
+/**
+ * transforms a course section into a Course object
+ * @param courseCode - the code of the course
+ * @param section - the course section object
+ * @param location - the location of the course
+ * @returns {Course} - the transformed course object
+ */
 export const transformSectionToCourse = (
   courseCode: string,
   section: Section,

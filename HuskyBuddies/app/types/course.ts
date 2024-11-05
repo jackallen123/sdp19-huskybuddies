@@ -1,3 +1,8 @@
+/**
+ * course.ts
+ * defines the interfaces for Course and Section
+ */
+
 export interface Course {
   id: string;
   name: string;

@@ -1,9 +1,19 @@
+/**
+ * courseStorage.ts
+ * handles the storage and retrieval of course data using AsyncStorage.
+ */
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Course } from "../types/course";
 import { getNextColor } from "../utils/courseTransform";
 
 const COURSES_STORAGE_KEY = "@courses";
 
+/**
+ * stores a new course in AsyncStorage
+ * @param course - the course to be stored
+ * @throws {Error} if a course with the same ID already exists
+ */
 export const storeCourse = async (course: Course): Promise<void> => {
   try {
     const existingCoursesJson = await AsyncStorage.getItem(COURSES_STORAGE_KEY);
@@ -33,6 +43,10 @@ export const storeCourse = async (course: Course): Promise<void> => {
   }
 };
 
+/**
+ * retrieves all the stored courses from AsyncStorage
+ * @returns {Promise<Course[]>} - an array of courses
+ */
 export const getAllCourses = async (): Promise<Course[]> => {
   try {
     const coursesJson = await AsyncStorage.getItem(COURSES_STORAGE_KEY);
@@ -43,6 +57,10 @@ export const getAllCourses = async (): Promise<Course[]> => {
   }
 };
 
+/**
+ * deletes a course from AsyncStorage by its ID
+ * @param courseId - the id of the course to be deleted
+ */
 export const deleteCourse = async (courseId: string): Promise<void> => {
   try {
     const existingCoursesJson = await AsyncStorage.getItem(COURSES_STORAGE_KEY);
