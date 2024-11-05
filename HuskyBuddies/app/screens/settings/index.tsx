@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal, Linking } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal} from 'react-native';
 import { COLORS } from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
 import Schedule from '@/components/schedule';
+import ProfileEditor from '@/components/ProfileEditor';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function SettingsScreen() {
@@ -11,11 +12,16 @@ export default function SettingsScreen() {
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [textSize, setTextSize] = useState(16);
   const [showSchedule, setShowSchedule] = React.useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
   const router = useRouter();
   
   const handleManageCourses = () => {
     // navigate to schedule page
     setShowSchedule(true);
+  }
+
+  const handleEditProfile = () => {
+    setShowProfileEditor(true);
   }
 
   const handleSignOut = () => {
@@ -42,6 +48,12 @@ export default function SettingsScreen() {
           </View>
 
           <ScrollView style={styles.scrollView}>
+
+            {/* edit profile */}
+            <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
+              <Text style={[styles.settingText, { fontSize: textSize }]}>Edit Profile</Text>
+              <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
+            </TouchableOpacity>
 
             {/* Manage Courses */}
             <TouchableOpacity style={styles.settingItem} onPress={handleManageCourses}>
@@ -101,6 +113,16 @@ export default function SettingsScreen() {
               <Text style={styles.buttonText}>Delete Account</Text>
             </TouchableOpacity>
           </ScrollView>
+
+          {/* profile editor */}
+          <Modal
+            animationType="slide"
+            transparent={false}
+            visible={showProfileEditor}
+            onRequestClose={() => setShowProfileEditor(false)}
+            >
+              <ProfileEditor onClose={() => setShowProfileEditor(false)} />
+            </Modal>
         </>
       )}
     </SafeAreaView>
