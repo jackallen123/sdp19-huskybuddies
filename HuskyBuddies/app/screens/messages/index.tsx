@@ -2,15 +2,46 @@ import { COLORS } from '@/constants/Colors';
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 
-const Banner = () => {
+import SingleChatView from '@/components/SingleChat';
+
+
+export default function MessagingPage(){
+  const [showSingleChat, setShowSingleChat] = React.useState(false);
+  const [selectedChat, setSelectedChat] = React.useState(null); //specifies chat data to use when a chat item is pressed
+
+  const handleChatPress = (chat) => { //switches to single chat view and with data from chat item selected
+    setSelectedChat(chat);
+    setShowSingleChat(true);
+  };
+
+  if (showSingleChat && selectedChat) {
+    return (
+      <SingleChatView 
+        onBack={() => setShowSingleChat(false)} 
+        firstName={selectedChat.firstName} //passing firstName param
+        lastName={selectedChat.lastName} //passinglastName param
+        lastMessage={selectedChat.lastMessage} //passing lastMessage param
+      />
+    );
+  }
+  
   return (
+
+    <View style={styles.pageContainer}>
+      <Banner />
+      <View style={styles.container}>
+      <ChatList onChatPress={handleChatPress} />
+      </View>
+    </View>
+  )
+}
+
+const Banner = () => (
     <View style={styles.banner}>
       <Text style={styles.bannerText}>Let's Chat!</Text>
     </View>
-  );
-};
+);
 
 const chatData = [
   { id: '1', firstName: 'John', lastName: 'Doe', lastMessage: 'Thanks for the chili powder.', time: '2:15 PM' },
@@ -18,9 +49,24 @@ const chatData = [
   { id: '3', firstName: 'Alex', lastName: 'Johnson', lastMessage: 'Is this Squidward?', time: '2:15 PM' },
 ];
 
-const ChatItem = ({ firstName, lastName, lastMessage, time, onPress }) => {
+const ChatList = ({ onChatPress }) => {
   return (
-    <TouchableOpacity style={styles.chatItem} onPress={onPress}>
+  <FlatList
+    data={chatData}
+    renderItem={({ item }) => (
+      <ChatItem 
+      firstName={item.firstName} lastName={item.lastName} lastMessage={item.lastMessage} 
+      time={item.time} onPress={onChatPress} chat={item}
+      />
+    )}
+    keyExtractor={(item) => item.id}
+  />
+  );
+};
+
+const ChatItem = ({ firstName, lastName, lastMessage, time, onPress, chat }) => {
+  return (
+    <TouchableOpacity style={styles.chatItem} onPress={() => onPress(chat)}>
       <Ionicons name="person-circle-outline" size={40} color="gray" style={styles.icon} />
       <View style={styles.chatInfo}>
         <Text style={styles.chatName}>{`${firstName} ${lastName}`}</Text>
@@ -28,36 +74,6 @@ const ChatItem = ({ firstName, lastName, lastMessage, time, onPress }) => {
       </View>
       <Text style={styles.chatTime}>{time}</Text>
     </TouchableOpacity>
-  );
-};
-
-const MessagingPage = () => {
-  return (
-    // Separate containers for banner to be full-width
-    <View style={styles.pageContainer}>
-      <Banner />
-      <View style={styles.container}>
-        <ChatList />
-      </View>
-    </View>
-  );
-};
-const ChatList = () => {
-  const router = useRouter();  // Use useRouter from expo-router
-
-  return (
-    <FlatList
-      data={chatData}
-      renderItem={({ item }) => (
-        <ChatItem firstName={item.firstName} lastName={item.lastName} lastMessage={item.lastMessage} time={item.time}
-          onPress={() => router.push({
-            pathname: './singleChatView',
-            params: { userId: item.id, firstName: item.firstName, lastName: item.lastName, lastMessage: item.lastMessage},
-          })}
-        />
-      )}
-      keyExtractor={(item) => item.id}
-    />
   );
 };
 
@@ -114,5 +130,3 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-
-export default MessagingPage;

@@ -1,146 +1,158 @@
-import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
+import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 
-// Define colors based on your style guide
-const COLORS = {
-  UCONN_NAVY: '#0E1E45',
-  UCONN_WHITE: '#FFFFFF',
-  INPUT_BG: '#F5F5F5',
-  BUTTON_BG: '#0E1E45',
-  BORDER_COLOR: '#DDDDDD',
-};
+//      TODO:  add if showAllChats navigation back to main messaging page
 
-// Type definition for a chat message
-type Message = {
-  id: string;
-  text: string;
-  timestamp: Date;
-};
+export default function SingleChatView({ onBack, firstName, lastName, lastMessage }) {
 
-export default function SingleChatView({ onBack }: { onBack: () => void }) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState<string>('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      const message: Message = {
-        id: Math.random().toString(36).substr(2, 9),
-        text: newMessage,
-        timestamp: new Date(),
-      };
-      setMessages([...messages, message]);
-      setNewMessage('');
-      setErrorMessage(null);
-    } else {
-      setErrorMessage('Message cannot be empty.');
-    }
-  };
+  const chatMessages = [
+      { id: '1', message: "Hey, how are you?", sender: `${firstName} ${lastName}`, time: '2:00 PM' },
+      { id: '2', message: `${lastMessage}`, sender: 'You', time: '2:05 PM' },
+  ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Chat</Text>
-      </View>
+    <View style={styles.pageContainer}>
+        <View style={styles.chatContainer}>
+            <Banner />
+            <UserBanner firstName={firstName} lastName={lastName} />
+            <HorizontalLine />
+            {chatMessages.map((msg) => (
+                <Message key={msg.id} sender={msg.sender} message={msg.message} time={msg.time} />
+            ))}
+        </View>
+        {/* Input area */}
+        <View style={styles.inputContainer}>
+            <TextInput 
+                style={styles.input} 
+            />
+            <TouchableOpacity style={styles.sendButton} onPress={() => {}}>
+                <Text style={styles.sendButtonText}>Send</Text>
+            </TouchableOpacity>
+        </View>
+    </View>
+);
+};
 
-      {/* Messages List */}
-      <View style={styles.messagesContainer}>
-        {messages.map((message) => (
-          <View key={message.id} style={styles.messageItem}>
-            <Text style={styles.messageText}>{message.text}</Text>
-            <Text style={styles.timestampText}>
-              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          </View>
-        ))}
-      </View>
+const Banner = () => {
+    return (
+        <View style={styles.banner}>
+            <Text style={styles.bannerText}>Let's Chat!</Text>
+        </View>
+    );
+};
 
-      {/* Message Input Section */}
-      <View style={styles.inputContainer}>
-        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message"
-          value={newMessage}
-          onChangeText={setNewMessage}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Ionicons name="send" size={20} color={COLORS.UCONN_WHITE} />
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-}
+const UserBanner = ({ firstName, lastName }) => {
+    return (
+        <View style={styles.userBanner}>
+            <Ionicons name="person-circle-outline" size={40} color="gray" style={styles.userBannerIcon} />
+            <Text style={styles.userBannerText}>{`${firstName} ${lastName}`}</Text>
+        </View>
+    );
+};
+
+const HorizontalLine = () => {
+    return <View style={styles.horizontalLine} />;
+};
+
+const Message = ({ sender, message, time }) => {
+    return (
+        <View style={styles.messageContainer}>
+            <Text style={styles.sender}>{sender}</Text>
+            <Text style={styles.message}>{message}</Text>
+            <Text style={styles.time}>{time}</Text>
+        </View>
+    );
+};
+
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.UCONN_WHITE,
-  },
-  header: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    marginRight: 10,
-  },
-  headerText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  messagesContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  messageItem: {
-    padding: 10,
-    backgroundColor: COLORS.INPUT_BG,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  messageText: {
-    fontSize: 16,
-    color: COLORS.UCONN_NAVY,
-  },
-  timestampText: {
-    fontSize: 12,
-    color: COLORS.BORDER_COLOR,
-    marginTop: 5,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.BORDER_COLOR,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.INPUT_BG,
-    borderColor: COLORS.BORDER_COLOR,
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
-    marginRight: 10,
-  },
-  sendButton: {
-    backgroundColor: COLORS.BUTTON_BG,
-    padding: 10,
-    borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 12,
-    marginBottom: 5,
-  },
+    pageContainer: {
+        flex: 1,
+        backgroundColor: COLORS.UCONN_WHITE,
+    },
+    chatContainer: {
+        flex: 1,
+    },
+    banner: {
+        width: Dimensions.get('window').width,
+        padding: 20,
+        paddingTop: 60,
+        marginBottom: 20,
+        borderRadius: 1,
+        backgroundColor: COLORS.UCONN_NAVY,
+    },
+    bannerText: {
+        color: COLORS.UCONN_WHITE,
+        fontSize: 18,
+        textAlign: 'center',
+        fontWeight: 'bold',
+    },
+    userBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    userBannerText: {
+        marginBottom: 10,
+        fontSize: 18,
+    },
+    userBannerIcon: {
+        marginBottom: 10,
+        marginLeft: 10,
+        marginRight: 5,
+    },
+    horizontalLine: {
+        height: 2,
+        marginLeft: 10,
+        marginRight: 10,
+        backgroundColor: COLORS.UCONN_GREY,
+        marginBottom: 10,
+    },
+    messageContainer: {
+        marginBottom: 10,
+        flexDirection: 'column',
+        paddingLeft: 15,
+        paddingRight: 15,
+        paddingTop: 10,
+        fontSize: 18,
+    },
+    sender: {
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    message: {
+        marginVertical: 5,
+        fontSize: 15,
+    },
+    time: {
+        fontSize: 14,
+        color: COLORS.UCONN_GREY,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        borderTopWidth: 1,
+        borderColor: COLORS.UCONN_GREY,
+    },
+    input: {
+        flex: 1,
+        borderColor: COLORS.UCONN_GREY,
+        borderWidth: 1,
+        borderRadius: 20,
+        padding: 10,
+        marginRight: 10,
+        color: 'black',
+    },
+    sendButton: {
+        backgroundColor: COLORS.UCONN_NAVY,
+        borderRadius: 20,
+        padding: 10,
+    },
+    sendButtonText: {
+        color: COLORS.UCONN_WHITE,
+        fontWeight: 'bold',
+    },
 });
+
