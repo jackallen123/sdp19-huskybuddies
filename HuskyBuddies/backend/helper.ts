@@ -173,7 +173,6 @@ export async function scrapeAllCourses() {
 
       // update and log process
       processedCount += Math.min(BATCH_SIZE, subjectLinks.length - i);
-      console.log(`Processed ${processedCount}/${totalSubjects} subjects`);
 
       // add delay between batches to prevent overloading
       if (i + BATCH_SIZE < subjectLinks.length) {
