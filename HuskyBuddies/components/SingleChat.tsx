@@ -4,7 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 //      TODO:  add if showAllChats navigation back to main messaging page
 
-export default function SingleChatView({ onBack, firstName, lastName, lastMessage }) {
+interface SingleChatViewProps {
+    onBack: () => void;
+    firstName: string;
+    lastName: string;
+    lastMessage: string;
+}
+
+export default function SingleChatView({ onBack, firstName, lastName, lastMessage }: SingleChatViewProps) {
 
   const chatMessages = [
       { id: '1', message: "Hey, how are you?", sender: `${firstName} ${lastName}`, time: '2:00 PM' },
@@ -13,6 +20,7 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
 
   return (
     <View style={styles.pageContainer}>
+        {/* Banner, full name, messages... */}
         <View style={styles.chatContainer}>
             <Banner />
             <UserBanner firstName={firstName} lastName={lastName} />
@@ -21,7 +29,7 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
                 <Message key={msg.id} sender={msg.sender} message={msg.message} time={msg.time} />
             ))}
         </View>
-        {/* Input area */}
+        {/* Message input area... */}
         <View style={styles.inputContainer}>
             <TextInput 
                 style={styles.input} 
@@ -42,28 +50,41 @@ const Banner = () => {
     );
 };
 
-const UserBanner = ({ firstName, lastName }) => {
+interface UserBannerProps {
+    firstName: string;
+    lastName: string;
+  }
+  
+  const UserBanner: React.FC < UserBannerProps> = ({ firstName, lastName }) => {
     return (
-        <View style={styles.userBanner}>
-            <Ionicons name="person-circle-outline" size={40} color="gray" style={styles.userBannerIcon} />
-            <Text style={styles.userBannerText}>{`${firstName} ${lastName}`}</Text>
-        </View>
+      <View style={styles.userBanner}>
+        <Ionicons name="person-circle-outline" size={40} color="gray" style={styles.userBannerIcon} />
+        <Text style={styles.userBannerText}>{`${firstName} ${lastName}`}</Text>
+      </View>
     );
-};
+  };
+  
 
 const HorizontalLine = () => {
     return <View style={styles.horizontalLine} />;
 };
 
-const Message = ({ sender, message, time }) => {
+//
+interface MessageProps {
+    sender: string;
+    message: string;
+    time: string;
+  }
+  
+  const Message: React.FC<MessageProps> = ({ sender, message, time }) => {
     return (
-        <View style={styles.messageContainer}>
-            <Text style={styles.sender}>{sender}</Text>
-            <Text style={styles.message}>{message}</Text>
-            <Text style={styles.time}>{time}</Text>
-        </View>
+      <View style={styles.messageContainer}>
+        <Text style={styles.sender}>{sender}</Text>
+        <Text style={styles.message}>{message}</Text>
+        <Text style={styles.time}>{time}</Text>
+      </View>
     );
-};
+  };
 
 
 const styles = StyleSheet.create({
