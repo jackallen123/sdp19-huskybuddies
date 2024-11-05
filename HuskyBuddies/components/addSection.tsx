@@ -26,7 +26,7 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     fetchSections();
   }, []);
 
-  const ip_address = '10.194.248.24' // set your IP address here
+  const ip_address = '' // set your IP address here
 
   const fetchSections = async () => {
     try {
@@ -51,12 +51,17 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
   };
 
   const handleAddSection = async (section: Section) => {
+    // check if the section does not meet
+    if (section.meets === "Does Not Meet") {
+      Alert.alert("Course does not meet", "This course does not have a meeting time and cannot be added to your schedule.");
+      return;
+    }
+
     try {
       setLocationPopup({ visible: true, message: 'Adding course...' });
       const location = await fetchLocation(section.sectionNumber);
       
       const course = transformSectionToCourse(courseCode, section, location);
-      console.log(course)
       await storeCourse(course);
       
       // success message

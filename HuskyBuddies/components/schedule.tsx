@@ -73,7 +73,7 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Load courses when component mounts
+  // load courses when component mounts
   useEffect(() => {
     const loadCourses = async () => {
       try {
@@ -86,7 +86,7 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
     loadCourses();
   }, []);
 
-  // Refresh courses when returning from AddCourseScreen
+  // refresh courses when returning from AddCourseScreen
   useEffect(() => {
     if (!isAddingCourse) {
       const refreshCourses = async () => {

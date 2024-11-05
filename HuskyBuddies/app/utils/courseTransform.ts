@@ -64,11 +64,10 @@ export const parseDays = (meetString: string): string[] => {
   return days;
 };
 
-// TODO: need to support data like: "11-12:05p" (i.e. no ":" in first number)
 export const parseTime = (
   meetString: string
 ): { startTime: string; endTime: string } => {
-  const timePattern = /(\d{1,2}):?(\d{2})?-?(\d{1,2}):?(\d{2})?([ap])([ap])?/;
+  const timePattern = /(\d{1,2}):?(\d{2})?([ap])?-?(\d{1,2})?:?(\d{2})?([ap])?/;
   const match = meetString.match(timePattern);
 
   if (!match) {
@@ -81,26 +80,34 @@ export const parseTime = (
     meridiem: string
   ): string => {
     let formattedHour = parseInt(hour);
-    if (meridiem === "p" && formattedHour !== 12) {
+    const isPM = meridiem === "p";
+
+    // convert to 12-hour format for display
+    if (isPM && formattedHour !== 12) {
       formattedHour += 12;
-    } else if (meridiem === "a" && formattedHour === 12) {
+    } else if (!isPM && formattedHour === 12) {
       formattedHour = 0;
     }
-    return `${formattedHour.toString().padStart(2, "0")}:${minute}`;
+
+    // format in 12-hour style (1 - 12 range)
+    const displayHour = formattedHour % 12 || 12;
+    const displayMinute = minute.padStart(2, "0");
+
+    // append AM/PM
+    return `${displayHour}:${displayMinute} ${isPM ? "PM" : "AM"}`;
   };
 
+  // extract start and end time components from the regex match
   const startHour = match[1];
-  const startMinute = match[2];
-  const endHour = match[3];
-  const endMinute = match[4];
-  const startMeridiem = match[5];
-  const endMeridiem = match[6] || startMeridiem;
+  const startMinute = match[2] || "00"; 
+  const startMeridiem = match[3];
+  const endHour = match[4] || startHour; // use start hour if end is missing
+  const endMinute = match[5] || "00"; 
+  const endMeridiem = match[6] || startMeridiem; // use start meridiem if end is missing
 
+  // format start and end times
   const startTime = formatTime(startHour, startMinute, startMeridiem);
   const endTime = formatTime(endHour, endMinute, endMeridiem);
-
-  console.log("Formatted Start Time:", startTime);
-  console.log("Formatted End Time:", endTime);
 
   return {
     startTime,
