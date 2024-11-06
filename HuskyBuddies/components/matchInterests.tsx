@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 // Mock data for student profiles
 const studentProfiles = [
@@ -18,7 +19,7 @@ const studentProfiles = [
   { id: '5', name: 'Eva', image: 'https://i.pravatar.cc/150?img=5', classes: ['Literature', 'History', 'Art'], interests: ['Reading', 'Painting'], location: 'Hartford' },
 ];
 
-export default function MatchingInterests() {
+export default function MatchingInterests({onBack}:{onBack:() => void}) {
   const [matchedStudents, setMatchedStudents] = useState([]);
   const [buddyList, setBuddyList] = useState([]);
 
@@ -114,6 +115,9 @@ export default function MatchingInterests() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <Ionicons name="arrow-back" size={24} color={'#002654'} />
+      </TouchableOpacity>
       <FlatList
         ListHeaderComponent={renderHeader}
         data={matchedStudents}
@@ -234,5 +238,9 @@ const styles = StyleSheet.create({
   },
   buddyName: {
     fontSize: 14,
+  },
+  backButton: {
+    padding: 8,
+    marginTop: 32,
   },
 });

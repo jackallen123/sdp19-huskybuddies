@@ -1,41 +1,59 @@
 import React from 'react';
-import { useRouter, Link } from 'expo-router';
-import { View, Text, Button, StyleSheet } from 'react-native';
-
+import { View, Text, Button, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import MatchingClasses from '@/components/matchClasses';
+import MatchingInterests from '@/components/matchInterests';
+import MatchingLocation from '@/components/matchLocation';
+import { COLORS } from '@/constants/Colors'; 
 
 
 const IndexScreen = () => {
-    const router = useRouter();
+    const [showMatchingClasses, setShowMatchingClasses] = React.useState(false);
+    const [showMatchingInterests, setShowMatchingInterests] = React.useState(false);
+    const [showMatchingLocation, setShowMatchingLocation] = React.useState(false);
 
+    if (showMatchingClasses) {
+        return <MatchingClasses onBack={() => setShowMatchingClasses(false)} />;
+        }
+    if (showMatchingInterests){
+        return <MatchingInterests onBack={() => setShowMatchingInterests(false)} />;
+    }
+    if (showMatchingLocation){
+        return <MatchingInterests onBack={() => setShowMatchingLocation(false)} />;
+    }
     return (
-        /*
-        <View style={styles.container}>
-            <Text style={styles.header}>Student Matching</Text>
-            <Link href="./match_classes">
-            </Link>
-                <Button title="Classes" onPress={() => {}} />
-        </View>
-        */
-        
+        <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.header}>Student Matching Page</Text>
+            </View>
+            
+            <View style={styles.viewAllButtonWrapper}>
+            <TouchableOpacity 
+                style={styles.viewAllButton}
+                onPress={() => setShowMatchingClasses(true)}
+            >
+                <Text style={styles.viewAllButtonText}>Match By Classes</Text>
+            </TouchableOpacity>
+            </View>
 
-        <View style={styles.container}>
-            <Text style={styles.header}>Student Matching</Text>
-            
-            <Button
-                title="Match by Classes"
-                onPress={() => router.replace('/screens/student-matching/classes')}
-            />
-            <Button
-                title="Match by Interests"
-                onPress={() => router.replace('/screens/student-matching/interests')}
-            />
-            <Button
-                title="Match by Location"
-                onPress={() => router.replace('/screens/student-matching/location')}
-            />
-            
-        </View>
-        
+            <View style={styles.viewAllButtonWrapper}>
+            <TouchableOpacity 
+                style={styles.viewAllButton}
+                onPress={() => setShowMatchingInterests(true)}
+            >
+                <Text style={styles.viewAllButtonText}>Match By Interests</Text>
+            </TouchableOpacity>
+            </View>
+
+            <View style={styles.viewAllButtonWrapper}>
+            <TouchableOpacity 
+                style={styles.viewAllButton}
+                onPress={() => setShowMatchingLocation(true)}
+            >
+                <Text style={styles.viewAllButtonText}>Match by Location</Text>
+            </TouchableOpacity>
+            </View>
+
+        </SafeAreaView>
     )
 }
 
@@ -48,6 +66,20 @@ const styles = StyleSheet.create({
     header: {
         fontSize: 24,
         marginBottom: 20,
+    },
+    viewAllButtonWrapper: {
+    marginTop: 20,
+    alignItems: 'center',
+    },
+    viewAllButton: {
+    backgroundColor: COLORS.UCONN_NAVY,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    },
+    viewAllButtonText: {
+    color: COLORS.UCONN_WHITE,
+    fontSize: 16,
     },
 });
 

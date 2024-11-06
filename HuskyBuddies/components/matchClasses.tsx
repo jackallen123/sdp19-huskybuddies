@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 // Mock data for student profiles
 const studentProfiles = [
@@ -18,13 +19,13 @@ const studentProfiles = [
   { id: '5', name: 'Eva', image: 'https://i.pravatar.cc/150?img=5', classes: ['Literature', 'History', 'Art'], interests: ['Reading', 'Painting'], location: 'Hartford' },
 ];
 
-export default function MatchingLocation() {
+export default function MatchingClasses ({onBack}:{onBack:() => void}) {
   const [matchedStudents, setMatchedStudents] = useState([]);
   const [buddyList, setBuddyList] = useState([]);
 
   const findMatches = () => {
     const filteredMatches = studentProfiles.filter(student => 
-      student.location == studentProfiles[0].location
+      student.classes.some(cls => studentProfiles[0].classes.includes(cls))
     );
     setMatchedStudents(filteredMatches);
   };
@@ -55,7 +56,7 @@ export default function MatchingLocation() {
           <Image source={{ uri: item.image }} style={styles.avatar} />
           <Text style={styles.profileName}>{item.name}</Text>
         </View>
-        <Text style={styles.infoText}>Location: {item.location}</Text>
+        <Text style={styles.infoText}>Classes: {item.classes.join(', ')}</Text>
         <TouchableOpacity 
           style={[styles.matchButton, isMatched && styles.matchedButton]} 
           onPress={() => toggleBuddy(item.id)}
@@ -70,7 +71,7 @@ export default function MatchingLocation() {
 
   const renderHeader = () => (
     <View>
-      <Text style={styles.header}>Student Matching by Location</Text>
+      <Text style={styles.header}>Student Matching by Classes</Text>
       
       <View style={styles.profileSection}>
         <Text style={styles.sectionHeader}>Your Profile</Text>
@@ -78,7 +79,7 @@ export default function MatchingLocation() {
           <Image source={{ uri: studentProfiles[0].image }} style={styles.avatar} />
           <View style={styles.profileText}>
             <Text style={styles.profileName}>{studentProfiles[0].name}</Text>
-            <Text>Location: {studentProfiles[0].location}</Text>
+            <Text>Classes: {studentProfiles[0].classes.join(', ')}</Text>
           </View>
         </View>
       </View>
@@ -88,7 +89,7 @@ export default function MatchingLocation() {
           style={styles.filterButton}
           onPress={findMatches}
         >
-          <Text style={styles.filterButtonText}>Find Matches by Location</Text>
+          <Text style={styles.filterButtonText}>Find Matches by Classes</Text>
         </TouchableOpacity>
       </View>
 
@@ -114,6 +115,9 @@ export default function MatchingLocation() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <Ionicons name="arrow-back" size={24} color={'#002654'} />
+      </TouchableOpacity>
       <FlatList
         ListHeaderComponent={renderHeader}
         data={matchedStudents}
@@ -234,5 +238,9 @@ const styles = StyleSheet.create({
   },
   buddyName: {
     fontSize: 14,
+  },
+  backButton: {
+    padding: 8,
+    marginTop: 32,
   },
 });
