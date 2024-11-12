@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,7 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
     <View style={styles.pageContainer}>
         {/* Banner, full name, messages... */}
         <View style={styles.chatContainer}>
-            <Banner />
+            <Banner onBack={onBack}/>
             <Text style={styles.sendButtonText}>Send</Text>
             <UserBanner firstName={firstName} lastName={lastName} />
             <HorizontalLine />
@@ -43,11 +44,12 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
 );
 };
 
-const Banner = () => {
+
+const Banner = ({ onBack }: { onBack: () => void }) => {
     return (
         <View style={styles.banner}>
             {/* Back button */}
-             <TouchableOpacity style={styles.BackButton} onPress={() => {}}>
+             <TouchableOpacity style={styles.BackButton} onPress={onBack}>
                 <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
             </TouchableOpacity>
             <Text style={styles.bannerText}>Let's Chat!</Text>
@@ -76,7 +78,6 @@ const HorizontalLine = () => {
     return <View style={styles.horizontalLine} />;
 };
 
-//
 interface MessageProps {
     sender: string;
     message: string;

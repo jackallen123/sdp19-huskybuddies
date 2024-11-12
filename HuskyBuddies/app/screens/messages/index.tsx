@@ -1,5 +1,5 @@
-import { COLORS } from '@/constants/Colors'; 
 import React from 'react';
+import { COLORS } from '@/constants/Colors'; 
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import SingleChatView from '@/components/SingleChat';
