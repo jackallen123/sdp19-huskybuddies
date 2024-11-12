@@ -3,8 +3,6 @@ import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 
-//      TODO:  add if showAllChats navigation back to main messaging page
-
 interface SingleChatViewProps {
     onBack: () => void;
     firstName: string;
@@ -112,16 +110,13 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.UCONN_NAVY,
         flexDirection: 'row',
         alignItems: 'center',
-        
     },
     bannerText: {
         width: Dimensions.get('window').width,
         color: COLORS.UCONN_WHITE,
         fontSize: 18,
         fontWeight: 'bold',
-        backgroundColor: 'purple', //for testing
-        left: 10,
-        right: 50,
+        left: 525,
     },
     userBanner: {
         flexDirection: 'row',
@@ -190,11 +185,9 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     BackButton: {
-        backgroundColor: 'pink',
-        borderRadius: 20,
-        padding: 10,
-        height: 50,
-        width: 50,
+        position: 'absolute',
+        left: 20,
+        top: 60,
     },
     BackButtonText: {
         color: COLORS.UCONN_WHITE,
