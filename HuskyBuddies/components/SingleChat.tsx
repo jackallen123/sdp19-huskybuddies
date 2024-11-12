@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform, Image} from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import uuid from 'react-native-uuid';
@@ -10,9 +10,10 @@ interface SingleChatViewProps {
     firstName: string;
     lastName: string;
     lastMessage: string;
+    profilePicture: string;
 }
 
-export default function SingleChatView({ onBack, firstName, lastName, lastMessage }: SingleChatViewProps) {
+export default function SingleChatView({ onBack, firstName, lastName, lastMessage, profilePicture }: SingleChatViewProps) {
 
 {/* SEND MESSAGE */}
   const [messageInput, setMessageInput] = useState('');
@@ -34,7 +35,7 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
 
     setChatMessages([...chatMessages, newMessage]); //chatMessages array is updated to add message input
     setMessageInput('');  //reset input field
-    Keyboard.dismiss();
+    Keyboard.dismiss(); //reset keyboard position
   };
 
   return (
@@ -47,10 +48,10 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
     <View style={styles.chatContainer}>
         <Banner onBack={onBack} />
         <Text style={styles.sendButtonText}>Send</Text>
-        <UserBanner firstName={firstName} lastName={lastName} />
+        <UserBanner firstName={firstName} lastName={lastName} profilePicture={profilePicture}/>
         <HorizontalLine />
         {chatMessages.map((msg) => (
-        <Message key={msg.id} sender={msg.sender} message={msg.message} time={msg.time} />
+        <Message key={msg.id} sender={msg.sender} message={msg.message} time={msg.time}/>
         ))}
     </View>
     </TouchableWithoutFeedback>
@@ -88,12 +89,13 @@ const Banner = ({ onBack }: { onBack: () => void }) => {
 interface UserBannerProps {
     firstName: string;
     lastName: string;
+    profilePicture: string;
   }
   
-  const UserBanner: React.FC < UserBannerProps> = ({ firstName, lastName }) => {
+  const UserBanner: React.FC<UserBannerProps> = ({ firstName, lastName, profilePicture }) => {
     return (
       <View style={styles.userBanner}>
-        <Ionicons name="person-circle-outline" size={40} color="gray" style={styles.userBannerIcon} />
+        <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
         <Text style={styles.userBannerText}>{`${firstName} ${lastName}`}</Text>
       </View>
     );
@@ -109,7 +111,7 @@ interface MessageProps {
     time: string;
   }
   
-  const Message: React.FC<MessageProps> = ({ sender, message, time }) => {
+  const Message: React.FC<MessageProps> = ({ sender, message, time}) => {
     return (
       <View style={styles.messageContainer}>
         <Text style={styles.sender}>{sender}</Text>
@@ -135,14 +137,15 @@ const styles = StyleSheet.create({
         borderRadius: 1,
         backgroundColor: COLORS.UCONN_NAVY,
         flexDirection: 'row',
-        alignItems: 'center',
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
     bannerText: {
-        width: Dimensions.get('window').width,
         color: COLORS.UCONN_WHITE,
         fontSize: 18,
         fontWeight: 'bold',
-        left: 525,
+        textAlign: 'center',
+        flex: 1,
     },
     userBanner: {
         flexDirection: 'row',
@@ -213,12 +216,19 @@ const styles = StyleSheet.create({
     },
     BackButton: {
         position: 'absolute',
-        left: 20,
+        left: 30,
         top: 60,
+        padding: 5,
     },
     BackButtonText: {
         color: COLORS.UCONN_WHITE,
         fontWeight: 'bold',
     },
+    profilePicture: {
+      width: 50, 
+      height: 50,
+      borderRadius: 25,
+      marginRight: 10,
+    }
 });
 
