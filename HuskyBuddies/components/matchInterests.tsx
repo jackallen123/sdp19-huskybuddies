@@ -9,6 +9,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '@/constants/Colors'; 
 
 // Mock data for student profiles
 const studentProfiles = [
@@ -71,8 +72,6 @@ export default function MatchingInterests({onBack}:{onBack:() => void}) {
 
   const renderHeader = () => (
     <View>
-      <Text style={styles.header}>Student Matching by Interests</Text>
-      
       <View style={styles.profileSection}>
         <Text style={styles.sectionHeader}>Your Profile</Text>
         <View style={styles.profileInfo}>
@@ -115,6 +114,9 @@ export default function MatchingInterests({onBack}:{onBack:() => void}) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Match By Interests</Text>
+      </View>
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
         <Ionicons name="arrow-back" size={24} color={'#002654'} />
       </TouchableOpacity>
@@ -133,15 +135,18 @@ export default function MatchingInterests({onBack}:{onBack:() => void}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginVertical: 16,
-    paddingHorizontal: 16,
+      backgroundColor: COLORS.UCONN_NAVY,
+      padding: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+  },
+  headerText: {
+      color: COLORS.UCONN_WHITE,
+      fontSize: 20,
+      fontWeight: 'bold',
   },
   profileSection: {
     backgroundColor: '#fff',
@@ -173,7 +178,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   filterButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.UCONN_NAVY,
     padding: 12,
     borderRadius: 8,
   },
@@ -241,6 +246,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    marginTop: 32,
+    marginTop: 16,
   },
 });

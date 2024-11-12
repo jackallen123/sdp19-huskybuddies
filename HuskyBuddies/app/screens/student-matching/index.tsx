@@ -18,14 +18,20 @@ const IndexScreen = () => {
         return <MatchingInterests onBack={() => setShowMatchingInterests(false)} />;
     }
     if (showMatchingLocation){
-        return <MatchingInterests onBack={() => setShowMatchingLocation(false)} />;
+        return <MatchingLocation onBack={() => setShowMatchingLocation(false)} />;
     }
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.header}>Student Matching Page</Text>
+                <Text style={styles.headerText}>Husky Buddies</Text>
             </View>
             
+            <View style={styles.viewAllButtonWrapper}>
+                <Text style={{ color: 'black', fontSize: 16 }}>
+                    Matching options:
+                </Text>
+            </View>
+
             <View style={styles.viewAllButtonWrapper}>
             <TouchableOpacity 
                 style={styles.viewAllButton}
@@ -60,26 +66,32 @@ const IndexScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: COLORS.UCONN_WHITE,
+      },
+    header: {
+        backgroundColor: COLORS.UCONN_NAVY,
+        padding: 16,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    header: {
-        fontSize: 24,
-        marginBottom: 20,
+    headerText: {
+        color: COLORS.UCONN_WHITE,
+        fontSize: 20,
+        fontWeight: 'bold',
     },
     viewAllButtonWrapper: {
-    marginTop: 20,
-    alignItems: 'center',
+        marginTop: 20,
+        alignItems: 'center',
     },
     viewAllButton: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+        backgroundColor: COLORS.UCONN_NAVY,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
     },
     viewAllButtonText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 16,
+        color: COLORS.UCONN_WHITE,
+        fontSize: 16,
     },
 });
 
