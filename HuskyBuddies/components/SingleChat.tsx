@@ -1,7 +1,9 @@
-import React from 'react';
+import React, {useState} from 'react';
 import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import uuid from 'react-native-uuid';
+
 
 interface SingleChatViewProps {
     onBack: () => void;
@@ -12,10 +14,27 @@ interface SingleChatViewProps {
 
 export default function SingleChatView({ onBack, firstName, lastName, lastMessage }: SingleChatViewProps) {
 
-  const chatMessages = [
-      { id: '1', message: "Hey, how are you?", sender: `${firstName} ${lastName}`, time: '2:00 PM' },
-      { id: '2', message: `${lastMessage}`, sender: 'You', time: '2:05 PM' },
-  ];
+{/* SEND MESSAGE */}
+  const [messageInput, setMessageInput] = useState('');
+
+  const [chatMessages, setChatMessages] = useState([
+    { id: '1', message: "Hey, how are you?", sender: `${firstName} ${lastName}`, time: '2:00 PM' },
+    { id: '2', message: lastMessage, sender: 'You', time: '2:05 PM' },
+]);
+
+  const handleSendMessage = () => {
+    if (messageInput.trim() === '') return; //prevents whitespace message input
+
+  const newMessage = {
+    id: uuid.v4(),  //generate unique id for message
+    message: messageInput,
+    sender: 'You',
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), //
+    };
+
+    setChatMessages([...chatMessages, newMessage]); //chatMessages array is updated to add message input
+    setMessageInput('');  //reset input field
+  };
 
   return (
     <View style={styles.pageContainer}>
@@ -30,11 +49,15 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
             ))}
         </View>
         {/* Message input area... */}
-        <View style={styles.inputContainer}>
+        <View style = {styles.inputContainer}>
             <TextInput 
                 style={styles.input}
+                value={messageInput}
+                onChangeText ={setMessageInput}  //update messageInput state as user types
+                placeholder= "Message..."
+                placeholderTextColor = {COLORS.UCONN_GREY}
             />
-            <TouchableOpacity style={styles.sendButton} onPress={() => {}}>
+            <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
                 <Text style={styles.sendButtonText}>Send</Text>
             </TouchableOpacity>
         </View>
@@ -52,8 +75,6 @@ const Banner = ({ onBack }: { onBack: () => void }) => {
             </TouchableOpacity>
             <Text style={styles.bannerText}>Let's Chat!</Text>
         </View>
-        
-        
     );
 };
 

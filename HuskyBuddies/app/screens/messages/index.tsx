@@ -93,16 +93,13 @@ const ChatItem: React.FC<chatDataType & { onPress: (chat: chatDataType) => void;
       {/* Passes the data from a selected chat item to onPress function */}
       <Ionicons name="person-circle-outline" size={40} color="gray" style={styles.icon} />
       <View style={styles.chatInfo}>
-        <Text style={styles.chatName}>{firstName}</Text>
-        <Text>{lastName}</Text>
+        <Text style={styles.chatName}>{firstName} {lastName}</Text>
         <Text style={styles.chatMessage}>{lastMessage}</Text>
       </View>
       <Text style={styles.chatTime}>{time}</Text>
     </TouchableOpacity>
   );
 };
-
-
 
 
 const styles = StyleSheet.create({
