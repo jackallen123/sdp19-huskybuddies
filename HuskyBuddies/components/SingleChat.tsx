@@ -23,6 +23,7 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
         {/* Banner, full name, messages... */}
         <View style={styles.chatContainer}>
             <Banner />
+            <Text style={styles.sendButtonText}>Send</Text>
             <UserBanner firstName={firstName} lastName={lastName} />
             <HorizontalLine />
             {chatMessages.map((msg) => (
@@ -32,7 +33,7 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
         {/* Message input area... */}
         <View style={styles.inputContainer}>
             <TextInput 
-                style={styles.input} 
+                style={styles.input}
             />
             <TouchableOpacity style={styles.sendButton} onPress={() => {}}>
                 <Text style={styles.sendButtonText}>Send</Text>
@@ -45,8 +46,14 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
 const Banner = () => {
     return (
         <View style={styles.banner}>
+            {/* Back button */}
+             <TouchableOpacity style={styles.BackButton} onPress={() => {}}>
+                <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+            </TouchableOpacity>
             <Text style={styles.bannerText}>Let's Chat!</Text>
         </View>
+        
+        
     );
 };
 
@@ -102,12 +109,18 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         borderRadius: 1,
         backgroundColor: COLORS.UCONN_NAVY,
+        flexDirection: 'row',
+        alignItems: 'center',
+        
     },
     bannerText: {
+        width: Dimensions.get('window').width,
         color: COLORS.UCONN_WHITE,
         fontSize: 18,
-        textAlign: 'center',
         fontWeight: 'bold',
+        backgroundColor: 'purple', //for testing
+        left: 10,
+        right: 50,
     },
     userBanner: {
         flexDirection: 'row',
@@ -172,6 +185,17 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     sendButtonText: {
+        color: COLORS.UCONN_WHITE,
+        fontWeight: 'bold',
+    },
+    BackButton: {
+        backgroundColor: 'pink',
+        borderRadius: 20,
+        padding: 10,
+        height: 50,
+        width: 50,
+    },
+    BackButtonText: {
         color: COLORS.UCONN_WHITE,
         fontWeight: 'bold',
     },
