@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import uuid from 'react-native-uuid';
@@ -34,36 +34,43 @@ export default function SingleChatView({ onBack, firstName, lastName, lastMessag
 
     setChatMessages([...chatMessages, newMessage]); //chatMessages array is updated to add message input
     setMessageInput('');  //reset input field
+    Keyboard.dismiss();
   };
 
   return (
-    <View style={styles.pageContainer}>
-        {/* Banner, full name, messages... */}
-        <View style={styles.chatContainer}>
-            <Banner onBack={onBack}/>
-            <Text style={styles.sendButtonText}>Send</Text>
-            <UserBanner firstName={firstName} lastName={lastName} />
-            <HorizontalLine />
-            {chatMessages.map((msg) => (
-                <Message key={msg.id} sender={msg.sender} message={msg.message} time={msg.time} />
-            ))}
-        </View>
-        {/* Message input area... */}
-        <View style = {styles.inputContainer}>
-            <TextInput 
-                style={styles.input}
-                value={messageInput}
-                onChangeText ={setMessageInput}  //update messageInput state as user types
-                placeholder= "Message..."
-                placeholderTextColor = {COLORS.UCONN_GREY}
-            />
-            <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-                <Text style={styles.sendButtonText}>Send</Text>
-            </TouchableOpacity>
-        </View>
+    <KeyboardAvoidingView 
+      style={styles.pageContainer} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+
+    {/* Banner, full name, messages... */}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <View style={styles.chatContainer}>
+        <Banner onBack={onBack} />
+        <Text style={styles.sendButtonText}>Send</Text>
+        <UserBanner firstName={firstName} lastName={lastName} />
+        <HorizontalLine />
+        {chatMessages.map((msg) => (
+        <Message key={msg.id} sender={msg.sender} message={msg.message} time={msg.time} />
+        ))}
     </View>
-);
-};
+    </TouchableWithoutFeedback>
+      
+    {/* Input area with keyboard handling */}
+    <View style={styles.inputContainer}>
+    <TextInput
+        style={styles.input}
+        value={messageInput}
+        onChangeText={setMessageInput}
+        placeholder="Message..."
+        placeholderTextColor={COLORS.UCONN_GREY}
+    />
+    <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+        <Text style={styles.sendButtonText}>Send</Text>
+    </TouchableOpacity>
+    </View>
+    </KeyboardAvoidingView>
+  );
+}
 
 
 const Banner = ({ onBack }: { onBack: () => void }) => {
@@ -91,7 +98,6 @@ interface UserBannerProps {
       </View>
     );
   };
-  
 
 const HorizontalLine = () => {
     return <View style={styles.horizontalLine} />;
@@ -112,7 +118,6 @@ interface MessageProps {
       </View>
     );
   };
-
 
 const styles = StyleSheet.create({
     pageContainer: {
@@ -186,6 +191,7 @@ const styles = StyleSheet.create({
         padding: 10,
         borderTopWidth: 1,
         borderColor: COLORS.UCONN_GREY,
+        backgroundColor: COLORS.UCONN_WHITE,
     },
     input: {
         flex: 1,
