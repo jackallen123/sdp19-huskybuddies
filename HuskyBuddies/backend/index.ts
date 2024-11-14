@@ -3,7 +3,7 @@ import { scrapeAllCourses, fetchCourseSections, fetchSectionLocation } from './h
 
 const app = express();
 const port = 3000;
-const host = ''; // put IP address here (server needs to run on IP address instead of localhost to work on mobile device)
+const host = '10.194.235.123'; // put IP address here (server needs to run on IP address instead of localhost to work on mobile device)
 
 // middleware to parse JSON bodies
 app.use(express.json());

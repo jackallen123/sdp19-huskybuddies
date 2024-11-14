@@ -26,7 +26,7 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     fetchSections();
   }, []);
 
-  const ip_address = '' // set your IP address here
+  const ip_address = '10.194.235.123' // set your IP address here
 
   const fetchSections = async () => {
     try {
