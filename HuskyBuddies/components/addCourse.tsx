@@ -22,7 +22,7 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
     fetchCourses();
   }, []);
 
-  const ip_address = '10.194.235.123' // set your IP address here
+  const ip_address = '' // set your IP address here
 
   const fetchCourses = async () => {
     try {
