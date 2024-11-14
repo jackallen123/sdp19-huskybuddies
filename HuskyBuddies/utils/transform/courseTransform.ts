@@ -145,7 +145,7 @@ export const parseTime = (
 export const transformSectionToCourse = (
   courseCode: string,
   section: Section,
-  location: string
+  // location: string
 ): Course => {
   const { startTime, endTime } = parseTime(section.meets);
   const days = parseDays(section.meets);
@@ -153,7 +153,7 @@ export const transformSectionToCourse = (
   return {
     id: `${courseCode}-${section.sectionNumber}`,
     name: courseCode,
-    location,
+    // location,
     section: section.sectionNumber,
     days,
     startTime,

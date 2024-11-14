@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AddCourseScreen from './addCourse';
 import { COLORS } from '@/constants/Colors';
-import { Course } from '@/app/types/course';
-import { getAllCourses, deleteCourse } from '@/app/services/courseStorage';
+import { Course } from '@/utils/types/course';
+import { getAllCourses, deleteCourse } from '@/utils/services/courseStorage';
 
 const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 
@@ -14,7 +14,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
     <Text style={styles.courseTime}>{course.startTime}</Text>
     <View style={styles.courseInfo}>
       <Text numberOfLines={1} style={styles.courseName}>{course.name}</Text>
-      <Text style={styles.courseLocation}>{course.location}</Text>
+      {/* <Text style={styles.courseLocation}>{course.location}</Text> */}
       <Text style={styles.courseSection}>{course.section}</Text>
     </View>
     <Text style={styles.courseTime}>{course.endTime}</Text>
@@ -292,10 +292,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
-  courseLocation: {
-    fontSize: 9,
-    textAlign: 'center',
-  },
+  // courseLocation: {
+  //   fontSize: 9,
+  //   textAlign: 'center',
+  // },
   courseSection: {
     fontSize: 9,
     textAlign: 'center',
