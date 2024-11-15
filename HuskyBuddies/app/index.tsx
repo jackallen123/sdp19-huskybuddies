@@ -8,8 +8,8 @@ import { COLORS } from '@/constants/Colors';
 import { useRouter } from 'expo-router';
 
 // mock credentials
-const MOCK_EMAIL = '';
-const MOCK_PASSWORD = '';
+const MOCK_EMAIL = 'admin@uconn.edu';
+const MOCK_PASSWORD = 'admin';
 
 // types for props for login and signup components
 type LoginProps = {

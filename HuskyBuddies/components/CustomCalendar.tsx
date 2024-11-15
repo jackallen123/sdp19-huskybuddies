@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Event = {
   id: string;
   date: Date;
   title: string;
-  time: string; 
+  time: string;
 };
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -17,10 +18,10 @@ const COLORS = {
   UCONN_GREY: '#A7A9AC',
   HIGHLIGHT: '#FFD700',
   EVENT_COLOR: '#4A90E2',
-  BUTTON_BG: '#0E1E45', 
+  BUTTON_BG: '#0E1E45',
   INPUT_BG: '#F5F5F5',
   BORDER_COLOR: '#DDDDDD',
-  ERROR_COLOR: '#FF3B30', // Red color for validation errors
+  ERROR_COLOR: '#FF3B30',
 };
 
 export default function CustomCalendar({ onBack }: { onBack: () => void }) {
@@ -28,10 +29,37 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newEventTitle, setNewEventTitle] = useState<string>('');
-  const [newEventHour, setNewEventHour] = useState<string>(''); // Hours input
-  const [newEventMinute, setNewEventMinute] = useState<string>(''); // Minutes input
-  const [isAM, setIsAM] = useState<boolean>(true); // AM/PM state
-  const [errorMessage, setErrorMessage] = useState<string | null>(null); // Error message state
+  const [newEventHour, setNewEventHour] = useState<string>('');
+  const [newEventMinute, setNewEventMinute] = useState<string>('');
+  const [isAM, setIsAM] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      const storedEvents = await AsyncStorage.getItem('events');
+      if (storedEvents) {
+        const parsedEvents: Event[] = JSON.parse(storedEvents).map((event: any) => ({
+          ...event,
+          date: new Date(event.date),
+        }));
+        setEvents(parsedEvents);
+      }
+    };
+
+    loadEvents();
+  }, []);
+
+  useEffect(() => {
+    const saveEvents = async () => {
+      const eventsToSave = events.map(event => ({
+        ...event,
+        date: event.date.toISOString(), 
+      }));
+      await AsyncStorage.setItem('events', JSON.stringify(eventsToSave));
+    };
+
+    saveEvents();
+  }, [events]);
 
   const getDaysInMonth = (date: Date): (Date | null)[] => {
     const year = date.getFullYear();
@@ -70,19 +98,19 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
       const formattedTime = `${newEventHour}:${newEventMinute} ${isAM ? 'AM' : 'PM'}`;
       const newEvent: Event = {
         id: Math.random().toString(36).substr(2, 9),
-        date: selectedDate,
+        date: new Date(selectedDate),
         title: newEventTitle,
         time: formattedTime,
       };
-      setEvents([...events, newEvent]);
+      setEvents(prevEvents => [...prevEvents, newEvent]);
       setNewEventTitle('');
       setNewEventHour('');
       setNewEventMinute('');
       setIsAM(true);
       setSelectedDate(null);
-      setErrorMessage(null); // Clear error message on success
+      setErrorMessage(null);
     } else {
-      setErrorMessage('Please fill in all fields.'); // Set error message
+      setErrorMessage('Please fill in all fields.');
     }
   };
 
@@ -111,7 +139,7 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
           <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
-          <Text style={styles.headerText}>Calendar</Text>
+          <Text style={styles.headerText}>My Calendar</Text>
         </View>
       </View>
 
@@ -191,18 +219,14 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
             {/* AM/PM Button Container */}
             <View style={styles.amPmContainer}>
               <TouchableOpacity onPress={() => setIsAM(true)}>
-                <Text style={[styles.amPmButton, isAM && styles.amPmSelected]}>
-                  AM
-                </Text>
+                <Text style={[styles.amPmButton, isAM && styles.amPmSelected]}>AM</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setIsAM(false)}>
-                <Text style={[styles.amPmButton, !isAM && styles.amPmSelected]}>
-                  PM
-                </Text>
+                <Text style={[styles.amPmButton, !isAM && styles.amPmSelected]}>PM</Text>
               </TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddEvent}>
+          <TouchableOpacity onPress={handleAddEvent} style={styles.addButton}>
             <Text style={styles.addButtonText}>Add Event</Text>
           </TouchableOpacity>
         </View>
@@ -210,17 +234,15 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
 
       {/* Event List */}
       <View style={styles.eventListContainer}>
-        <Text style={styles.eventListTitle}>My Events</Text>
+        <Text style={styles.eventListTitle}>Your Events:</Text>
         {events.length === 0 ? (
-          <Text style={styles.noEventsText}>No events scheduled.</Text>
+          <Text style={styles.noEventsText}>No events yet.</Text>
         ) : (
-          events.map(event => (
+          events.map((event) => (
             <View key={event.id} style={styles.eventItem}>
-              <Text style={styles.eventItemText}>
-                {event.title} on {event.date.toDateString()} at {event.time}
-              </Text>
+              <Text style={styles.eventItemText}>{event.title} - {event.time}</Text>
               <TouchableOpacity onPress={() => handleDeleteEvent(event.id)}>
-                <Ionicons name="trash-outline" size={20} color={COLORS.UCONN_NAVY} />
+                <Text style={styles.deleteEventText}>Delete</Text>
               </TouchableOpacity>
             </View>
           ))
@@ -236,76 +258,73 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
     flexDirection: 'row',
+    padding: 16,
     alignItems: 'center',
+    backgroundColor: COLORS.UCONN_NAVY,
   },
   backButton: {
-    marginRight: 10,
+    padding: 8,
   },
   headerTextContainer: {
     flex: 1,
+    alignItems: 'center',
   },
   headerText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+    color: COLORS.UCONN_WHITE,
   },
   calendarContainer: {
+    flex: 1,
     padding: 16,
   },
   monthContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
   },
   monthText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
   },
   daysContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 10,
+    marginBottom: 8,
   },
   day: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
+    textAlign: 'center',
   },
   datesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
   },
   dateContainer: {
-    width: '14.28%',
+    width: '13%',
+    padding: 8,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
   },
   date: {
-    padding: 10,
-    backgroundColor: COLORS.INPUT_BG,
-    borderRadius: 5,
-    borderColor: COLORS.BORDER_COLOR,
-    borderWidth: 1,
+    backgroundColor: COLORS.UCONN_WHITE,
   },
   highlightedDate: {
     backgroundColor: COLORS.HIGHLIGHT,
-    padding: 10,
-    borderRadius: 5,
   },
   dateText: {
     fontSize: 16,
     color: COLORS.UCONN_NAVY,
   },
   eventContainer: {
+    marginTop: 4,
     backgroundColor: COLORS.EVENT_COLOR,
-    borderRadius: 3,
-    padding: 3,
-    marginVertical: 2,
+    padding: 4,
+    borderRadius: 4,
   },
   eventText: {
     color: COLORS.UCONN_WHITE,
@@ -313,82 +332,82 @@ const styles = StyleSheet.create({
   },
   addEventContainer: {
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.BORDER_COLOR,
+    backgroundColor: COLORS.UCONN_GREY,
   },
   addEventTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
   },
   input: {
     backgroundColor: COLORS.INPUT_BG,
-    borderColor: COLORS.BORDER_COLOR,
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 8,
-    marginBottom: 10,
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
   },
   timeInput: {
-    width: 50,
     backgroundColor: COLORS.INPUT_BG,
-    borderColor: COLORS.BORDER_COLOR,
-    borderWidth: 1,
-    borderRadius: 5,
     padding: 8,
-    marginRight: 5,
+    width: 50,
+    textAlign: 'center',
+    borderRadius: 4,
   },
   amPmContainer: {
     flexDirection: 'row',
-    marginLeft: 10,
+    marginTop: 8,
   },
   amPmButton: {
-    marginHorizontal: 5,
-    fontSize: 16,
+    fontSize: 18,
+    padding: 8,
+    marginHorizontal: 4,
   },
   amPmSelected: {
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
+    color: COLORS.HIGHLIGHT,
   },
   addButton: {
     backgroundColor: COLORS.BUTTON_BG,
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
     alignItems: 'center',
   },
   addButtonText: {
     color: COLORS.UCONN_WHITE,
     fontWeight: 'bold',
   },
+  errorText: {
+    color: COLORS.ERROR_COLOR,
+    fontSize: 14,
+    marginBottom: 8,
+  },
   eventListContainer: {
     padding: 16,
   },
   eventListTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
   },
   eventItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: COLORS.INPUT_BG,
-    borderRadius: 5,
-    marginBottom: 10,
+    padding: 8,
+    marginBottom: 8,
+    backgroundColor: COLORS.UCONN_GREY,
+    borderRadius: 4,
   },
   eventItemText: {
-    color: COLORS.UCONN_NAVY,
+    fontSize: 14,
+  },
+  deleteEventText: {
+    color: COLORS.ERROR_COLOR,
+    fontWeight: 'bold',
   },
   noEventsText: {
+    fontSize: 16,
     color: COLORS.UCONN_GREY,
-  },
-  errorText: {
-    color: COLORS.ERROR_COLOR, // Red color for error messages
-    marginBottom: 10,
   },
 });
