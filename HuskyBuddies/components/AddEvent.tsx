@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -42,14 +42,14 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
     setShowDatePicker(false);
     if (selectedDate) {
       setDate(selectedDate);
-      setShowTimePicker(true); // Show time picker after date is selected
+      setShowTimePicker(true); 
     }
   };
 
   const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
     if (selectedTime) {
       setDate(new Date(date!.setHours(selectedTime.getHours(), selectedTime.getMinutes())));
-      setShowTimePicker(false); // Hide time picker after time is selected
+      setShowTimePicker(false); 
     } else {
       setShowTimePicker(false);
     }
@@ -77,7 +77,7 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.formContainer}>
+      <View style={styles.formContainer}>
         <Text style={styles.title}>Post a New Event</Text>
         <TextInput
           value={title}
@@ -128,16 +128,15 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
         <TouchableOpacity onPress={handleSubmit} style={styles.button}>
           <Text style={styles.buttonText}>Post Event</Text>
         </TouchableOpacity>
-      </ScrollView>
-
-      <View style={styles.eventsContainer}>
-        <Text style={styles.eventsTitle}>Your Posted Events:</Text>
-        <FlatList
-          data={events}
-          renderItem={renderEventItem}
-          keyExtractor={(item) => item.id.toString()}
-        />
       </View>
+
+      {/* Scrollable Events List Section */}
+      <FlatList
+        style={styles.eventsContainer}
+        data={events}
+        renderItem={renderEventItem}
+        keyExtractor={(item) => item.id.toString()}
+      />
     </SafeAreaView>
   );
 };
@@ -221,6 +220,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   eventsContainer: {
+    flex: 1,
     padding: 16,
   },
   eventsTitle: {

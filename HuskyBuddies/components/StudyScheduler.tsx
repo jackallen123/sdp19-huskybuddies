@@ -1,17 +1,40 @@
-import React, { useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '@/constants/Colors';
 
-const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana']; // Dummy data for friends
+const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana']; // dummy data for friends
 
-export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => void; onSchedule: (session: any) => void }) {
+export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => void; onSchedule: (session: { friends: string[], date: Date }) => void }) {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [date, setDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [scheduledSessions, setScheduledSessions] = useState<any[]>([]); // Store scheduled sessions
+  const [scheduledSessions, setScheduledSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadScheduledSessions = async () => {
+      try {
+        const savedSessions = await AsyncStorage.getItem('scheduledSessions');
+        if (savedSessions) {
+          setScheduledSessions(JSON.parse(savedSessions));
+        }
+      } catch (error) {
+        console.error('Failed to load scheduled sessions', error);
+      }
+    };
+    loadScheduledSessions();
+  }, []);
+
+  const saveScheduledSessions = async (sessions: any[]) => {
+    try {
+      await AsyncStorage.setItem('scheduledSessions', JSON.stringify(sessions));
+    } catch (error) {
+      console.error('Failed to save scheduled sessions', error);
+    }
+  };
 
   const toggleFriendSelection = (friend: string) => {
     if (selectedFriends.includes(friend)) {
@@ -24,8 +47,10 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
   const scheduleSession = () => {
     if (date && selectedFriends.length > 0) {
       const newSession = { friends: selectedFriends, date };
-      setScheduledSessions([...scheduledSessions, newSession]);
-      onSchedule(newSession); 
+      const updatedSessions = [...scheduledSessions, newSession];
+      setScheduledSessions(updatedSessions);
+      saveScheduledSessions(updatedSessions);
+      onSchedule(newSession);
       setSelectedFriends([]);
       setDate(null);
       alert('Study session scheduled!');
@@ -35,19 +60,10 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
   };
 
   const deleteSession = (index: number) => {
-    setScheduledSessions(scheduledSessions.filter((_, i) => i !== index));
+    const updatedSessions = scheduledSessions.filter((_, i) => i !== index);
+    setScheduledSessions(updatedSessions);
+    saveScheduledSessions(updatedSessions);
   };
-
-  const renderSession = ({ item, index }: { item: any, index: number }) => (
-    <View style={styles.sessionItem}>
-      <Text style={styles.sessionText}>
-        {item.friends.join(', ')} - {item.date.toLocaleDateString()} {item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      </Text>
-      <TouchableOpacity onPress={() => deleteSession(index)} style={styles.deleteButton}>
-        <Ionicons name="trash" size={20} color={COLORS.UCONN_WHITE} />
-      </TouchableOpacity>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -60,25 +76,20 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
         </View>
       </View>
 
-      {/* Friends List */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Friends</Text>
-        <FlatList
-          data={friendsList}
-          keyExtractor={item => item}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.friendItem, selectedFriends.includes(item) && styles.selectedFriend]}
-              onPress={() => toggleFriendSelection(item)}
-            >
-              <Text style={styles.friendText}>{item}</Text>
-              {selectedFriends.includes(item) && <Ionicons name="checkmark" size={20} color={COLORS.UCONN_WHITE} />}
-            </TouchableOpacity>
-          )}
-        />
+        {friendsList.map((friend) => (
+          <TouchableOpacity
+            key={friend}
+            style={[styles.friendItem, selectedFriends.includes(friend) && styles.selectedFriend]}
+            onPress={() => toggleFriendSelection(friend)}
+          >
+            <Text style={styles.friendText}>{friend}</Text>
+            {selectedFriends.includes(friend) && <Ionicons name="checkmark" size={20} color={COLORS.UCONN_WHITE} />}
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Date & Time Picker */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
           <Text style={styles.inputText}>{date ? date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Date & Time'}</Text>
@@ -114,22 +125,38 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
         )}
       </View>
 
-      {/* Schedule Button */}
       <View style={styles.buttonWrapper}>
         <TouchableOpacity style={styles.scheduleButton} onPress={scheduleSession}>
           <Text style={styles.scheduleButtonText}>Schedule Study Session</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Display Scheduled Study Sessions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Scheduled Study Sessions:</Text>
-        
-        <FlatList
-          data={scheduledSessions}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={renderSession}
-        />
+
+        <ScrollView style={styles.scrollContainer}>
+          {scheduledSessions.length > 0 ? (
+            scheduledSessions.map((session, index) => (
+              <View key={index} style={styles.sessionBox}>
+                <View style={styles.sessionDetails}>
+                  <Text style={styles.sessionText}>
+                    Study session with: {session.friends.join(', ')}
+                  </Text>
+                  <Text style={styles.sessionDate}>
+                    {new Date(session.date).toLocaleDateString()}, {new Date(session.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+
+                {/* Delete button */}
+                <TouchableOpacity onPress={() => deleteSession(index)} style={styles.deleteButton}>
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          ) : (
+            <Text>No sessions scheduled yet.</Text>
+          )}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -212,21 +239,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingBottom: 10,
   },
-  sessionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderColor: COLORS.UCONN_NAVY,
-    marginBottom: 10,
+  scrollContainer: {
+    maxHeight: 300
+  },
+ 
+  sessionBox: {
+    backgroundColor: COLORS.UCONN_WHITE, 
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 10,
+    borderColor: '#ccc', 
+    borderWidth: 1, 
+  },
+  sessionDetails: {
+    marginBottom: 12,
   },
   sessionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.UCONN_NAVY,
+  },
+  sessionDate: {
     fontSize: 16,
     color: COLORS.UCONN_NAVY,
   },
   deleteButton: {
-    backgroundColor: '#FF4C4C',
+    backgroundColor: 'red',
     padding: 8,
     borderRadius: 5,
-  }
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: COLORS.UCONN_WHITE,
+    fontWeight: 'bold',
+  },
 });
+

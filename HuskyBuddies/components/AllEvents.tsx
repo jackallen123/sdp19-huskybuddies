@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SafeAreaView, View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Event {
   id: number;
@@ -18,61 +17,35 @@ interface AllEventsProps {
 }
 
 const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }) => {
-  const [addedToCalendar, setAddedToCalendar] = useState<number[]>([]);
+  const [addedEvents, setAddedEvents] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    const loadCalendarEvents = async () => {
-      try {
-        const savedCalendarEvents = await AsyncStorage.getItem('calendarEvents');
-        if (savedCalendarEvents) {
-          setAddedToCalendar(JSON.parse(savedCalendarEvents));
-        }
-      } catch (error) {
-        console.error('Failed to load calendar events', error);
-      }
-    };
-
-    loadCalendarEvents();
-  }, []);
-
-  const handleAddToCalendar = async (event: Event) => {
-    try {
-      await onAddToCalendar(event);
-      setAddedToCalendar(prev => [...prev, event.id]);
-    } catch (error) {
-      console.error('Error adding to calendar:', error);
+  const handleAddToCalendar = (event: Event) => {
+    if (addedEvents.has(event.id)) {
+      setAddedEvents(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(event.id);
+        return newSet;
+      });
+    } else {
+      onAddToCalendar(event);
+      setAddedEvents(prev => new Set(prev.add(event.id)));
     }
-  };
-
-  const formatEventDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    });
   };
 
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text style={styles.eventDate}>{formatEventDate(item.date)}</Text>
-      <Text style={styles.eventDescription}>{item.description}</Text>
-      
-      {addedToCalendar.includes(item.id) ? (
-        <View style={[styles.addToCalendarButton, styles.addedToCalendarButton]}>
-          <Text style={styles.addToCalendarButtonText}>Added to Calendar</Text>
-        </View>
-      ) : (
-        <TouchableOpacity
-          style={styles.addToCalendarButton}
-          onPress={() => handleAddToCalendar(item)}
-        >
-          <Text style={styles.addToCalendarButtonText}>Add to Calendar</Text>
-        </TouchableOpacity>
-      )}
+      <Text>{item.date}</Text>
+      <Text>{item.description}</Text>
+
+      <TouchableOpacity
+        style={styles.addToCalendarButton}
+        onPress={() => handleAddToCalendar(item)}
+      >
+        <Text style={styles.addToCalendarButtonText}>
+          {addedEvents.has(item.id) ? 'Added to Calendar' : 'Add to Calendar'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -86,7 +59,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
           <Text style={styles.headerText}>All Events</Text>
         </View>
       </View>
-      
+
       <View style={styles.eventsContainer}>
         <Text style={styles.eventsTitle}>Posted Events:</Text>
         <FlatList
@@ -141,17 +114,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  eventDate: {
-    fontSize: 14,
-    color: '#666',
-    marginVertical: 4,
-  },
-  eventDescription: {
-    fontSize: 14,
-    marginVertical: 4,
-  },
   listContainer: {
-    paddingBottom: 20,
+    marginTop: 40,
   },
   addToCalendarButton: {
     marginTop: 10,
@@ -159,10 +123,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 5,
-    alignSelf: 'flex-start',
-  },
-  addedToCalendarButton: {
-    backgroundColor: '#666',
   },
   addToCalendarButtonText: {
     color: COLORS.UCONN_WHITE,
