@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch
 import { COLORS } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Picker } from '@react-native-picker/picker';
 import uconnMajors from '../backend/data/uconn-majors.json';
 
 interface ProfileEditorProps {
@@ -20,12 +19,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   const [name, setName] = useState('');
   const [isCommuter, setIsCommuter] = useState(false);
   const [studyPreferences, setStudyPreferences] = useState<string[]>([]);
-  const [customStudyPreference, setCustomStudyPreference] = useState('');
+  const [otherStudyPreference, setOtherStudyPreference] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
-  const [customInterest, setCustomInterest] = useState('');
+  const [otherInterest, setOtherInterest] = useState('');
   const [major, setMajor] = useState('');
-  const [clubs, setClubs] = useState('');
-  const [socialMedia, setSocialMedia] = useState('');
+  const [clubs, setClubs] = useState<string[]>([]);
+  const [currentClub, setCurrentClub] = useState('');
+  const [socialMediaLinks, setSocialMediaLinks] = useState<string[]>([]);
+  const [currentLink, setCurrentLink] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   
   const scrollViewRef = useRef<ScrollView>(null);
@@ -55,6 +56,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
     scrollViewRef.current?.scrollTo({ y: y, animated: true });
   };
 
+  {/* pick options for study preferences and interests */}
   const toggleOption = (option: string, array: string[], setArray: React.Dispatch<React.SetStateAction<string[]>>) => {
     if (array.includes(option)) {
       setArray(array.filter(item => item !== option));
@@ -63,14 +65,30 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
     }
   };
 
-  const handleCustomOption = (option: string, customValue: string, array: string[], setArray: React.Dispatch<React.SetStateAction<string[]>>) => {
-    if (customValue.trim() !== '') {
-      if (array.includes(option)) {
-        setArray(array.filter(item => item !== option).concat(customValue.trim()));
-      } else {
-        setArray([...array, customValue.trim()]);
-      }
+  {/* add club */}
+  const addClub = () => {
+    if (currentClub.trim() !== '' && !clubs.includes(currentClub.trim())) {
+      setClubs([...clubs, currentClub.trim()]);
+      setCurrentClub('');
     }
+  };
+
+  {/* remove club */}
+  const removeClub = (club: string) => {
+    setClubs(clubs.filter(c => c !== club));
+  };
+
+  {/* add social media links */}
+  const addLink = () => {
+    if (currentLink.trim() !== '' && !socialMediaLinks.includes(currentLink.trim())) {
+      setSocialMediaLinks([...socialMediaLinks, currentLink.trim()]);
+      setCurrentLink('');
+    }
+  };
+
+  {/* remove social media links */}
+  const removeLink = (link: string) => {
+    setSocialMediaLinks(socialMediaLinks.filter(l => l !== link));
   };
 
   return (
@@ -135,7 +153,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
             />
           </View>
 
-          {/* lets try riding with the drop down but other SHOULD let you write it in */}
+          {/* study preferences */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Study Preferences</Text>
             <View style={styles.optionsContainer}>
@@ -157,14 +175,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
                 </TouchableOpacity>
               ))}
             </View>
+
             {studyPreferences.includes('Other') && (
               <TextInput
                 style={[styles.input, styles.customInput]}
-                value={customStudyPreference}
-                onChangeText={setCustomStudyPreference}
+                value={otherStudyPreference}
+                onChangeText={setOtherStudyPreference}
                 placeholder="Enter study preference"
                 placeholderTextColor={COLORS.UCONN_GREY}
-                onBlur={() => handleCustomOption('Other', customStudyPreference, studyPreferences, setStudyPreferences)}
               />
             )}
           </View>
@@ -191,14 +209,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
                 </TouchableOpacity>
               ))}
             </View>
+
             {interests.includes('Other') && (
               <TextInput
                 style={[styles.input, styles.customInput]}
-                value={customInterest}
-                onChangeText={setCustomInterest}
+                value={otherInterest}
+                onChangeText={setOtherInterest}
                 placeholder="Enter interest"
                 placeholderTextColor={COLORS.UCONN_GREY}
-                onBlur={() => handleCustomOption('Other', customInterest, interests, setInterests)}
               />
             )}
           </View>
@@ -206,47 +224,68 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
           {/* major */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Major</Text>
-            <Picker
-              selectedValue={major}
-              onValueChange={(itemValue) => setMajor(itemValue)}
-              style={styles.picker}
-            >
-              <Picker.Item label="Select a major" value="" />
-              {uconnMajors.map((majorOption) => (
-                <Picker.Item key={majorOption} label={majorOption} value={majorOption} />
-              ))}
-            </Picker>
           </View>
 
           {/* club */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Clubs</Text>
-            <TextInput
-              style={styles.input}
-              value={clubs}
-              onChangeText={setClubs}
-              placeholder="Enter your clubs"
-              placeholderTextColor={COLORS.UCONN_GREY}
-              multiline
-              numberOfLines={3}
-              onFocus={() => handleFocus(height * 0.5)}
-            />
+            <View style={styles.tagInputContainer}>
+              <TextInput
+                style={styles.tagInput}
+                value={currentClub}
+                onChangeText={setCurrentClub}
+                placeholder="Enter a club"
+                placeholderTextColor={COLORS.UCONN_GREY}
+                onSubmitEditing={addClub}
+              />
+
+              <TouchableOpacity style={styles.addButton} onPress={addClub}>
+                <Text style={styles.addButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tagsContainer}>
+              {clubs.map((club) => (
+                <View key={club} style={styles.tag}>
+                  <Text style={styles.tagText}>{club}</Text>
+                  <TouchableOpacity onPress={() => removeClub(club)}>
+                    <Ionicons name="close-circle" size={18} color={COLORS.UCONN_WHITE} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           </View>
 
-          {/* social media links - again not sure how we want this to look */}
+          {/* social media links */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Links</Text>
-            <TextInput
-              style={styles.input}
-              value={socialMedia}
-              onChangeText={setSocialMedia}
-              placeholder="Enter your social media links"
-              placeholderTextColor={COLORS.UCONN_GREY}
-              multiline
-              numberOfLines={3}
-              onFocus={() => handleFocus(height * 0.6)}
-            />
+            <Text style={styles.label}>Social Media Links</Text>
+            <View style={styles.tagInputContainer}>
+              <TextInput
+                style={styles.tagInput}
+                value={currentLink}
+                onChangeText={setCurrentLink}
+                placeholder="Enter a social media link"
+                placeholderTextColor={COLORS.UCONN_GREY}
+                onSubmitEditing={addLink}
+              />
+
+              <TouchableOpacity style={styles.addButton} onPress={addLink}>
+                <Text style={styles.addButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tagsContainer}>
+              {socialMediaLinks.map((link) => (
+                <View key={link} style={styles.tag}>
+                  <Text style={styles.tagText}>{link}</Text>
+                  <TouchableOpacity onPress={() => removeLink(link)}>
+                    <Ionicons name="close-circle" size={18} color={COLORS.UCONN_WHITE} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -343,10 +382,48 @@ const styles = StyleSheet.create({
   selectedOptionButtonText: {
     color: COLORS.UCONN_WHITE,
   },
-  picker: {
+  tagInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tagInput: {
+    flex: 1,
     borderWidth: 1,
     borderColor: COLORS.UCONN_GREY,
     borderRadius: 8,
+    padding: 8,
+    fontSize: 16,
+    color: 'black',
+  },
+  addButton: {
+    backgroundColor: COLORS.UCONN_NAVY,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  addButtonText: {
+    color: COLORS.UCONN_WHITE,
+    fontWeight: 'bold',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  tag: {
+    backgroundColor: COLORS.UCONN_NAVY,
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: {
+    color: COLORS.UCONN_WHITE,
+    marginRight: 4,
   },
 });
 
