@@ -11,15 +11,20 @@ interface ProfileEditorProps {
 {/* needed for keyboard - it was covering text boxes while typing */}
 const { height } = Dimensions.get('window');
 
+const studyPreferenceOptions = ['Group Study', 'Individual Study', 'Library', 'Coffee Shop', 'Outdoors', 'Other'];
+const interestOptions = ['Sports', 'Music', 'Art', 'Technology', 'Science', 'Literature', 'Other'];
+const majorOptions = ['Computer Science', 'Engineering', 'Business', 'Psychology', 'Biology', 'Other'];
+
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   const [name, setName] = useState('');
   const [isCommuter, setIsCommuter] = useState(false);
-  const [studyPreferences, setStudyPreferences] = useState('');
-  const [interests, setInterests] = useState('');
+  const [studyPreferences, setStudyPreferences] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
   const [major, setMajor] = useState('');
   const [clubs, setClubs] = useState('');
   const [socialMedia, setSocialMedia] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  
   const scrollViewRef = useRef<ScrollView>(null);
 
   {/* pick profle picture */}
@@ -47,6 +52,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
     scrollViewRef.current?.scrollTo({ y: y, animated: true });
   };
 
+  const toggleOption = (option: string, array: string[], setArray: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (array.includes(option)) {
+      setArray(array.filter(item => item !== option));
+    } else {
+      setArray([...array, option]);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
 
@@ -60,7 +73,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
         {/* header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={COLORS.UCONN_NAVY} />
+            <Ionicons name="close" size={24} color={COLORS.UCONN_WHITE} />
           </TouchableOpacity>
           <Text style={styles.headerText}>Edit Profile</Text>
           <TouchableOpacity onPress={handleSave}>
@@ -109,32 +122,52 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
             />
           </View>
 
-          {/* this was on the web thing - not sure how we want this (drop down?) */}
+          {/* lets try riding with the drop down but other SHOULD let you write it in */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Study Preferences</Text>
-            <TextInput
-              style={styles.input}
-              value={studyPreferences}
-              onChangeText={setStudyPreferences}
-              placeholder="Enter your study preferences"
-              placeholderTextColor={COLORS.UCONN_GREY}
-              multiline
-              onFocus={() => handleFocus(height * 0.2)}
-            />
+            <View style={styles.optionsContainer}>
+              {studyPreferenceOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.optionButton,
+                    studyPreferences.includes(option) && styles.selectedOptionButton
+                  ]}
+                  onPress={() => toggleOption(option, studyPreferences, setStudyPreferences)}
+                >
+                  <Text style={[
+                    styles.optionButtonText,
+                    studyPreferences.includes(option) && styles.selectedOptionButtonText
+                  ]}>
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* interests */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Interests</Text>
-            <TextInput
-              style={styles.input}
-              value={interests}
-              onChangeText={setInterests}
-              placeholder="Enter your interests"
-              placeholderTextColor={COLORS.UCONN_GREY}
-              multiline
-              onFocus={() => handleFocus(height * 0.3)}
-            />
+            <View style={styles.optionsContainer}>
+              {interestOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.optionButton,
+                    interests.includes(option) && styles.selectedOptionButton
+                  ]}
+                  onPress={() => toggleOption(option, interests, setInterests)}
+                >
+                  <Text style={[
+                    styles.optionButtonText,
+                    interests.includes(option) && styles.selectedOptionButtonText
+                  ]}>
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* major */}
@@ -196,16 +229,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.UCONN_GREY,
+    backgroundColor: COLORS.UCONN_NAVY,
   },
   headerText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
+    color: COLORS.UCONN_WHITE,
   },
   saveButton: {
-    color: COLORS.UCONN_NAVY,
+    color: COLORS.UCONN_WHITE,
     fontWeight: 'bold',
   },
   scrollView: {
@@ -248,6 +280,33 @@ const styles = StyleSheet.create({
     padding: 8,
     fontSize: 16,
     color: 'black',
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  optionButton: {
+    backgroundColor: COLORS.UCONN_WHITE,
+    borderColor: COLORS.UCONN_NAVY,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    margin: 4,
+  },
+  selectedOptionButton: {
+    backgroundColor: COLORS.UCONN_NAVY,
+  },
+  optionButtonText: {
+    color: COLORS.UCONN_NAVY,
+  },
+  selectedOptionButtonText: {
+    color: COLORS.UCONN_WHITE,
+  },
+  picker: {
+    borderWidth: 1,
+    borderColor: COLORS.UCONN_GREY,
+    borderRadius: 8,
   },
 });
 
