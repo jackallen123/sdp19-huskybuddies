@@ -2,15 +2,13 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Image, SafeAreaView, KeyboardAvoidingView, Platform, Dimensions} from 'react-native';
 import { COLORS } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import DropDownPicker from 'react-native-dropdown-picker';
 import * as ImagePicker from 'expo-image-picker';
-/* import uconnMajors from '../backend/data/uconn-majors.json'; */
+import uconnMajors from '../backend/data/uconn-majors.json';
 
 interface ProfileEditorProps {
   onClose: () => void;
 }
-
-{/* needed for keyboard - it was covering text boxes while typing */}
-const { height } = Dimensions.get('window');
 
 const studyPreferenceOptions = ['Group Study', 'Individual Study', 'Library', 'Coffee Shop', 'Outdoors', 'Other'];
 const interestOptions = ['Sports', 'Music', 'Art', 'Technology', 'Science', 'Literature', 'Other'];
@@ -22,7 +20,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   const [otherStudyPreference, setOtherStudyPreference] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [otherInterest, setOtherInterest] = useState('');
-  /* const [major, setMajor] = useState(''); */                         // commented out for now so a PR can be put up
+  
+  // for opening or closing the dropdown
+  const [open, setOpen] = useState(false);
+  const [major, setMajor] = useState(null);
+  const [majors, setMajors] = useState( uconnMajors.map((majorItem) => ({ label: majorItem, value: majorItem })));
+  
   const [clubs, setClubs] = useState<string[]>([]);
   const [currentClub, setCurrentClub] = useState('');
   const [socialMediaLinks, setSocialMediaLinks] = useState<string[]>([]);
@@ -224,6 +227,19 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
           {/* major */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Major</Text>
+            <DropDownPicker
+              open={open}
+              value={major}
+              items={majors}
+              setOpen={setOpen}
+              setValue={setMajor}
+              setItems={setMajors}
+              placeholder="Select your major..."
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownContainer}
+              placeholderStyle={styles.placeholderStyles}
+              listMode="SCROLLVIEW"
+            />
           </View>
 
           {/* club */}
@@ -425,6 +441,17 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_WHITE,
     marginRight: 4,
   },
+  dropdown: {
+    borderColor: COLORS.UCONN_GREY,
+    borderRadius: 8,
+  },
+  dropdownContainer: {
+    borderColor: COLORS.UCONN_GREY,
+    borderRadius: 8,
+  },
+  placeholderStyles: {
+    color: COLORS.UCONN_GREY,
+  },  
 });
 
 export default ProfileEditor;
