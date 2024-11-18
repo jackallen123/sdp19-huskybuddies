@@ -1,15 +1,8 @@
-// File: EventPage.tsx
-
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const COLORS = {
-  UCONN_WHITE: '#FFFFFF',
-  UCONN_NAVY: '#0E1E45',
-};
+import { COLORS } from '@/constants/Colors';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface Event {
   id: number;
@@ -18,71 +11,60 @@ interface Event {
   description: string;
 }
 
-interface ToastProps {
-  message: string;
-  isVisible: boolean;
-}
-
-const Toast: React.FC<ToastProps> = ({ message, isVisible }) => {
-  if (!isVisible) return null;
-
-  return (
-    <View style={styles.toast}>
-      <Text style={styles.toastText}>{message}</Text>
-    </View>
-  );
-};
-
-const EventPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  const [events, setEvents] = useState<Event[]>([]);
+const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => void; events: Event[]; onDeleteEvent: (id: number) => void }> = ({ onBack, onAddEvent, events, onDeleteEvent }) => {
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
   const [description, setDescription] = useState('');
-  const [addedToCalendar, setAddedToCalendar] = useState<number[]>([]);
-  const [toast, setToast] = useState({ message: '', isVisible: false });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSubmit = () => {
-    if (!title || !date || !description) {
-      showToastMessage('Please fill out all fields!');
+    if (!title || !description || !date) {
+      alert('Please fill out all fields!');
       return;
     }
 
     const newEvent: Event = {
       id: Date.now(),
       title,
-      date,
+      date: date.toISOString(),
       description,
     };
-    setEvents((prevEvents) => [...prevEvents, newEvent]);
+
+    onAddEvent(newEvent);
     setTitle('');
-    setDate('');
+    setDate(null);
     setDescription('');
-    showToastMessage('Event posted successfully!');
+    alert('Event posted successfully!');
   };
 
-  const addToCalendar = (eventId: number) => {
-    setAddedToCalendar((prev) => [...prev, eventId]);
-    showToastMessage('Event added to calendar successfully!');
-  };
-
-  const deleteEvent = (eventId: number) => {
-    setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
-    setAddedToCalendar((prev) => prev.filter((id) => id !== eventId));
-    showToastMessage('Event deleted successfully from both list and calendar!');
-  };
-
-  const showToastMessage = (message: string) => {
-    setToast({ message, isVisible: true });
-  };
-
-  useEffect(() => {
-    if (toast.isVisible) {
-      const timer = setTimeout(() => {
-        setToast((prev) => ({ ...prev, isVisible: false }));
-      }, 3000);
-      return () => clearTimeout(timer);
+  const handleDateChange = (event: any, selectedDate: Date | undefined) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDate(selectedDate);
+      setShowTimePicker(true); 
     }
-  }, [toast.isVisible]);
+  };
+
+  const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
+    if (selectedTime) {
+      setDate(new Date(date!.setHours(selectedTime.getHours(), selectedTime.getMinutes())));
+      setShowTimePicker(false); 
+    } else {
+      setShowTimePicker(false);
+    }
+  };
+
+  const renderEventItem = ({ item }: { item: Event }) => (
+    <View style={styles.eventItem}>
+      <Text style={styles.eventTitle}>{item.title}</Text>
+      <Text>{new Date(item.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</Text>
+      <Text>{item.description}</Text>
+      <TouchableOpacity onPress={() => onDeleteEvent(item.id)} style={styles.deleteButton}>
+        <Text style={styles.deleteButtonText}>Delete</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -97,84 +79,65 @@ const EventPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
       <View style={styles.formContainer}>
         <Text style={styles.title}>Post a New Event</Text>
-        <Input
+        <TextInput
           value={title}
           onChangeText={setTitle}
           placeholder="Enter event title"
+          placeholderTextColor="#B0B0B0"
           style={styles.input}
         />
-        <Input
-          value={date}
-          onChangeText={setDate}
-          placeholder="Enter event date"
-          style={styles.input}
-        />
-        <Textarea
+
+        <View style={styles.dateContainer}>
+          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
+            <Text style={styles.inputText}>
+              {date ? date.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Select Date & Time'}
+            </Text>
+          </TouchableOpacity>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={date || new Date()}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+              style={styles.datePicker}
+            />
+          )}
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={date || new Date()}
+              mode="time"
+              display="default"
+              onChange={handleTimeChange}
+              style={styles.datePicker}
+            />
+          )}
+        </View>
+
+        <TextInput
           value={description}
           onChangeText={setDescription}
           placeholder="Enter event description"
+          placeholderTextColor="#B0B0B0"
           style={styles.textarea}
+          multiline
+          numberOfLines={4}
         />
-        <Button onPress={handleSubmit}>Post Event</Button>
+        
+        <TouchableOpacity onPress={handleSubmit} style={styles.button}>
+          <Text style={styles.buttonText}>Post Event</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.eventsList}>
-        <Text style={styles.subtitle}>Posted Events</Text>
-        {events.length === 0 ? (
-          <Text>No events posted yet. Use the form above to post an event.</Text>
-        ) : (
-          events.map((event) => (
-            <View key={event.id} style={styles.eventCard}>
-              <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text style={styles.eventDate}>{event.date}</Text>
-              <Text style={styles.eventDescription}>{event.description}</Text>
-              <View style={styles.cardFooter}>
-                <Button onPress={() => addToCalendar(event.id)}>Add to Calendar</Button>
-                <Button onPress={() => deleteEvent(event.id)} style={styles.deleteButton}>
-                  Delete Event
-                </Button>
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      <Toast message={toast.message} isVisible={toast.isVisible} />
+      {/* Scrollable Events List Section */}
+      <FlatList
+        style={styles.eventsContainer}
+        data={events}
+        renderItem={renderEventItem}
+        keyExtractor={(item) => item.id.toString()}
+      />
     </SafeAreaView>
-  );
-};
-
-const Input: React.FC<{ value: string; onChangeText: (text: string) => void; placeholder?: string; style?: any; }> = ({ value, onChangeText, placeholder, style }) => {
-  return (
-    <TextInput
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor="gray" 
-      style={[styles.input, style]} 
-    />
-  );
-};
-
-const Textarea: React.FC<{ value: string; onChangeText: (text: string) => void; placeholder?: string; style?: any; }> = ({ value, onChangeText, placeholder, style }) => {
-  return (
-    <TextInput
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor="gray" 
-      multiline
-      numberOfLines={4}
-      style={[styles.textarea, style]}
-    />
-  );
-};
-
-const Button: React.FC<{ onPress: () => void; children: React.ReactNode; style?: any }> = ({ onPress, children, style }) => {
-  return (
-    <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
-      <Text style={styles.buttonText}>{children}</Text>
-    </TouchableOpacity>
   );
 };
 
@@ -205,7 +168,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     marginBottom: 16,
   },
   input: {
@@ -215,70 +178,76 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 10,
     marginBottom: 12,
+    justifyContent: 'center',
+  },
+  inputText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  dateContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  datePicker: {
+    position: 'absolute',
+    top: 50,
+    marginBottom: 20,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.UCONN_WHITE,
+    borderRadius: 20,
+    borderColor: '#ccc',
   },
   textarea: {
-    height: 80, 
+    height: 60,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 10,
     marginBottom: 12,
   },
-  eventsList: {
-    padding: 16,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  eventCard: {
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  eventTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  eventDate: {
-    color: 'gray',
-  },
-  eventDescription: {
-    marginVertical: 8,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  deleteButton: {
-    backgroundColor: 'red',
-  },
-  toast: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: 'red',
-    padding: 8,
-    borderRadius: 5,
-  },
-  toastText: {
-    color: 'white',
-  },
   button: {
     backgroundColor: COLORS.UCONN_NAVY,
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 150,
     borderRadius: 8,
     alignItems: 'center',
+    alignSelf: 'center', 
+    marginTop: 20,
   },
   buttonText: {
     color: COLORS.UCONN_WHITE,
     fontSize: 16,
   },
+  eventsContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  eventsTitle: {
+    fontSize: 20,
+    marginBottom: 10,
+  },
+  eventItem: {
+    marginBottom: 12,
+    padding: 10,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+  },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    marginTop: 8,
+    backgroundColor: '#FF4C4C',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+  },
 });
 
-export default EventPage;
+export default AddEvent;
