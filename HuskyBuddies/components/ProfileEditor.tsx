@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch
 import { COLORS } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Picker } from '@react-native-picker/picker';
+import uconnMajors from '../backend/data/uconn-majors.json';
 
 interface ProfileEditorProps {
   onClose: () => void;
@@ -13,13 +15,14 @@ const { height } = Dimensions.get('window');
 
 const studyPreferenceOptions = ['Group Study', 'Individual Study', 'Library', 'Coffee Shop', 'Outdoors', 'Other'];
 const interestOptions = ['Sports', 'Music', 'Art', 'Technology', 'Science', 'Literature', 'Other'];
-const majorOptions = ['Computer Science', 'Engineering', 'Business', 'Psychology', 'Biology', 'Other'];
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   const [name, setName] = useState('');
   const [isCommuter, setIsCommuter] = useState(false);
   const [studyPreferences, setStudyPreferences] = useState<string[]>([]);
+  const [customStudyPreference, setCustomStudyPreference] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
+  const [customInterest, setCustomInterest] = useState('');
   const [major, setMajor] = useState('');
   const [clubs, setClubs] = useState('');
   const [socialMedia, setSocialMedia] = useState('');
@@ -57,6 +60,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
       setArray(array.filter(item => item !== option));
     } else {
       setArray([...array, option]);
+    }
+  };
+
+  const handleCustomOption = (option: string, customValue: string, array: string[], setArray: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (customValue.trim() !== '') {
+      if (array.includes(option)) {
+        setArray(array.filter(item => item !== option).concat(customValue.trim()));
+      } else {
+        setArray([...array, customValue.trim()]);
+      }
     }
   };
 
@@ -144,6 +157,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
                 </TouchableOpacity>
               ))}
             </View>
+            {studyPreferences.includes('Other') && (
+              <TextInput
+                style={[styles.input, styles.customInput]}
+                value={customStudyPreference}
+                onChangeText={setCustomStudyPreference}
+                placeholder="Enter study preference"
+                placeholderTextColor={COLORS.UCONN_GREY}
+                onBlur={() => handleCustomOption('Other', customStudyPreference, studyPreferences, setStudyPreferences)}
+              />
+            )}
           </View>
 
           {/* interests */}
@@ -168,19 +191,31 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
                 </TouchableOpacity>
               ))}
             </View>
+            {interests.includes('Other') && (
+              <TextInput
+                style={[styles.input, styles.customInput]}
+                value={customInterest}
+                onChangeText={setCustomInterest}
+                placeholder="Enter interest"
+                placeholderTextColor={COLORS.UCONN_GREY}
+                onBlur={() => handleCustomOption('Other', customInterest, interests, setInterests)}
+              />
+            )}
           </View>
 
           {/* major */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Major</Text>
-            <TextInput
-              style={styles.input}
-              value={major}
-              onChangeText={setMajor}
-              placeholder="Enter your major"
-              placeholderTextColor={COLORS.UCONN_GREY}
-              onFocus={() => handleFocus(height * 0.4)}
-            />
+            <Picker
+              selectedValue={major}
+              onValueChange={(itemValue) => setMajor(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select a major" value="" />
+              {uconnMajors.map((majorOption) => (
+                <Picker.Item key={majorOption} label={majorOption} value={majorOption} />
+              ))}
+            </Picker>
           </View>
 
           {/* club */}
@@ -193,6 +228,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
               placeholder="Enter your clubs"
               placeholderTextColor={COLORS.UCONN_GREY}
               multiline
+              numberOfLines={3}
               onFocus={() => handleFocus(height * 0.5)}
             />
           </View>
@@ -207,6 +243,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
               placeholder="Enter your social media links"
               placeholderTextColor={COLORS.UCONN_GREY}
               multiline
+              numberOfLines={3}
               onFocus={() => handleFocus(height * 0.6)}
             />
           </View>
@@ -280,6 +317,9 @@ const styles = StyleSheet.create({
     padding: 8,
     fontSize: 16,
     color: 'black',
+  },
+  customInput: {
+    marginTop: 8,
   },
   optionsContainer: {
     flexDirection: 'row',
