@@ -6,7 +6,7 @@
 export interface Course {
   id: string;
   name: string;
-  location: string;
+  // location: string;
   section: string;
   days: string[];
   startTime: string;

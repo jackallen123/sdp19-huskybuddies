@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
-import { transformSectionToCourse } from '@/app/utils/courseTransform';
-import { storeCourse } from '@/app/services/courseStorage';
+import { transformSectionToCourse } from '@/utils/transform/courseTransform';
+import { storeCourse } from '@/utils/services/courseStorage';
 import { Alert } from 'react-native';
 import axios from 'axios';
 
@@ -40,15 +40,15 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     }
   };
 
-  const fetchLocation = async (sectionNumber: string) => {
-    try {
-      const response = await axios.get(`http://${ip_address}:3000/section-location/${courseCode}/${sectionNumber}`);
-      return response.data.location;
-    } catch (error) {
-      console.error('Error fetching location:', error);
-      return 'Location not found';
-    }
-  };
+  // const fetchLocation = async (sectionNumber: string) => {
+  //   try {
+  //     const response = await axios.get(`http://${ip_address}:3000/section-location/${courseCode}/${sectionNumber}`);
+  //     return response.data.location;
+  //   } catch (error) {
+  //     console.error('Error fetching location:', error);
+  //     return 'Location not found';
+  //   }
+  // };
 
   const handleAddSection = async (section: Section) => {
     // check if the section does not meet
@@ -59,9 +59,9 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
 
     try {
       setLocationPopup({ visible: true, message: 'Adding course...' });
-      const location = await fetchLocation(section.sectionNumber);
+      // const location = await fetchLocation(section.sectionNumber);
       
-      const course = transformSectionToCourse(courseCode, section, location);
+      const course = transformSectionToCourse(courseCode, section);
       await storeCourse(course);
       
       // success message
