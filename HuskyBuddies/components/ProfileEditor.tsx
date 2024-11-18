@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch
 import { COLORS } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import uconnMajors from '../backend/data/uconn-majors.json';
+/* import uconnMajors from '../backend/data/uconn-majors.json'; */
 
 interface ProfileEditorProps {
   onClose: () => void;
@@ -22,7 +22,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   const [otherStudyPreference, setOtherStudyPreference] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [otherInterest, setOtherInterest] = useState('');
-  const [major, setMajor] = useState('');
+  /* const [major, setMajor] = useState(''); */                         // commented out for now so a PR can be put up
   const [clubs, setClubs] = useState<string[]>([]);
   const [currentClub, setCurrentClub] = useState('');
   const [socialMediaLinks, setSocialMediaLinks] = useState<string[]>([]);

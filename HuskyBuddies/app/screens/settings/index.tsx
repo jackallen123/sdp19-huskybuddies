@@ -29,6 +29,7 @@ export default function SettingsScreen() {
     router.replace('/');
   };
 
+  {/* add an alert to prompt user for actually deleting account - no actual logic yet though */}
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
