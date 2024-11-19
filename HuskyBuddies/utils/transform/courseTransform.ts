@@ -155,6 +155,7 @@ export const transformSectionToCourse = (
     name: courseCode,
     // location,
     section: section.sectionNumber,
+    instructor: section.instructor,
     days,
     startTime,
     endTime,
