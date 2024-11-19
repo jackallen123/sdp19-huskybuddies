@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal} from 'react-native';
+import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal, Alert} from 'react-native';
 import { COLORS } from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
@@ -29,9 +29,35 @@ export default function SettingsScreen() {
     router.replace('/');
   };
 
+  {/* add an alert to prompt user for actually deleting account - no actual logic yet though */}
   const handleDeleteAccount = () => {
-    // delete account logic
-    router.replace('/');
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            // delete account logic
+            Alert.alert(
+              "Account Deleted",
+              "Your account has been successfully deleted.",
+              [
+                {
+                  text: "OK",
+                  onPress: () => router.replace('/')
+                }
+              ]
+            );
+          },
+          style: "destructive"
+        }
+      ]
+    );
   };
 
   return (
