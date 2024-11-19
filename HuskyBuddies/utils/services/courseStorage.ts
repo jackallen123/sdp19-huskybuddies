@@ -4,7 +4,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Course } from "../../app/types/course";
+import { Course } from "../types/course";
 import { getNextColor } from "../transform/courseTransform";
 
 const COURSES_STORAGE_KEY = "@courses";
