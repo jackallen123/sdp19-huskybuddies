@@ -125,7 +125,7 @@ export default function MatchingLocation ({onBack}:{onBack:() => void}) {
         data={matchedStudents}
         renderItem={renderStudentCard}
         keyExtractor={item => item.id}
-        ListEmptyComponent={<Text>No matches found. Try finding matches!</Text>}
+        ListEmptyComponent={<Text style={styles.matchesText}>No matches found. Try finding matches!</Text>}
         ListFooterComponent={renderFooter}
       />
     </SafeAreaView>
@@ -247,5 +247,9 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     marginTop: 16,
+  },
+  matchesText: {
+    marginLeft: 32,
+    flex: 1,
   },
 });
