@@ -20,12 +20,15 @@ const studentProfiles = [
   { id: '5', name: 'Eva', image: 'https://i.pravatar.cc/150?img=5', classes: ['Literature', 'History', 'Art'], interests: ['Reading', 'Painting'], location: 'Hartford' },
 ];
 
+const USER_ID = '1'; // Current user ID
+
 export default function MatchingClasses ({onBack}:{onBack:() => void}) {
   const [matchedStudents, setMatchedStudents] = useState([]);
   const [buddyList, setBuddyList] = useState([]);
 
   const findMatches = () => {
     const filteredMatches = studentProfiles.filter(student => 
+      student.id !== USER_ID &&  // Exclude the student with the current user id '1'
       student.classes.some(cls => studentProfiles[0].classes.includes(cls))
     );
     setMatchedStudents(filteredMatches);
