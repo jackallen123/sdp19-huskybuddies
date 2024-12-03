@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal, Linking } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal, Alert} from 'react-native';
 import { COLORS } from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
 import Schedule from '@/components/schedule';
+import ProfileEditor from '@/components/ProfileEditor';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function SettingsScreen() {
@@ -11,6 +12,7 @@ export default function SettingsScreen() {
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [textSize, setTextSize] = useState(16);
   const [showSchedule, setShowSchedule] = React.useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
   const router = useRouter();
   
   const handleManageCourses = () => {
@@ -18,14 +20,44 @@ export default function SettingsScreen() {
     setShowSchedule(true);
   }
 
+  const handleEditProfile = () => {
+    setShowProfileEditor(true);
+  }
+
   const handleSignOut = () => {
     // sign out logic
     router.replace('/');
   };
 
+  {/* add an alert to prompt user for actually deleting account - no actual logic yet though */}
   const handleDeleteAccount = () => {
-    // delete account logic
-    router.replace('/');
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            // delete account logic
+            Alert.alert(
+              "Account Deleted",
+              "Your account has been successfully deleted.",
+              [
+                {
+                  text: "OK",
+                  onPress: () => router.replace('/')
+                }
+              ]
+            );
+          },
+          style: "destructive"
+        }
+      ]
+    );
   };
 
   return (
@@ -42,6 +74,12 @@ export default function SettingsScreen() {
           </View>
 
           <ScrollView style={styles.scrollView}>
+
+            {/* edit profile */}
+            <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
+              <Text style={[styles.settingText, { fontSize: textSize }]}>Edit Profile</Text>
+              <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
+            </TouchableOpacity>
 
             {/* Manage Courses */}
             <TouchableOpacity style={styles.settingItem} onPress={handleManageCourses}>
@@ -101,6 +139,16 @@ export default function SettingsScreen() {
               <Text style={styles.buttonText}>Delete Account</Text>
             </TouchableOpacity>
           </ScrollView>
+
+          {/* profile editor */}
+          <Modal
+            animationType="slide"
+            transparent={false}
+            visible={showProfileEditor}
+            onRequestClose={() => setShowProfileEditor(false)}
+            >
+              <ProfileEditor onClose={() => setShowProfileEditor(false)} />
+            </Modal>
         </>
       )}
     </SafeAreaView>

@@ -68,7 +68,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.UCONN_GREY,
     height: 75,
-    paddingBottom: 4,
   },
   homeIconContainer: {
     backgroundColor: COLORS.UCONN_NAVY,
@@ -78,5 +77,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 30,
-  },
+  }
 });

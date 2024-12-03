@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
+import { transformSectionToCourse } from '@/utils/transform/courseTransform';
+import { storeCourse } from '@/utils/services/courseStorage';
+import { Alert } from 'react-native';
 import axios from 'axios';
 
 interface Section {
@@ -37,23 +40,39 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     }
   };
 
-  const fetchLocation = async (sectionNumber: string) => {
-    try {
-      const response = await axios.get(`http://${ip_address}:3000/section-location/${courseCode}/${sectionNumber}`);
-      return response.data.location;
-    } catch (error) {
-      console.error('Error fetching location:', error);
-      return 'Location not found';
-    }
-  };
+  // const fetchLocation = async (sectionNumber: string) => {
+  //   try {
+  //     const response = await axios.get(`http://${ip_address}:3000/section-location/${courseCode}/${sectionNumber}`);
+  //     return response.data.location;
+  //   } catch (error) {
+  //     console.error('Error fetching location:', error);
+  //     return 'Location not found';
+  //   }
+  // };
 
   const handleAddSection = async (section: Section) => {
-    setLocationPopup({ visible: true, message: 'Fetching location...' });
-    const location = await fetchLocation(section.sectionNumber);
-    setLocationPopup({ visible: true, message: `Location: ${location}` });
-    setTimeout(() => {
-      setLocationPopup({ visible: false, message: '' });
-    }, 3000);
+    // check if the section does not meet
+    if (section.meets === "Does Not Meet") {
+      Alert.alert("Course does not meet", "This course does not have a meeting time and cannot be added to your schedule.");
+      return;
+    }
+
+    try {
+      setLocationPopup({ visible: true, message: 'Adding course...' });
+      // const location = await fetchLocation(section.sectionNumber);
+      
+      const course = transformSectionToCourse(courseCode, section);
+      await storeCourse(course);
+      
+      // success message
+      setLocationPopup({ visible: true, message: 'Course added successfully!' });
+      setTimeout(() => {
+        setLocationPopup({ visible: false, message: '' });
+        onBack(); // return to addCourse
+      }, 1500);
+    } catch (error:any) {
+      Alert.alert('Error', error.message || 'Failed to add course');
+    }
   };
 
   const sortedSections = [...sections].sort((a, b) => {
