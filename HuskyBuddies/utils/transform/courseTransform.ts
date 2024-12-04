@@ -120,14 +120,19 @@ export const parseTime = (
   // extract start and end time components from the regex match
   const startHour = match[1];
   const startMinute = match[2] || "00"; 
-  const startMeridiem = match[3];
+  let startMeridiem = match[3];
   const endHour = match[4] || startHour; // use start hour if end is missing
   const endMinute = match[5] || "00"; 
-  const endMeridiem = match[6] || startMeridiem; // use start meridiem if end is missing
+  const endMeridiem = match[6];
 
-  // format start and end times
-  const startTime = formatTime(startHour, startMinute, startMeridiem);
-  const endTime = formatTime(endHour, endMinute, endMeridiem);
+  // propagate meridiem if missing from the start time
+  if (!startMeridiem && endMeridiem) {
+    startMeridiem = endMeridiem;
+  }
+
+  // Format start and end times
+  const startTime = formatTime(startHour, startMinute, startMeridiem || "a"); // default to AM if still missing
+  const endTime = formatTime(endHour, endMinute, endMeridiem || "a");
 
   return {
     startTime,
