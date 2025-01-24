@@ -50,3 +50,25 @@ export interface Section {
   meets: string;
   instructor: string;
 }
+
+// student-information for the student-matching-page
+export interface StudentProfile {
+  id: string;
+  name: string;
+  image: string;
+  classes: string[];
+  interests: string[];
+  location: string;
+}
+
+// defines the structure of a buddy list
+export interface BuddyList {
+  userId: string;
+  buddies: StudentProfile[];
+}
+
+// Stores the user's matched buddies as mock data
+export const buddyList: BuddyList = {
+  userId: '1',
+  buddies: [],
+};
