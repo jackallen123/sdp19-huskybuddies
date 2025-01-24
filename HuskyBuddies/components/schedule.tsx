@@ -14,6 +14,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
     <Text style={styles.courseTime}>{course.startTime}</Text>
     <View style={styles.courseInfo}>
       <Text numberOfLines={1} style={styles.courseName}>{course.name}</Text>
+      <Text style={styles.courseInstructor}>{course.instructor}</Text>
       {/* <Text style={styles.courseLocation}>{course.location}</Text> */}
       <Text style={styles.courseSection}>{course.section}</Text>
     </View>
@@ -291,6 +292,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: 8,
+  },
+  courseInstructor: {
+    fontSize: 9,
+    textAlign: 'center'
   },
   // courseLocation: {
   //   fontSize: 9,
