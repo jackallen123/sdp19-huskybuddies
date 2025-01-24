@@ -50,3 +50,15 @@ export interface Section {
   meets: string;
   instructor: string;
 }
+
+// messages-related types and data
+export interface ChatData {
+ id: string;
+ firstName: string;
+ lastName: string;
+ lastMessage: string;
+ time: string;
+ profilePicture: string;
+ message: string;
+ sender: string;
+}
