@@ -50,3 +50,13 @@ export interface Section {
   meets: string;
   instructor: string;
 }
+
+// user settings related types and data
+export interface UserSettings {
+  id: string;
+  notificationsEnabled: boolean;
+  darkModeEnabled: boolean;
+  textSize: number;
+}
+
+
