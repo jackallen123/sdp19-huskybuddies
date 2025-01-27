@@ -1,55 +1,50 @@
+//Imports
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 
-// Defining the structure of an Event
+//Interface setup for database 
 interface Event {
-  id: number; // Unique identifier for the event
-  title: string; // Event title
-  date: string; // Event date
-  description: string; // Event description
-  isadded?: boolean; // Optional boolean to indicate if the event is marked as added
+  id: number; 
+  title: string; 
+  date: string;
+  description: string; 
+  isadded?: boolean; 
 }
 
-// Props for AllEvents component
 interface AllEventsProps {
-  onBack: () => void; // Callback to handle going back
-  events: Event[]; // List of events to display
-  onAddToCalendar: (event: Event) => void; // Callback to handle adding an event to the calendar
+  onBack: () => void;
+  events: Event[]; 
+  onAddToCalendar: (event: Event) => void; 
 }
 
-// AllEvents component displaying a list of events and handling "add to calendar" functionality
+//Handling "add to calendar" functionality with error handling
 const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }) => {
-  // State to keep track of events
   const [localEvents, setLocalEvents] = useState<Event[]>([]);
 
   useEffect(() => {
-    // Initialize the events with isadded as false unless explicitly set in the passed prop
     const updatedEvents = events.map((event) => ({
       ...event,
-      isadded: event.isadded ?? false, // Ensure isadded is false by default if not passed in props
+      isadded: event.isadded ?? false, 
     }));
-    setLocalEvents(updatedEvents); // Update local events with corrected state
+    setLocalEvents(updatedEvents);
   }, [events]);
 
-  // Handles adding an event to the calendar
   const handleAddToCalendar = (event: Event) => {
-    // If the event is already added, do nothing
     if (event.isadded) {
       console.log(`Event "${event.title}" is already added to the calendar.`);
-      return; // Don't add if already added
+      return; 
     }
 
-    // Update local state to reflect event addition (mark as added)
     const updatedEvents = localEvents.map((e) =>
       e.id === event.id ? { ...e, isadded: true } : e
     );
-    setLocalEvents(updatedEvents); // Update the state
-    onAddToCalendar(event); // Call the parent function to actually add to the calendar
+    setLocalEvents(updatedEvents); 
+    onAddToCalendar(event);
   };
 
-  // Renders each event item in the list
+  //Displays each event from all add event pages
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
@@ -95,61 +90,61 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
   );
 };
 
-// Styles for the components
+//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.UCONN_WHITE, // White background color
+    backgroundColor: COLORS.UCONN_WHITE, 
   },
   header: {
-    backgroundColor: COLORS.UCONN_NAVY, // Navy background color for the header
+    backgroundColor: COLORS.UCONN_NAVY, 
     padding: 16,
     flexDirection: 'row',
-    alignItems: 'center', // Align items horizontally
+    alignItems: 'center', 
   },
   headerTextContainer: {
-    flex: 1, // Takes up the remaining space
-    alignItems: 'center', // Center the text
+    flex: 1, 
+    alignItems: 'center', 
   },
   headerText: {
-    color: COLORS.UCONN_WHITE, // White text color
-    fontSize: 20, // Font size for the header text
-    fontWeight: 'bold', // Bold text
+    color: COLORS.UCONN_WHITE, 
+    fontSize: 20, 
+    fontWeight: 'bold', 
   },
   backButton: {
-    padding: 8, // Padding for the back button
+    padding: 8, 
   },
   eventsContainer: {
-    padding: 16, // Padding for the events container
+    padding: 16, 
   },
   eventsTitle: {
-    fontSize: 20, // Font size for the events section title
-    marginBottom: 10, // Bottom margin for spacing
+    fontSize: 20, 
+    marginBottom: 10, 
   },
   eventItem: {
-    marginBottom: 12, // Margin between event items
-    padding: 10, // Padding inside each event item
-    borderColor: '#ccc', // Light gray border color
-    borderWidth: 1, // Border width
-    borderRadius: 5, // Rounded corners
+    marginBottom: 12, 
+    padding: 10, 
+    borderColor: '#ccc', 
+    borderWidth: 1, 
+    borderRadius: 5, 
   },
   eventTitle: {
-    fontSize: 18, // Font size for event title
-    fontWeight: 'bold', // Bold title
+    fontSize: 18, 
+    fontWeight: 'bold', 
   },
   listContainer: {
-    marginTop: 40, // Margin for the FlatList container
+    marginTop: 40, 
   },
   addToCalendarButton: {
-    marginTop: 10, // Margin at the top of the button
-    backgroundColor: COLORS.UCONN_NAVY, // Navy background color for the button
-    paddingVertical: 8, // Vertical padding for the button
-    paddingHorizontal: 16, // Horizontal padding for the button
-    borderRadius: 5, // Rounded corners for the button
+    marginTop: 10, 
+    backgroundColor: COLORS.UCONN_NAVY, 
+    paddingVertical: 8, 
+    paddingHorizontal: 16, 
+    borderRadius: 5, 
   },
   addToCalendarButtonText: {
-    color: COLORS.UCONN_WHITE, // White text color for the button
-    fontSize: 14, // Font size for the button text
+    color: COLORS.UCONN_WHITE, 
+    fontSize: 14, 
   },
 });
 

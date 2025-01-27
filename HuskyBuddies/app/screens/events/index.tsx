@@ -1,116 +1,117 @@
+//Imports
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // For persistent storage
-import { COLORS } from '@/constants/Colors'; // Custom color constants
-import CustomCalendar from '@/components/CustomCalendar'; // Custom calendar component
-import AddEvent from '@/components/AddEvent'; // Component for adding events
-import AllEvents from '@/components/AllEvents'; // Component for viewing all events
-import StudyScheduler from '@/components/StudyScheduler'; // Component for scheduling study sessions
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import { COLORS } from '@/constants/Colors'; 
+import CustomCalendar from '@/components/CustomCalendar';
+import AddEvent from '@/components/AddEvent'; 
+import AllEvents from '@/components/AllEvents'; 
+import StudyScheduler from '@/components/StudyScheduler'; 
 
-// Interface for event objects
+//Interface setup for database 
 interface Event {
-  id: number; // Unique identifier for each event
-  title: string; // Event title
-  date: string; // Event date (ISO string)
-  description: string; // Event description
-  isadded?: boolean; // Optional boolean indicating if the event is added to the calendar
+  id: number; 
+  title: string; 
+  date: string; 
+  description: string; 
+  isadded?: boolean; 
 }
 
-// Interface for study session objects
 interface StudySession {
-  id: number; // Unique identifier for each study session
-  title: string; // Study session title
-  date: string; // Session date (ISO string)
-  friends: string[]; // Array of friends attending the session
+  id: number; 
+  title: string; 
+  date: string; 
+  friends: string[]; 
 }
 
+//Allows navigation between pages
 export default function MainPage() {
-  // States for controlling component visibility
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [showStudyScheduler, setShowStudyScheduler] = useState(false);
 
-  // State to manage events and study sessions
+  //Manage events and study sessions
   const [events, setEvents] = useState<Event[]>([]);
   const [sessions, setSessions] = useState<StudySession[]>([]);
 
-  // Load events and study sessions from AsyncStorage when the component mounts
+  //Load events and study sessions from AsyncStorage
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const savedEvents = await AsyncStorage.getItem('events'); // Retrieve saved events
+        const savedEvents = await AsyncStorage.getItem('events'); 
         if (savedEvents) {
-          setEvents(JSON.parse(savedEvents)); // Parse and update state
+          setEvents(JSON.parse(savedEvents)); 
         }
       } catch (error) {
-        console.error('Failed to load events', error); // Log error if data fails to load
+        console.error('Failed to load events', error);
       }
     };
 
     const loadSessions = async () => {
       try {
-        const savedSessions = await AsyncStorage.getItem('studySessions'); // Retrieve saved sessions
+        const savedSessions = await AsyncStorage.getItem('studySessions'); 
         if (savedSessions) {
-          setSessions(JSON.parse(savedSessions)); // Parse and update state
+          setSessions(JSON.parse(savedSessions)); 
         }
       } catch (error) {
-        console.error('Failed to load study sessions', error); // Log error if data fails to load
+        console.error('Failed to load study sessions', error);
       }
     };
 
     loadEvents();
     loadSessions();
-  }, []); // Empty dependency array ensures this runs only once
+  }, []); 
 
-  // Save events to AsyncStorage
+  //Save events to AsyncStorage
   const saveEvents = async (updatedEvents: Event[]) => {
     try {
-      await AsyncStorage.setItem('events', JSON.stringify(updatedEvents)); // Store events as a JSON string
+      await AsyncStorage.setItem('events', JSON.stringify(updatedEvents)); 
     } catch (error) {
-      console.error('Failed to save events', error); // Log error if saving fails
+      console.error('Failed to save events', error); 
     }
   };
 
   // Save study sessions to AsyncStorage
   const saveSessions = async (updatedSessions: StudySession[]) => {
     try {
-      await AsyncStorage.setItem('studySessions', JSON.stringify(updatedSessions)); // Store sessions as a JSON string
+      await AsyncStorage.setItem('studySessions', JSON.stringify(updatedSessions)); 
     } catch (error) {
-      console.error('Failed to save study sessions', error); // Log error if saving fails
+      console.error('Failed to save study sessions', error); 
     }
   };
 
-  // Add a new event to the events state and save it
+  //Add a new event 
   const handleAddEvent = (event: Event) => {
-    const eventExists = events.some(e => e.id === event.id); // Check if event already exists
+    const eventExists = events.some(e => e.id === event.id); 
     if (!eventExists) {
-      const updatedEvents = [...events, event]; // Add the new event to the array
-      setEvents(updatedEvents); // Update state
-      saveEvents(updatedEvents); // Persist updated events
+      const updatedEvents = [...events, event];
+      setEvents(updatedEvents); 
+      saveEvents(updatedEvents); 
     } else {
-      console.log('Event already exists, not adding duplicate'); // Log duplicate event message
+      console.log('Event already exists, not adding duplicate'); 
     }
   };
 
-  // Delete an event by ID
+  //Delete event
   const handleDeleteEvent = (id: number) => {
-    const updatedEvents = events.filter((event) => event.id !== id); // Remove the event from the array
-    setEvents(updatedEvents); // Update state
-    saveEvents(updatedEvents); // Persist updated events
+    const updatedEvents = events.filter((event) => event.id !== id); 
+    saveEvents(updatedEvents); 
   };
 
-  // Schedule a new study session
+  //Delete study session
+
+  //Add a new study session
   const onScheduleSession = (session: { date: Date; friends: string[] }) => {
     const newStudySession: StudySession = {
-      id: Date.now(), // Use current timestamp as a unique ID
-      title: `Study Session with ${session.friends.join(', ')}`, // Construct title with friends' names
-      date: session.date.toISOString(), // Convert date to ISO string
-      friends: session.friends, // Add friends to session
+      id: Date.now(), 
+      title: `Study Session with ${session.friends.join(', ')}`,
+      date: session.date.toISOString(), 
+      friends: session.friends, 
     };
-    const updatedSessions = [...sessions, newStudySession]; // Add the new session to the array
-    setSessions(updatedSessions); // Update state
-    saveSessions(updatedSessions); // Persist updated sessions
+    const updatedSessions = [...sessions, newStudySession]; 
+    setSessions(updatedSessions); 
+    saveSessions(updatedSessions); 
   };
 
   // Format event time for display
@@ -119,11 +120,11 @@ export default function MainPage() {
     return event.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: 'numeric',
-      hour12: true, // Use 12-hour format
+      hour12: true, 
     });
   };
 
-  // Conditional rendering for different views
+  //Multipage event/study session handling
   if (showCalendar) {
     return <CustomCalendar onBack={() => setShowCalendar(false)} />;
   }
@@ -131,7 +132,7 @@ export default function MainPage() {
   if (showStudyScheduler) {
     return (
       <StudyScheduler
-        onBack={() => setShowStudyScheduler(false)} // Close scheduler
+        onBack={() => setShowStudyScheduler(false)} 
         onSchedule={(session) =>
           onScheduleSession({
             date: new Date(session.date),
@@ -145,9 +146,9 @@ export default function MainPage() {
   if (showAllEvents) {
     return (
       <AllEvents
-        onBack={() => setShowAllEvents(false)} // Close events view
+        onBack={() => setShowAllEvents(false)} 
         events={events}
-        onAddToCalendar={handleAddEvent} // Add event to calendar
+        onAddToCalendar={handleAddEvent} 
       />
     );
   }
@@ -155,10 +156,10 @@ export default function MainPage() {
   if (showAddEvent) {
     return (
       <AddEvent
-        onBack={() => setShowAddEvent(false)} // Close add event view
-        onAddEvent={handleAddEvent} // Handle adding an event
+        onBack={() => setShowAddEvent(false)} // 
+        onAddEvent={handleAddEvent} 
         events={events}
-        onDeleteEvent={handleDeleteEvent} // Handle deleting an event
+        onDeleteEvent={handleDeleteEvent} 
       />
     );
   }
@@ -231,7 +232,7 @@ export default function MainPage() {
   );
 }
 
-// Styles for the main page
+//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,

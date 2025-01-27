@@ -1,10 +1,11 @@
+//Imports
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/Colors'; // Custom color constants
+import { COLORS } from '@/constants/Colors'; 
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-// Define the Event interface for type safety
+//Interface setup for database 
 interface Event {
   id: number;
   title: string;
@@ -12,29 +13,26 @@ interface Event {
   description: string;
   isadded?: boolean; 
 }
-
-// Main AddEvent component with props for navigation, event handling, and event management
 const AddEvent: React.FC<{ 
-  onBack: () => void; // Function to navigate back
-  onAddEvent: (event: Event) => void; // Function to add a new event
-  events: Event[]; // List of events to display
-  onDeleteEvent: (id: number) => void; // Function to delete an event
+  onBack: () => void; 
+  onAddEvent: (event: Event) => void; 
+  events: Event[]; 
+  onDeleteEvent: (id: number) => void; 
 }> = ({ onBack, onAddEvent, events, onDeleteEvent }) => {
-  // State variables for form inputs and visibility controls
-  const [title, setTitle] = useState(''); // Event title input
-  const [date, setDate] = useState<Date | null>(null); // Event date and time
-  const [description, setDescription] = useState(''); // Event description input
-  const [showDatePicker, setShowDatePicker] = useState(false); // Date picker visibility
-  const [showTimePicker, setShowTimePicker] = useState(false); // Time picker visibility
+  const [title, setTitle] = useState(''); 
+  const [date, setDate] = useState<Date | null>(null); 
+  const [description, setDescription] = useState(''); 
+  const [showDatePicker, setShowDatePicker] = useState(false); 
+  const [showTimePicker, setShowTimePicker] = useState(false); 
 
-  // Function to handle form submission
+  //Error handling for empty friends
   const handleSubmit = () => {
     if (!title || !description || !date) {
-      alert('Please fill out all fields!'); // Validate all fields
+      alert('Please fill out all fields!'); 
       return;
     }
 
-    // Check if an event with the same title and date already exists
+    //Error handling for duplicate events
     const duplicateEvent = events.find((event) => event.title === title && event.date === date.toISOString());
 
     if (duplicateEvent) {
@@ -42,45 +40,39 @@ const AddEvent: React.FC<{
       return;
     }
 
-    // Create a new event object
+    //Creating a new event
     const newEvent: Event = {
-      id: Date.now(), // Generate a unique ID using the current timestamp
+      id: Date.now(), 
       title,
-      date: date.toISOString(), // Convert date to ISO string format
+      date: date.toISOString(), 
       description,
-      isadded: false, // Initialize the 'isadded' boolean to false
+      isadded: false, 
     };
 
-    // Add the new event via the provided function
     onAddEvent(newEvent);
-
-    // Reset form inputs
     setTitle('');
     setDate(null);
     setDescription('');
-
-    alert('Event posted successfully!'); // Provide feedback to the user
+    alert('Event posted successfully!'); 
   };
 
-  // Handle date selection from the DateTimePicker
+  //Handle date selection from the DateTimePicker
   const handleDateChange = (event: any, selectedDate: Date | undefined) => {
-    setShowDatePicker(false); // Hide the date picker
+    setShowDatePicker(false); 
     if (selectedDate) {
-      setDate(selectedDate); // Update the selected date
-      setShowTimePicker(true); // Show the time picker next
+      setDate(selectedDate); 
+      setShowTimePicker(true); 
     }
   };
 
-  // Handle time selection from the DateTimePicker
+  //Handle time selection from the DateTimePicker
   const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
     if (selectedTime) {
-      // Update the date with the selected time
       setDate(new Date(date!.setHours(selectedTime.getHours(), selectedTime.getMinutes())));
     }
-    setShowTimePicker(false); // Hide the time picker
+    setShowTimePicker(false);
   };
 
-  // Render a single event item in the event list
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
@@ -125,7 +117,7 @@ const AddEvent: React.FC<{
             </Text>
           </TouchableOpacity>
 
-          {/* Date picker for selecting a date */}
+          {/* Date */}
           {showDatePicker && (
             <DateTimePicker
               value={date || new Date()}
@@ -136,7 +128,7 @@ const AddEvent: React.FC<{
             />
           )}
 
-          {/* Time picker for selecting a time */}
+          {/* Time */}
           {showTimePicker && (
             <DateTimePicker
               value={date || new Date()}
@@ -176,7 +168,7 @@ const AddEvent: React.FC<{
   );
 };
 
-// Styles for the component
+//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
