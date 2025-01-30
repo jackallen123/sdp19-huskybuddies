@@ -1,119 +1,154 @@
+//Imports
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS } from '@/constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import { COLORS } from '@/constants/Colors'; 
 import CustomCalendar from '@/components/CustomCalendar';
-import AddEvent from '@/components/AddEvent';
-import AllEvents from '@/components/AllEvents';
-import StudyScheduler from '@/components/StudyScheduler';
+import AddEvent from '@/components/AddEvent'; 
+import AllEvents from '@/components/AllEvents'; 
+import StudyScheduler from '@/components/StudyScheduler'; 
 
+//Interface setup for database 
 interface Event {
-  id: number;
-  title: string;
-  date: string;
-  description: string;
-  isStudySession?: boolean;
+  id: number; 
+  title: string; 
+  date: string; 
+  description: string; 
+  isadded?: boolean; 
 }
 
-interface CustomCalendarProps {
-  onBack: () => void;
+interface StudySession {
+  id: number; 
+  title: string; 
+  date: string; 
+  friends: string[]; 
 }
 
-interface AllEventsProps {
-  onBack: () => void;
-  events: Event[];
-  onAddToCalendar: (event: Event) => void;
-}
-
-interface AddEventProps {
-  onBack: () => void;
-  onAddEvent: (event: Event) => void;
-  events: Event[];
-  onDeleteEvent: (id: number) => void;
-}
-
+//Allows navigation between pages
 export default function MainPage() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [showStudyScheduler, setShowStudyScheduler] = useState(false);
-  const [events, setEvents] = useState<Event[]>([]);
 
+  //Manage events and study sessions
+  const [events, setEvents] = useState<Event[]>([]);
+  const [sessions, setSessions] = useState<StudySession[]>([]);
+
+  //Load events and study sessions from AsyncStorage
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const savedEvents = await AsyncStorage.getItem('events');
+        const savedEvents = await AsyncStorage.getItem('events'); 
         if (savedEvents) {
-          setEvents(JSON.parse(savedEvents));
+          setEvents(JSON.parse(savedEvents)); 
         }
       } catch (error) {
         console.error('Failed to load events', error);
       }
     };
-    loadEvents();
-  }, []);
 
+    const loadSessions = async () => {
+      try {
+        const savedSessions = await AsyncStorage.getItem('studySessions'); 
+        if (savedSessions) {
+          setSessions(JSON.parse(savedSessions)); 
+        }
+      } catch (error) {
+        console.error('Failed to load study sessions', error);
+      }
+    };
+
+    loadEvents();
+    loadSessions();
+  }, []); 
+
+  //Save events to AsyncStorage
   const saveEvents = async (updatedEvents: Event[]) => {
     try {
-      await AsyncStorage.setItem('events', JSON.stringify(updatedEvents));
+      await AsyncStorage.setItem('events', JSON.stringify(updatedEvents)); 
     } catch (error) {
-      console.error('Failed to save events', error);
+      console.error('Failed to save events', error); 
     }
   };
 
+  // Save study sessions to AsyncStorage
+  const saveSessions = async (updatedSessions: StudySession[]) => {
+    try {
+      await AsyncStorage.setItem('studySessions', JSON.stringify(updatedSessions)); 
+    } catch (error) {
+      console.error('Failed to save study sessions', error); 
+    }
+  };
+
+  //Add a new event 
   const handleAddEvent = (event: Event) => {
-    const eventExists = events.some(e => e.id === event.id);
+    const eventExists = events.some(e => e.id === event.id); 
     if (!eventExists) {
       const updatedEvents = [...events, event];
-      setEvents(updatedEvents);
-      saveEvents(updatedEvents);
+      setEvents(updatedEvents); 
+      saveEvents(updatedEvents); 
     } else {
-      console.log('Event already exists, not adding duplicate');
+      console.log('Event already exists, not adding duplicate'); 
     }
   };
 
+  //Delete event
   const handleDeleteEvent = (id: number) => {
-    const updatedEvents = events.filter((event) => event.id !== id);
-    setEvents(updatedEvents);
-    saveEvents(updatedEvents);
+    const updatedEvents = events.filter((event) => event.id !== id); 
+    saveEvents(updatedEvents); 
   };
 
+  //Delete study session
+
+  //Add a new study session
   const onScheduleSession = (session: { date: Date; friends: string[] }) => {
-    const newEvent: Event = {
-      id: Date.now(),
+    const newStudySession: StudySession = {
+      id: Date.now(), 
       title: `Study Session with ${session.friends.join(', ')}`,
-      date: session.date.toISOString(),
-      description: '',
-      isStudySession: true,
+      date: session.date.toISOString(), 
+      friends: session.friends, 
     };
-    const updatedEvents = [...events, newEvent];
-    setEvents(updatedEvents);
-    saveEvents(updatedEvents);
+    const updatedSessions = [...sessions, newStudySession]; 
+    setSessions(updatedSessions); 
+    saveSessions(updatedSessions); 
   };
 
+  // Format event time for display
   const formatEventTime = (eventDate: string) => {
     const event = new Date(eventDate);
     return event.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: 'numeric',
-      hour12: true,
+      hour12: true, 
     });
   };
 
+  //Multipage event/study session handling
   if (showCalendar) {
     return <CustomCalendar onBack={() => setShowCalendar(false)} />;
   }
 
   if (showStudyScheduler) {
-    return <StudyScheduler onBack={() => setShowStudyScheduler(false)} onSchedule={onScheduleSession} />;
+    return (
+      <StudyScheduler
+        onBack={() => setShowStudyScheduler(false)} 
+        onSchedule={(session) =>
+          onScheduleSession({
+            date: new Date(session.date),
+            friends: session.friends,
+          })
+        }
+      />
+    );
   }
 
   if (showAllEvents) {
     return (
       <AllEvents
-        onBack={() => setShowAllEvents(false)}
+        onBack={() => setShowAllEvents(false)} 
         events={events}
-        onAddToCalendar={handleAddEvent}
+        onAddToCalendar={handleAddEvent} 
       />
     );
   }
@@ -121,21 +156,24 @@ export default function MainPage() {
   if (showAddEvent) {
     return (
       <AddEvent
-        onBack={() => setShowAddEvent(false)}
-        onAddEvent={handleAddEvent}
+        onBack={() => setShowAddEvent(false)} // 
+        onAddEvent={handleAddEvent} 
         events={events}
-        onDeleteEvent={handleDeleteEvent}
+        onDeleteEvent={handleDeleteEvent} 
       />
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header Section */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Events</Text>
       </View>
 
+      {/* Main Content */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Events List */}
         <View style={styles.eventsWrapper}>
           <Text style={styles.sectionTitle}>Your Upcoming Events:</Text>
           <ScrollView style={styles.eventsList}>
@@ -153,6 +191,7 @@ export default function MainPage() {
           </ScrollView>
         </View>
 
+        {/* Buttons */}
         <View style={styles.buttonWrapper}>
           <TouchableOpacity
             style={styles.button}
@@ -193,6 +232,7 @@ export default function MainPage() {
   );
 }
 
+//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -223,7 +263,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   eventsList: {
-    maxHeight: 250, 
+    maxHeight: 250,
   },
   eventItem: {
     backgroundColor: COLORS.UCONN_GREY,

@@ -1,5 +1,3 @@
-// mock Database File
-
 // user related types and data
 export interface User {
   id: string;
@@ -9,12 +7,22 @@ export interface User {
   password: string;
 }
 
+// user settings related types and data
+export interface UserSettings {
+  id: string;
+  notificationsEnabled: boolean;
+  darkModeEnabled: boolean;
+  textSize: number;
+}
+
 // event-related types and data
 export interface Event {
   id: number;
-  name: string;
+  title: string; 
   date: string;
-  location: string;
+  location?: string; 
+  description?: string; 
+  isadded?: boolean; 
 }
 
 // study Buddy related types and data
@@ -51,12 +59,22 @@ export interface Section {
   instructor: string;
 }
 
-// user settings related types and data
-export interface UserSettings {
+// messages-related types and data (from feature/messaging-page)
+export interface ChatData {
   id: string;
-  notificationsEnabled: boolean;
-  darkModeEnabled: boolean;
-  textSize: number;
+  firstName: string;
+  lastName: string;
+  lastMessage: string;
+  time: string;
+  profilePicture: string;
+  message: string;
+  sender: string;
 }
 
-
+// study session-related types and data (from main)
+export interface StudySession {
+  id: number;
+  title: string;
+  date: string;
+  friends: string[];
+}
