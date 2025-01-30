@@ -7,22 +7,14 @@ export interface User {
   password: string;
 }
 
-// user settings related types and data
-export interface UserSettings {
-  id: string;
-  notificationsEnabled: boolean;
-  darkModeEnabled: boolean;
-  textSize: number;
-}
-
 // event-related types and data
 export interface Event {
   id: number;
-  title: string; 
+  title: string; // Standardizing with 'title' instead of 'name'
   date: string;
-  location?: string; 
-  description?: string; 
-  isadded?: boolean; 
+  location?: string; // Keeping 'location' optional
+  description?: string; // Merging field from `main`
+  isadded?: boolean; // Optional field for tracking added events
 }
 
 // study Buddy related types and data
