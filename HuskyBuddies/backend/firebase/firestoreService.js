@@ -15,7 +15,7 @@ export const addUserToDatabase = async (firstName, lastName, email, password) =>
         firstName,
         lastName,
         email,
-        password, // You might want to hash the password before saving in production
+        password,
       });
       console.log('User added with ID:', docRef.id);
     } catch (error) {
