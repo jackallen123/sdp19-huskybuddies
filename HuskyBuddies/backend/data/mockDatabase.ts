@@ -33,28 +33,6 @@ export interface StudyBuddy {
   profilePicture: string;
 }
 
-// student-information for the student-matching-page (from alex/mockdb)
-export interface StudentProfile {
-  id: string;
-  name: string;
-  image: string;
-  classes: string[];
-  interests: string[];
-  location: string;
-}
-
-// defines the structure of a buddy list (from alex/mockdb)
-export interface BuddyList {
-  userId: string;
-  buddies: StudentProfile[];
-}
-
-// Stores the user's matched buddies as mock data (from alex/mockdb)
-export const buddyList: BuddyList = {
-  userId: '1',
-  buddies: [],
-};
-
 // resource-related types and data
 export interface ResourceItem {
   name: string;
