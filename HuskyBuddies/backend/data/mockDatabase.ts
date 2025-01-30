@@ -1,5 +1,3 @@
-// mock Database File
-
 // user related types and data
 export interface User {
   id: string;
@@ -12,9 +10,11 @@ export interface User {
 // event-related types and data
 export interface Event {
   id: number;
-  name: string;
+  title: string; // Standardizing with 'title' instead of 'name'
   date: string;
-  location: string;
+  location?: string; // Keeping 'location' optional
+  description?: string; // Merging field from `main`
+  isadded?: boolean; // Optional field for tracking added events
 }
 
 // study Buddy related types and data
@@ -51,14 +51,22 @@ export interface Section {
   instructor: string;
 }
 
-// messages-related types and data
+// messages-related types and data (from feature/messaging-page)
 export interface ChatData {
- id: string;
- firstName: string;
- lastName: string;
- lastMessage: string;
- time: string;
- profilePicture: string;
- message: string;
- sender: string;
+  id: string;
+  firstName: string;
+  lastName: string;
+  lastMessage: string;
+  time: string;
+  profilePicture: string;
+  message: string;
+  sender: string;
+}
+
+// study session-related types and data (from main)
+export interface StudySession {
+  id: number;
+  title: string;
+  date: string;
+  friends: string[];
 }
