@@ -1,20 +1,9 @@
-//Imports
 import React, { useState, useEffect } from 'react';
-import { COLORS } from '@/constants/Colors'; 
 import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-//Interface setup for database 
 type Event = {
-  id: string;
-  date: Date;
-  title: string;
-  time: string;
-  isadded?: boolean; 
-};
-
-type StudySession = {
   id: string;
   date: Date;
   title: string;
@@ -23,16 +12,24 @@ type StudySession = {
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const COLORS = {
+  UCONN_NAVY: '#0E1E45',
+  UCONN_WHITE: '#FFFFFF',
+  UCONN_GREY: '#A7A9AC',
+  HIGHLIGHT: '#FFD700',
+  EVENT_COLOR: '#4A90E2',
+  BUTTON_BG: '#0E1E45',
+  BORDER_COLOR: '#DDDDDD',
+  ERROR_COLOR: '#FF3B30',
+};
+
 export default function CustomCalendar({ onBack }: { onBack: () => void }) {
-  //Allows managment of current date, events, study sessions, and selected date
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
-  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  //Load saved events and study sessions from AsyncStorage
   useEffect(() => {
-    const loadItems = async () => {
+    const loadEvents = async () => {
       const storedEvents = await AsyncStorage.getItem('events');
       if (storedEvents) {
         const parsedEvents: Event[] = JSON.parse(storedEvents).map((event: any) => ({
@@ -41,38 +38,23 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
         }));
         setEvents(parsedEvents);
       }
-      const storedSessions = await AsyncStorage.getItem('studySessions');
-      if (storedSessions) {
-        const parsedSessions: StudySession[] = JSON.parse(storedSessions).map((session: any) => ({
-          ...session,
-          date: new Date(session.date),
-        }));
-        setStudySessions(parsedSessions);
-      }
     };
 
-    loadItems();
+    loadEvents();
   }, []);
 
-  //Update events and study sessions to AsyncStorage 
   useEffect(() => {
-    const saveItems = async () => {
+    const saveEvents = async () => {
       const eventsToSave = events.map(event => ({
         ...event,
         date: event.date.toISOString(),
       }));
       await AsyncStorage.setItem('events', JSON.stringify(eventsToSave));
-      const sessionsToSave = studySessions.map(session => ({
-        ...session,
-        date: session.date.toISOString(),
-      }));
-      await AsyncStorage.setItem('studySessions', JSON.stringify(sessionsToSave));
     };
 
-    saveItems();
-  }, [events, studySessions]);
+    saveEvents();
+  }, [events]);
 
-  //Function to calculate the days of the month to display on the calendar
   const getDaysInMonth = (date: Date): (Date | null)[] => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -80,17 +62,15 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
 
-    //Fill in the empty slots before the first day of the month
+    // Fill in the empty slots before the first day of the month
     for (let i = 0; i < firstDay.getDay(); i++) {
       days.push(null);
     }
 
-    //Add the days of the month
     for (let i = 1; i <= lastDay.getDate(); i++) {
       days.push(new Date(year, month, i));
     }
 
-    //Fill in the empty slots after the last day of the month to complete the week
     const remainingSlots = 7 - (days.length % 7);
     for (let i = 0; i < remainingSlots && remainingSlots < 7; i++) {
       days.push(null);
@@ -99,7 +79,6 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
     return days;
   };
 
-  //Functions to navigate to the previous and next month
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
@@ -108,21 +87,16 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  //Handle date selection 
   const handleDateClick = (date: Date | null) => {
     if (date) {
       setSelectedDate(date);
     }
   };
 
-  //Function to get all events and study sessions in calendar
-  const getItemsForDate = (date: Date): (Event | StudySession)[] => {
-    const eventsOnDate = events.filter(event => event.date.toDateString() === date.toDateString());
-    const sessionsOnDate = studySessions.filter(session => session.date.toDateString() === date.toDateString());
-    return [...eventsOnDate, ...sessionsOnDate];
+  const getEventsForDate = (date: Date): Event[] => {
+    return events.filter(event => event.date.toDateString() === date.toDateString());
   };
 
-  //Check if a date is today
   const isToday = (date: Date): boolean => {
     const today = new Date();
     return (
@@ -132,12 +106,10 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
     );
   };
 
-  //Function to format the time for an event or study session 
-  const formatItemTime = (date: Date): string => {
+  const formatEventTime = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  //Function to format the full date and weekday for display
   const formatDate = (date: Date) => {
     return `${date.toLocaleString('default', { weekday: 'long' })}, ${date.toLocaleDateString()}`;
   };
@@ -154,7 +126,7 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
         </View>
       </View>
 
-      {/* Calendar Navigation */}
+      {/* Calendar */}
       <View style={styles.calendarContainer}>
         <View style={styles.monthContainer}>
           <TouchableOpacity onPress={handlePrevMonth}>
@@ -176,7 +148,7 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
           ))}
         </View>
 
-        {/* Days of the month */}
+        {/* Days */}
         <View style={styles.datesContainer}>
           {getDaysInMonth(currentDate).map((date, index) => (
             date ? (
@@ -185,12 +157,12 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
                 style={[
                   styles.dateContainer,
                   isToday(date) ? styles.highlightedDate : styles.date,
-                  getItemsForDate(date).length > 0 ? styles.eventDay : {},
+                  getEventsForDate(date).length > 0 ? styles.eventDay : {},
                 ]}
                 onPress={() => handleDateClick(date)}
               >
                 <Text style={styles.dateText}>{date.getDate()}</Text>
-                {getItemsForDate(date).length > 0 && (
+                {getEventsForDate(date).length > 0 && (
                   <View style={styles.eventIndicator} />
                 )}
               </TouchableOpacity>
@@ -208,24 +180,23 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
 
       {/* Event List */}
       <View style={styles.eventListContainer}>
-        <Text style={styles.eventListTitle}>Your Items:</Text>
+        <Text style={styles.eventListTitle}>Your Events:</Text>
         {selectedDate ? (
-          getItemsForDate(selectedDate).map((item) => (
-            <View key={item.id} style={styles.eventItem}>
+          getEventsForDate(selectedDate).map((event) => (
+            <View key={event.id} style={styles.eventItem}>
               <Text style={styles.eventItemText}>
-                {item.title} on {new Date(item.date).toLocaleDateString()} at {formatItemTime(item.date)}
+                {event.title} on {new Date(event.date).toLocaleDateString()} at {formatEventTime(event.date)}
               </Text>
             </View>
           ))
         ) : (
-          <Text style={styles.noEventsText}>Select a date to view items.</Text>
+          <Text style={styles.noEventsText}>Select a date to view events.</Text>
         )}
       </View>
     </SafeAreaView>
   );
 }
 
-//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -295,45 +266,42 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: COLORS.UCONN_NAVY,
   },
   eventIndicator: {
+    backgroundColor: COLORS.EVENT_COLOR,
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.EVENT_COLOR,
     marginTop: 4,
   },
   todayContainer: {
     padding: 16,
-    backgroundColor: COLORS.UCONN_GREY,
+    alignItems: 'center',
   },
   todayText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+    color: 'black',
   },
   eventListContainer: {
     padding: 16,
-    backgroundColor: COLORS.UCONN_WHITE,
   },
   eventListTitle: {
     fontSize: 18,
     fontWeight: 'bold',
   },
   eventItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.BORDER_COLOR,
   },
   eventItemText: {
     fontSize: 16,
+    color: COLORS.UCONN_NAVY,
   },
   noEventsText: {
     fontSize: 16,
     color: COLORS.UCONN_GREY,
-  },
-  errorText: {
-    color: COLORS.ERROR_COLOR,
   },
 });

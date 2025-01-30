@@ -50,20 +50,3 @@ export interface Section {
   meets: string;
   instructor: string;
 }
-
-// Interface for events (public events)
-export interface Event {
-  id: number; 
-  title: string; 
-  date: string; 
-  description: string;
-  isadded?: boolean;
-}
-
-// Interface for study sessions (private events)
-export interface StudySession {
-  id: number; 
-  title: string;
-  date: string; 
-  friends: string[]; 
-}
