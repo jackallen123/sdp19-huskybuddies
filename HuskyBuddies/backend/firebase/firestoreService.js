@@ -1,14 +1,24 @@
 import { db } from "./firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 
-export const testFirestoreConnection = async () => {
-  try {
-    const querySnapshot = await getDocs(collection(db, "testCollection"));
-    querySnapshot.forEach((doc) => {
-      console.log(`${doc.id} => ${JSON.stringify(doc.data())}`);
-    });
-    console.log("Firestore connection successful.");
-  } catch (error) {
-    console.error("Error connecting to Firestore:", error);
-  }
-};
+/**
+ * Adds a new user to the Firestore database.
+ * @param {string} firstName - The user's first name.
+ * @param {string} lastName - The user's last name.
+ * @param {string} email - The user's email.
+ * @param {string} password - The user's password.
+ */
+export const addUserToDatabase = async (firstName, lastName, email, password) => {
+    try {
+      const userCollectionRef = collection(db, 'users');
+      const docRef = await addDoc(userCollectionRef, {
+        firstName,
+        lastName,
+        email,
+        password, // You might want to hash the password before saving in production
+      });
+      console.log('User added with ID:', docRef.id);
+    } catch (error) {
+      console.error('Error adding user to database:', error);
+    }
+  };

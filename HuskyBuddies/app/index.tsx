@@ -6,7 +6,7 @@ import { Input, Button } from 'react-native-elements';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/Colors';
 import { useRouter } from 'expo-router';
-import { testFirestoreConnection } from "../backend/firebase/firestoreService";
+import { addUserToDatabase } from "../backend/firebase/firestoreService";
 
 // mock credentials
 const MOCK_EMAIL = 'admin@uconn.edu';
@@ -117,11 +117,6 @@ export default function LoginSignup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  useEffect(() => {
-    // testing firestore connection
-    testFirestoreConnection();
-  })
-
   // login and signup handlers
   const handleLogin = () => {
     if (email === MOCK_EMAIL && password === MOCK_PASSWORD) {
@@ -133,9 +128,27 @@ export default function LoginSignup() {
     }
   };
 
-  const handleSignUp = () => {
-    // TODO: signup logic
-    console.log('Signing up...', { firstName, lastName, email, password });
+  const handleSignUp = async () => {
+    if (firstName && lastName && email && password) {
+      try {
+        // call the function to add the user to Firestore
+        await addUserToDatabase(firstName, lastName, email, password);
+
+        // after successful signup, show alert
+        Alert.alert('Success', 'Your account has been created.');
+
+        // clear input fields after successful signup
+        setFirstName('');
+        setLastName('');
+        setEmail('');
+        setPassword('');
+
+      } catch (error) {
+        Alert.alert('Error', 'There was a problem creating the account.');
+      }
+    } else {
+      Alert.alert('Validation Error', 'Please fill in all the fields.');
+    }
   };
 
   const toggleMode = () => {
