@@ -1,11 +1,12 @@
 /* Login/Signup Screen */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Input, Button } from 'react-native-elements';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/Colors';
 import { useRouter } from 'expo-router';
+import { testFirestoreConnection } from "../backend/firebase/firestoreService";
 
 // mock credentials
 const MOCK_EMAIL = 'admin@uconn.edu';
@@ -115,6 +116,11 @@ export default function LoginSignup() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    // testing firestore connection
+    testFirestoreConnection();
+  })
 
   // login and signup handlers
   const handleLogin = () => {
