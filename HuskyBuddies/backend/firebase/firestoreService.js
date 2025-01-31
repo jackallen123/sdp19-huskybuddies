@@ -1,24 +1,39 @@
 import { db } from "./firebaseConfig";
-import { collection, addDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, deleteDoc } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
+ * @param {string} uid - The user's unique identifier.
  * @param {string} firstName - The user's first name.
  * @param {string} lastName - The user's last name.
  * @param {string} email - The user's email.
- * @param {string} password - The user's password.
  */
-export const addUserToDatabase = async (firstName, lastName, email, password) => {
-    try {
-      const userCollectionRef = collection(db, 'users');
-      const docRef = await addDoc(userCollectionRef, {
-        firstName,
-        lastName,
-        email,
-        password,
-      });
-      console.log('User added with ID:', docRef.id);
-    } catch (error) {
-      console.error('Error adding user to database:', error);
-    }
-  };
+const addUserToDatabase = async (uid, firstName, lastName, email) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, {
+      firstName,
+      lastName,
+      email,
+      createdAt: new Date(),
+    });
+
+  } catch (error) {
+    console.error("Error adding user to database:", error);
+  }
+};
+
+/**
+ * Deletes a user from the Firestore database.
+ * @param {string} uid - The user's unique identifier.
+ */
+const deleteUserFromDatabase = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await deleteDoc(userRef);
+  } catch (error) {
+    console.error("Error deleting user from database:", error);
+  }
+};
+
+export { addUserToDatabase, deleteUserFromDatabase };
