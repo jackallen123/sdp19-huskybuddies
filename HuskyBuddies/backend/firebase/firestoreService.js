@@ -1,5 +1,5 @@
 import { db } from "./firebaseConfig";
-import { collection, addDoc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
@@ -10,12 +10,14 @@ import { collection, addDoc, setDoc } from "firebase/firestore";
  */
 const addUserToDatabase = async (uid, firstName, lastName, email) => {
   try {
-    await setDoc(doc(db, "users", uid), {
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, {
       firstName,
       lastName,
       email,
       createdAt: new Date(),
     });
+    
     console.log("User added to Firestore");
   } catch (error) {
     console.error("Error adding user to database:", error);
