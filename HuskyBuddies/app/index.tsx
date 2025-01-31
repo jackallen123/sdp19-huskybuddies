@@ -1,16 +1,20 @@
 /* Login/Signup Screen */
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { Input, Button } from 'react-native-elements';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '@/constants/Colors';
-import { useRouter } from 'expo-router';
-import { addUserToDatabase } from "../backend/firebase/firestoreService";
-
-// mock credentials
-const MOCK_EMAIL = 'admin@uconn.edu';
-const MOCK_PASSWORD = 'admin';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
+import { Input, Button } from "react-native-elements";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS } from "@/constants/Colors";
+import { useRouter } from "expo-router";
+import { signUp, signIn } from "../backend/firebase/authService";
 
 // types for props for login and signup components
 type LoginProps = {
@@ -34,7 +38,13 @@ type SignupProps = {
 };
 
 // login Component
-const Login: React.FC<LoginProps> = ({ email, setEmail, password, setPassword, handleLogin }) => {
+const Login: React.FC<LoginProps> = ({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  handleLogin,
+}) => {
   return (
     <>
       <Input
@@ -65,7 +75,17 @@ const Login: React.FC<LoginProps> = ({ email, setEmail, password, setPassword, h
 };
 
 // signup Component
-const Signup: React.FC<SignupProps> = ({ firstName, setFirstName, lastName, setLastName, email, setEmail, password, setPassword, handleSignUp }) => {
+const Signup: React.FC<SignupProps> = ({
+  firstName,
+  setFirstName,
+  lastName,
+  setLastName,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  handleSignUp,
+}) => {
   return (
     <>
       <Input
@@ -111,89 +131,90 @@ const Signup: React.FC<SignupProps> = ({ firstName, setFirstName, lastName, setL
 
 export default function LoginSignup() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  // login and signup handlers
-  const handleLogin = () => {
-    if (email === MOCK_EMAIL && password === MOCK_PASSWORD) {
-      // Successful login
-      router.replace('/screens');
-    } else {
-      // Incorrect credentials
-      Alert.alert('Login Failed', 'Invalid email or password');
+  // handles user login
+  const handleLogin = async () => {
+    try {
+      // call signIn() from authService.js with inputted email password
+      const user = await signIn(email, password);
+      Alert.alert("Success", "Logged in successfully!");
+      // navigate to home page after login
+      router.replace("/screens");
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      Alert.alert("Login failed", errorMessage);
     }
   };
 
+  // handles user signup
   const handleSignUp = async () => {
-    if (firstName && lastName && email && password) {
-      try {
-        // call the function to add the user to Firestore
-        await addUserToDatabase(firstName, lastName, email, password);
-
-        // after successful signup, show alert
-        Alert.alert('Success', 'Your account has been created.');
-
-        // clear input fields after successful signup
-        setFirstName('');
-        setLastName('');
-        setEmail('');
-        setPassword('');
-
-      } catch (error) {
-        Alert.alert('Error', 'There was a problem creating the account.');
-      }
-    } else {
-      Alert.alert('Validation Error', 'Please fill in all the fields.');
+    if (!firstName || !lastName || !email || !password) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+    try {
+      // call signUp() from authService.js with inputted fields
+      const user = await signUp(email, password, firstName, lastName);
+      Alert.alert("Success", "Account created successfully!");
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      Alert.alert("Sign up failed", errorMessage);
     }
   };
 
+  // toggles between login and signup components
   const toggleMode = () => {
-    setIsLogin(!isLogin);
+    setIsSignUp(!isSignUp);
     // resets forms when toggling between pages
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPassword('');
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPassword("");
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
       >
         <View style={styles.formContainer}>
-          <Text style={styles.title}>{isLogin ? 'Welcome Back' : 'Join Husky Buddies!'}</Text>
-          
-          {isLogin ? (
-            <Login 
-              email={email} 
-              setEmail={setEmail} 
-              password={password} 
-              setPassword={setPassword} 
-              handleLogin={handleLogin} 
+          <Text style={styles.title}>
+            {isSignUp ? "Join Husky Buddies!" : "Welcome Back"}
+          </Text>
+
+          {isSignUp ? (
+            <Signup
+              firstName={firstName}
+              setFirstName={setFirstName}
+              lastName={lastName}
+              setLastName={setLastName}
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              handleSignUp={handleSignUp}
             />
           ) : (
-            <Signup 
-              firstName={firstName} 
-              setFirstName={setFirstName} 
-              lastName={lastName} 
-              setLastName={setLastName} 
-              email={email} 
-              setEmail={setEmail} 
-              password={password} 
-              setPassword={setPassword} 
-              handleSignUp={handleSignUp} 
+            <Login
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              handleLogin={handleLogin}
             />
           )}
-          
+
           <TouchableOpacity onPress={toggleMode} style={styles.toggleContainer}>
             <Text style={styles.toggleText}>
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
+              {isSignUp
+                ? "Already have an account? Log in"
+                : "Don't have an account? Sign up"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -212,15 +233,15 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.UCONN_WHITE,
     marginBottom: 30,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
     color: COLORS.UCONN_WHITE,
@@ -234,11 +255,11 @@ const styles = StyleSheet.create({
   buttonTitle: {
     color: COLORS.UCONN_NAVY,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   toggleContainer: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   toggleText: {
     color: COLORS.UCONN_WHITE,
