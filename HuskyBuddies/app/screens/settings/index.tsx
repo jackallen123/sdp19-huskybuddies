@@ -6,6 +6,8 @@ import Slider from '@react-native-community/slider';
 import Schedule from '@/components/schedule';
 import ProfileEditor from '@/components/ProfileEditor';
 import { Ionicons } from '@expo/vector-icons';
+import { signOutUser, deleteUserAccount } from '@/backend/firebase/authService';
+import { auth } from '@/backend/firebase/firebaseConfig';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -24,41 +26,55 @@ export default function SettingsScreen() {
     setShowProfileEditor(true);
   }
 
-  const handleSignOut = () => {
-    // sign out logic
-    router.replace('/');
+  const handleSignOut = async () => {
+    try {
+      await signOutUser(); // signs out the user from Firebase
+      router.replace('/'); // redirects user to login screen
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      Alert.alert("Error signing out", errorMessage);
+    }
   };
 
   {/* add an alert to prompt user for actually deleting account - no actual logic yet though */}
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     Alert.alert(
       "Delete Account",
       "Are you sure you want to delete your account? This action cannot be undone.",
       [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Delete",
-          onPress: () => {
-            // delete account logic
-            Alert.alert(
-              "Account Deleted",
-              "Your account has been successfully deleted.",
-              [
-                {
-                  text: "OK",
-                  onPress: () => router.replace('/')
-                }
-              ]
-            );
+          onPress: async () => {
+            const user = auth.currentUser; // Get the current user
+  
+            if (user) {
+              try {
+                // Pass the user object to deleteUserAccount
+                await deleteUserAccount(user);
+                Alert.alert("Account deleted", "Your account has been successfully deleted.", [
+                  {
+                    text: "OK",
+                    onPress: () => router.replace('/'),
+                  },
+                ]);
+              } catch (error) {
+                const errorMessage = (error as Error).message;
+                Alert.alert("Error deleting account", errorMessage);
+              }
+            } else {
+              Alert.alert("No user found", "You are not logged in.");
+            }
           },
-          style: "destructive"
-        }
+          style: "destructive",
+        },
       ]
     );
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
