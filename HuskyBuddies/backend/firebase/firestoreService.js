@@ -1,24 +1,25 @@
 import { db } from "./firebaseConfig";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, setDoc } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
+ * @param {string} uid - The user's unique identifier.
  * @param {string} firstName - The user's first name.
  * @param {string} lastName - The user's last name.
  * @param {string} email - The user's email.
- * @param {string} password - The user's password.
  */
-export const addUserToDatabase = async (firstName, lastName, email, password) => {
-    try {
-      const userCollectionRef = collection(db, 'users');
-      const docRef = await addDoc(userCollectionRef, {
-        firstName,
-        lastName,
-        email,
-        password,
-      });
-      console.log('User added with ID:', docRef.id);
-    } catch (error) {
-      console.error('Error adding user to database:', error);
-    }
-  };
+const addUserToDatabase = async (uid, firstName, lastName, email) => {
+  try {
+    await setDoc(doc(db, "users", uid), {
+      firstName,
+      lastName,
+      email,
+      createdAt: new Date(),
+    });
+    console.log("User added to Firestore");
+  } catch (error) {
+    console.error("Error adding user to database:", error);
+  }
+};
+
+export { addUserToDatabase };
