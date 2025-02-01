@@ -1,58 +1,76 @@
+//Imports
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/Colors';
+import { COLORS } from '@/constants/Colors'; 
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+//Interface setup for database 
 interface Event {
   id: number;
   title: string;
   date: string;
   description: string;
+  isadded?: boolean; 
 }
+const AddEvent: React.FC<{ 
+  onBack: () => void; 
+  onAddEvent: (event: Event) => void; 
+  events: Event[]; 
+  onDeleteEvent: (id: number) => void; 
+}> = ({ onBack, onAddEvent, events, onDeleteEvent }) => {
+  const [title, setTitle] = useState(''); 
+  const [date, setDate] = useState<Date | null>(null); 
+  const [description, setDescription] = useState(''); 
+  const [showDatePicker, setShowDatePicker] = useState(false); 
+  const [showTimePicker, setShowTimePicker] = useState(false); 
 
-const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => void; events: Event[]; onDeleteEvent: (id: number) => void }> = ({ onBack, onAddEvent, events, onDeleteEvent }) => {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState<Date | null>(null);
-  const [description, setDescription] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
+  //Error handling for empty friends
   const handleSubmit = () => {
     if (!title || !description || !date) {
-      alert('Please fill out all fields!');
+      alert('Please fill out all fields!'); 
       return;
     }
 
+    //Error handling for duplicate events
+    const duplicateEvent = events.find((event) => event.title === title && event.date === date.toISOString());
+
+    if (duplicateEvent) {
+      alert('Event already exists, not adding duplicate!');
+      return;
+    }
+
+    //Creating a new event
     const newEvent: Event = {
-      id: Date.now(),
+      id: Date.now(), 
       title,
-      date: date.toISOString(),
+      date: date.toISOString(), 
       description,
+      isadded: false, 
     };
 
     onAddEvent(newEvent);
     setTitle('');
     setDate(null);
     setDescription('');
-    alert('Event posted successfully!');
+    alert('Event posted successfully!'); 
   };
 
+  //Handle date selection from the DateTimePicker
   const handleDateChange = (event: any, selectedDate: Date | undefined) => {
-    setShowDatePicker(false);
+    setShowDatePicker(false); 
     if (selectedDate) {
-      setDate(selectedDate);
+      setDate(selectedDate); 
       setShowTimePicker(true); 
     }
   };
 
+  //Handle time selection from the DateTimePicker
   const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
     if (selectedTime) {
       setDate(new Date(date!.setHours(selectedTime.getHours(), selectedTime.getMinutes())));
-      setShowTimePicker(false); 
-    } else {
-      setShowTimePicker(false);
     }
+    setShowTimePicker(false);
   };
 
   const renderEventItem = ({ item }: { item: Event }) => (
@@ -68,6 +86,7 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header section with back button and title */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
@@ -77,8 +96,11 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
         </View>
       </View>
 
+      {/* Form section for adding a new event */}
       <View style={styles.formContainer}>
         <Text style={styles.title}>Post a New Event</Text>
+
+        {/* Input for event title */}
         <TextInput
           value={title}
           onChangeText={setTitle}
@@ -87,6 +109,7 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
           style={styles.input}
         />
 
+        {/* Date and time selection */}
         <View style={styles.dateContainer}>
           <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
             <Text style={styles.inputText}>
@@ -94,6 +117,7 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
             </Text>
           </TouchableOpacity>
 
+          {/* Date */}
           {showDatePicker && (
             <DateTimePicker
               value={date || new Date()}
@@ -104,6 +128,7 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
             />
           )}
 
+          {/* Time */}
           {showTimePicker && (
             <DateTimePicker
               value={date || new Date()}
@@ -115,6 +140,7 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
           )}
         </View>
 
+        {/* Input for event description */}
         <TextInput
           value={description}
           onChangeText={setDescription}
@@ -124,13 +150,14 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
           multiline
           numberOfLines={4}
         />
-        
+
+        {/* Submit button */}
         <TouchableOpacity onPress={handleSubmit} style={styles.button}>
           <Text style={styles.buttonText}>Post Event</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Scrollable Events List Section */}
+      {/* List of posted events */}
       <FlatList
         style={styles.eventsContainer}
         data={events}
@@ -141,6 +168,7 @@ const AddEvent: React.FC<{ onBack: () => void; onAddEvent: (event: Event) => voi
   );
 };
 
+//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -212,7 +240,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 150,
     borderRadius: 8,
     alignItems: 'center',
-    alignSelf: 'center', 
+    alignSelf: 'center',
     marginTop: 20,
   },
   buttonText: {
@@ -222,10 +250,6 @@ const styles = StyleSheet.create({
   eventsContainer: {
     flex: 1,
     padding: 16,
-  },
-  eventsTitle: {
-    fontSize: 20,
-    marginBottom: 10,
   },
   eventItem: {
     marginBottom: 12,
