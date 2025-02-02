@@ -205,7 +205,7 @@ export async function fetchCourseSections(
     await page.waitForSelector("#search-form");
 
     // fills out the search form
-    await page.select("#crit-srcdb", "1248");
+    await page.select("#crit-srcdb", "1253");
     await page.select("#crit-camp", "STORR@STORRS");
     await page.select("#crit-coursetype", "coursetype_ugrad");
     await page.type("#crit-keyword", courseCode);
