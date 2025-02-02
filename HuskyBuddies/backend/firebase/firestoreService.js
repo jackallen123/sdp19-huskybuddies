@@ -1,5 +1,6 @@
+import { getNextColor } from "@/utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
-import { getFirestore, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, getDocs, collection } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
@@ -8,7 +9,7 @@ import { getFirestore, doc, setDoc, deleteDoc } from "firebase/firestore";
  * @param {string} lastName - The user's last name.
  * @param {string} email - The user's email.
  */
-const addUserToDatabase = async (uid, firstName, lastName, email) => {
+export const addUserToDatabase = async (uid, firstName, lastName, email) => {
   try {
     const userRef = doc(db, "users", uid);
     await setDoc(userRef, {
@@ -27,7 +28,7 @@ const addUserToDatabase = async (uid, firstName, lastName, email) => {
  * Deletes a user from the Firestore database.
  * @param {string} uid - The user's unique identifier.
  */
-const deleteUserFromDatabase = async (uid) => {
+export const deleteUserFromDatabase = async (uid) => {
   try {
     const userRef = doc(db, "users", uid);
     await deleteDoc(userRef);
@@ -36,4 +37,69 @@ const deleteUserFromDatabase = async (uid) => {
   }
 };
 
-export { addUserToDatabase, deleteUserFromDatabase };
+/**
+ * Stores a new course in Firestore under the user's document
+ * @param {string} userId - ID of the user
+ * @param {Course} course - The course to be stored
+ */
+export const storeCourse = async (userId, course) => {
+  try {
+    const userCoursesRef = doc(db, "users", userId, "courses", course.id);
+
+    // fetch existing courses to help determine unique color
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    const existingCourses = coursesSnapshot.docs.map(doc => doc.data());
+
+    // assign a unique color
+    const usedColors = existingCourses.map(course => course.color);
+    course.color = getNextColor(usedColors);
+
+    await setDoc(userCoursesRef, course);
+
+  } catch (error) {
+    console.error("Error storing course:", error);
+  }
+};
+
+/**
+ * Retrieves all stored courses for a specific user
+ * @param {string} userId - ID of the user 
+ * @returns {Promise<Course[]>} - An array of courses
+ */
+export const getAllCourses = async (userId) => {
+  try {
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    
+    return coursesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      
+      return {
+        id: doc.id, 
+        name: data.name || "",
+        section: data.section || "",
+        instructor: data.instructor || "",
+        days: data.days || [],
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        color: data.color || "#FFFFFF" 
+      }
+    });
+  } catch (error) {
+    console.error("Error retrieving courses:", error);
+    return [];
+  }
+};
+
+/**
+ * Deletes a course from Firestore by its ID
+ * @param {string} userId - ID of the user
+ * @param {string} courseId - ID of the course to be deleted
+ */
+export const deleteCourse = async (userId, courseId) => {
+  try {
+    await deleteDoc(doc(db, "users", userId, "courses", courseId));
+    
+  } catch (error) {
+    console.error("Error deleting course:", error)
+  }
+}

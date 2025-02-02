@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
 import { transformSectionToCourse } from '@/utils/transform/courseTransform';
-import { storeCourse } from '@/utils/services/courseStorage';
 import { Alert } from 'react-native';
+import { storeCourse } from '@/backend/firebase/firestoreService';
+import { auth } from '@/backend/firebase/firebaseConfig';
 import axios from 'axios';
 
 interface Section {
@@ -26,7 +27,7 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
     fetchSections();
   }, []);
 
-  const ip_address = '' // set your IP address here
+  const ip_address = '192.168.1.50' // set your IP address here
 
   const fetchSections = async () => {
     try {
@@ -61,8 +62,15 @@ export default function AddSection({ onBack, courseCode }: { onBack: () => void,
       setLocationPopup({ visible: true, message: 'Adding course...' });
       // const location = await fetchLocation(section.sectionNumber);
       
+      // get current user
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert("Error", "User not authenticated.");
+        return;
+      }
+
       const course = transformSectionToCourse(courseCode, section);
-      await storeCourse(course);
+      await storeCourse(userId, course);
       
       // success message
       setLocationPopup({ visible: true, message: 'Course added successfully!' });
