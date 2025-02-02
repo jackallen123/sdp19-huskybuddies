@@ -59,7 +59,21 @@ export const storeCourse = async (userId, course) => {
 export const getAllCourses = async (userId) => {
   try {
     const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
-    return coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    return coursesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      
+      return {
+        id: doc.id, 
+        name: data.name || "",
+        section: data.section || "",
+        instructor: data.instructor || "",
+        days: data.days || [],
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        color: data.color || "#FFFFFF" 
+      }
+    });
   } catch (error) {
     console.error("Error retrieving courses:", error);
     return [];
