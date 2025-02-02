@@ -1,5 +1,6 @@
+import { getNextColor } from "@/utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
-import { getFirestore, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, getDocs, collection } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
@@ -8,7 +9,7 @@ import { getFirestore, doc, setDoc, deleteDoc } from "firebase/firestore";
  * @param {string} lastName - The user's last name.
  * @param {string} email - The user's email.
  */
-const addUserToDatabase = async (uid, firstName, lastName, email) => {
+export const addUserToDatabase = async (uid, firstName, lastName, email) => {
   try {
     const userRef = doc(db, "users", uid);
     await setDoc(userRef, {
@@ -27,7 +28,7 @@ const addUserToDatabase = async (uid, firstName, lastName, email) => {
  * Deletes a user from the Firestore database.
  * @param {string} uid - The user's unique identifier.
  */
-const deleteUserFromDatabase = async (uid) => {
+export const deleteUserFromDatabase = async (uid) => {
   try {
     const userRef = doc(db, "users", uid);
     await deleteDoc(userRef);
@@ -36,4 +37,40 @@ const deleteUserFromDatabase = async (uid) => {
   }
 };
 
-export { addUserToDatabase, deleteUserFromDatabase };
+export const storeCourse = async (userId, course) => {
+  try {
+    const userCoursesRef = doc(db, "users", userId, "courses", course.id);
+
+    // fetch existing courses to help determine unique color
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    const existingCourses = coursesSnapshot.docs.map(doc => doc.data());
+
+    // assign a unique color
+    const usedColors = existingCourses.map(course => course.color);
+    course.color = getNextColor(usedColors);
+
+    await setDoc(userCoursesRef, course);
+    console.log("Course stored in Firebase:", course);
+  } catch (error) {
+    console.error("Error storing course:", error);
+  }
+};
+
+export const getAllCourses = async (userId) => {
+  try {
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    return coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error retrieving courses:", error);
+    return [];
+  }
+};
+
+export const deleteCourse = async (userId, courseId) => {
+  try {
+    await deleteDoc(doc(db, "users", userId, "courses", courseId));
+    console.log("Course deleted from Firestore:", courseId);
+  } catch (error) {
+    console.error("Error deleting course:", error)
+  }
+}
