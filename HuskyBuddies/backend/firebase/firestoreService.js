@@ -103,3 +103,99 @@ export const deleteCourse = async (userId, courseId) => {
     console.error("Error deleting course:", error)
   }
 }
+
+/**
+ * Update or create a user's profile in Firestore.
+ * @param {string} uid - The user's unique identifier.
+ * @param {Object} profileData - The user's profile data.
+ */
+
+export const updateUserProfile = async (uid, profileData) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, profileData, { merge: true });
+    console.log("User profile updated successfully");
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    throw error;
+  }
+};
+
+/**
+ * Retrieves a specific user's profile from Firestore.
+ * @param {string} uid - The user's unique identifier.
+ * @returns {Promise<Object>} - The user's profile data.
+ */
+
+export const getUserProfile = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDocs(userRef);
+    
+    if (userDoc.exists()) {
+      return userDoc.data();
+    } else {
+      console.log("No such user!");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    throw error;
+  }
+};
+
+/**
+ * Updates a specific user's settings in Firestore.
+ * @param {string} uid - The user's unique identifier.
+ * @param {Object} settings - The user's settings.
+ */
+
+export const updateUserSettings = async (uid, settings) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, { settings });
+    console.log("User settings updated successfully");
+  } catch (error) {
+    console.error("Error updating user settings:", error);
+    throw error;
+  }
+};
+
+/**
+ * Retrieves a specific user's settings from Firestore.
+ * @param {string} uid - The user's unique identifier.
+ * @returns {Promise<Object>} - The user's settings.
+ */
+export const getUserSettings = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDocs(userRef);
+    
+    if (userDoc.exists()) {
+      return userDoc.data().settings || {};
+    } else {
+      console.log("No such user!");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error getting user settings:", error);
+    throw error;
+  }
+};
+
+/**
+ * Updates a specific user's profile picture URL in Firestore.
+ * A separate API call here because pictures are big and errors could arise that might not have to do with the other parts of profile.
+ * @param {string} uid - The user's unique identifier.
+ * @param {string} pictureUrl - The URL of the user's profile picture.
+ */
+export const updateProfilePicture = async (uid, pictureUrl) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, { profilePicture: pictureUrl });
+    console.log("Profile picture updated successfully");
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    throw error;
+  }
+};
