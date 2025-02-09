@@ -41,12 +41,12 @@ export { addUserToDatabase, deleteUserFromDatabase };
 //EVENTS PAGE
 /**
  Adds a new event to the Firestore database.
- @param {number} Eventid 
- @param {string} Eventtitle
- @param {string} Eventdate 
- @param {string} Eventlocation 
- @param {string} Eventdescription
- @param {boolean} Eventoncalendar
+ * @param {number} Eventid 
+ * @param {string} Eventtitle
+ * @param {string} Eventdate 
+ * @param {string} Eventlocation 
+ * @param {string} Eventdescription
+ * @param {boolean} Eventoncalendar
  */
 
  const AddEventToDatabase = async (Eventid, Eventtitle, Eventdate , Eventlocation, Eventdescription, Eventoncalendar) => {
@@ -69,6 +69,7 @@ export { addUserToDatabase, deleteUserFromDatabase };
  Deletes an event from the Firestore database.
  @param {string} Eventid
  */
+
 const DeleteEventFromDatabase = async (Eventid) => {
   try {
     const userRef = doc(db, "Events", Eventid);
@@ -78,17 +79,17 @@ const DeleteEventFromDatabase = async (Eventid) => {
   }
 };
 
-/**
- Adds a new study session to the Firestore database.
- @param {number} Studysessionid
- @param {string} Studysessiontitle 
- @param {string} Studysessiondate 
- @param {string[]} StudySessionfriends //need to pull from users matching page
- */
+/** 
+//Adds a new study session to the Firestore database.
+* @param {number} Studysessionid
+* @param {string} Studysessiontitle 
+* @param {string} Studysessiondate 
+* @param {string[]} StudySessionfriends //need to pull from users matching page
+*/
 
 const AddStudySessionToDatabase = async (Studysessionid, Studysessiontitle, Studysessiondate, StudySessionfriends) => {
   try {
-    const userRef = doc(db, "StudySessions", Studysessionid);
+    const userRef = doc(db, "StudySession", Studysessionid);
     await setDoc(userRef, {
       Studysessiontitle,
       Studysessiondate,
@@ -100,10 +101,12 @@ const AddStudySessionToDatabase = async (Studysessionid, Studysessiontitle, Stud
   }
 
 };
-/**
- * Deletes a study session from the Firestore database.
- * @param {string} Studysessionid
- */
+
+/** 
+//Deletes a study session from the Firestore database.
+* @param {string} Studysessionid
+*/
+
 const DeleteStudySessionFromDatabase = async (Studysessionid) => {
   try {
     const userRef = doc(db, "StudySessions", Studysessionid);
