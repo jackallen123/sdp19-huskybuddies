@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AddCourseScreen from './addCourse';
 import { COLORS } from '@/constants/Colors';
 import { Course } from '@/utils/types/course';
-import { getAllCourses, deleteCourse } from '@/utils/services/courseStorage';
+import { getAllCourses, deleteCourse } from '@/backend/firebase/firestoreService';
+import { auth } from '@/backend/firebase/firebaseConfig';
 
 const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 
@@ -78,34 +79,35 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     const loadCourses = async () => {
       try {
-        const storedCourses = await getAllCourses();
+        const userId = auth.currentUser?.uid;
+        if (!userId) {
+          Alert.alert("Error", "User not authenticated.");
+          return;
+        }
+
+        const storedCourses = await getAllCourses(userId);
         setCourses(storedCourses);
       } catch (error) {
-        Alert.alert('Error', 'Failed to load courses');
+        Alert.alert("Error", "Failed to load courses.");
       }
-    };
+    }
     loadCourses();
   }, []);
 
-  // refresh courses when returning from AddCourseScreen
-  useEffect(() => {
-    if (!isAddingCourse) {
-      const refreshCourses = async () => {
-        const storedCourses = await getAllCourses();
-        setCourses(storedCourses);
-      };
-      refreshCourses();
-    }
-  }, [isAddingCourse]);
-
   const handleDeleteCourse = async (courseId: string) => {
     try {
-      await deleteCourse(courseId);
-      const updatedCourses = await getAllCourses();
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert("Error", "User not authenticated.");
+        return;
+      }
+  
+      await deleteCourse(userId, courseId);
+      const updatedCourses = await getAllCourses(userId);
       setCourses(updatedCourses);
-      Alert.alert('Success', 'Course deleted successfully');
+      Alert.alert("Success", "Course deleted successfully");
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete course');
+      Alert.alert("Error", "Failed to delete course");
     }
   };
 
