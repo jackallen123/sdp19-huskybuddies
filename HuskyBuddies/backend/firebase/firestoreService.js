@@ -201,45 +201,45 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
 };
 
 /**
- * Fetches all users from Firestore.
- * @returns {Promise<Array>} List of user profiles.
+ * Fetches all students from Firestore.
+ * @returns {Promise<Array>} List of student profiles.
  */
-export const getAllusers = async () => {
+export const getAllStudents = async () => {
   try {
-    const usersSnapshot = await getDocs(collection(db, "users"));
-    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const studentsSnapshot = await getDocs(collection(db, "students"));
+    return studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error("Error fetching students:", error);
     return [];
   }
 };
 
 /**
- * Fetches a specific user's profile from Firestore.
- * @param {string} userId - The user's ID.
- * @returns {Promise<Object>} The user's profile data.
+ * Fetches a specific student's profile from Firestore.
+ * @param {string} studentId - The student's ID.
+ * @returns {Promise<Object>} The student's profile data.
  */
-export const getuserProfile = async (userId) => {
+export const getStudentProfile = async (studentId) => {
   try {
-    const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
-    return userDoc.exists() ? userDoc.data() : null;
+    const studentRef = doc(db, "students", studentId);
+    const studentDoc = await getDoc(studentRef);
+    return studentDoc.exists() ? studentDoc.data() : null;
   } catch (error) {
-    console.error("Error fetching user profile:", error);
+    console.error("Error fetching student profile:", error);
     return null;
   }
 };
 
 /**
- * Fetches a user's buddy list from Firestore.
- * @param {string} userId - The user's ID.
+ * Fetches a student's buddy list from Firestore.
+ * @param {string} studentId - The student's ID.
  * @returns {Promise<Array>} List of buddy IDs.
  */
-export const getBuddyList = async (userId) => {
+export const getBuddyList = async (studentId) => {
   try {
-    const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
-    return userDoc.exists() ? userDoc.data().buddies || [] : [];
+    const studentRef = doc(db, "students", studentId);
+    const studentDoc = await getDoc(studentRef);
+    return studentDoc.exists() ? studentDoc.data().buddies || [] : [];
   } catch (error) {
     console.error("Error fetching buddy list:", error);
     return [];
@@ -247,14 +247,14 @@ export const getBuddyList = async (userId) => {
 };
 
 /**
- * Adds a buddy to a user's buddy list.
- * @param {string} userId - The user's ID.
+ * Adds a buddy to a student's buddy list.
+ * @param {string} studentId - The student's ID.
  * @param {string} buddyId - The buddy's ID.
  */
-export const addBuddy = async (userId, buddyId) => {
+export const addBuddy = async (studentId, buddyId) => {
   try {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
+    const studentRef = doc(db, "students", studentId);
+    await updateDoc(studentRef, {
       buddies: arrayUnion(buddyId),
     });
   } catch (error) {
@@ -263,14 +263,14 @@ export const addBuddy = async (userId, buddyId) => {
 };
 
 /**
- * Removes a buddy from a user's buddy list.
- * @param {string} userId - The user's ID.
+ * Removes a buddy from a student's buddy list.
+ * @param {string} studentId - The student's ID.
  * @param {string} buddyId - The buddy's ID.
  */
-export const removeBuddy = async (userId, buddyId) => {
+export const removeBuddy = async (studentId, buddyId) => {
   try {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
+    const studentRef = doc(db, "students", studentId);
+    await updateDoc(studentRef, {
       buddies: arrayRemove(buddyId),
     });
   } catch (error) {
