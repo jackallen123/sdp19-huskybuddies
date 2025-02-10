@@ -1,6 +1,6 @@
 import { getNextColor } from "@/utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
-import { doc, setDoc, deleteDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, getDoc, getDocs, collection, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
@@ -197,5 +197,83 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
   } catch (error) {
     console.error("Error updating profile picture:", error);
     throw error;
+  }
+};
+
+/**
+ * Fetches all users from Firestore.
+ * @returns {Promise<Array>} List of user profiles.
+ */
+export const getAllusers = async () => {
+  try {
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+};
+
+/**
+ * Fetches a specific user's profile from Firestore.
+ * @param {string} userId - The user's ID.
+ * @returns {Promise<Object>} The user's profile data.
+ */
+export const getuserProfile = async (userId) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+    return userDoc.exists() ? userDoc.data() : null;
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetches a user's buddy list from Firestore.
+ * @param {string} userId - The user's ID.
+ * @returns {Promise<Array>} List of buddy IDs.
+ */
+export const getBuddyList = async (userId) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+    return userDoc.exists() ? userDoc.data().buddies || [] : [];
+  } catch (error) {
+    console.error("Error fetching buddy list:", error);
+    return [];
+  }
+};
+
+/**
+ * Adds a buddy to a user's buddy list.
+ * @param {string} userId - The user's ID.
+ * @param {string} buddyId - The buddy's ID.
+ */
+export const addBuddy = async (userId, buddyId) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      buddies: arrayUnion(buddyId),
+    });
+  } catch (error) {
+    console.error("Error adding buddy:", error);
+  }
+};
+
+/**
+ * Removes a buddy from a user's buddy list.
+ * @param {string} userId - The user's ID.
+ * @param {string} buddyId - The buddy's ID.
+ */
+export const removeBuddy = async (userId, buddyId) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      buddies: arrayRemove(buddyId),
+    });
+  } catch (error) {
+    console.error("Error removing buddy:", error);
   }
 };
