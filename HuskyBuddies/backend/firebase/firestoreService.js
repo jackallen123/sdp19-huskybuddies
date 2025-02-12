@@ -37,6 +37,34 @@ export const deleteUserFromDatabase = async (uid) => {
   }
 };
 
+<<<<<<< HEAD
+export { addUserToDatabase, deleteUserFromDatabase };
+
+//EVENTS PAGE
+/**
+ Adds a new event to the Firestore database.
+ * @param {number} Eventid 
+ * @param {string} Eventtitle
+ * @param {string} Eventdate 
+ * @param {string} Eventlocation 
+ * @param {string} Eventdescription
+ * @param {boolean} Eventoncalendar
+ */
+
+ const AddEventToDatabase = async (Eventid, Eventtitle, Eventdate , Eventlocation, Eventdescription, Eventoncalendar) => {
+  try {
+    const userRef = doc(db, "Events", Eventid);
+    await setDoc(userRef, {
+      Eventtitle,
+      Eventdate,
+      Eventlocation,
+      Eventdescription,
+      Eventoncalendar
+    });
+
+  } catch (error) {
+    console.error("Error adding event to database:", error);
+=======
 /**
  * Stores a new course in Firestore under the user's document
  * @param {string} userId - ID of the user
@@ -58,10 +86,63 @@ export const storeCourse = async (userId, course) => {
 
   } catch (error) {
     console.error("Error storing course:", error);
+>>>>>>> c14317f33710485ed883c83de345d9180436db83
   }
 };
 
 /**
+<<<<<<< HEAD
+ Deletes an event from the Firestore database.
+ @param {string} Eventid
+ */
+
+const DeleteEventFromDatabase = async (Eventid) => {
+  try {
+    const userRef = doc(db, "Events", Eventid);
+    await deleteDoc(userRef);
+  } catch (error) {
+    console.error("Error deleting event from database:", error);
+  }
+};
+
+/** 
+//Adds a new study session to the Firestore database.
+* @param {number} Studysessionid
+* @param {string} Studysessiontitle 
+* @param {string} Studysessiondate 
+* @param {string[]} StudySessionfriends //need to pull from users matching page
+*/
+
+const AddStudySessionToDatabase = async (Studysessionid, Studysessiontitle, Studysessiondate, StudySessionfriends) => {
+  try {
+    const userRef = doc(db, "StudySession", Studysessionid);
+    await setDoc(userRef, {
+      Studysessiontitle,
+      Studysessiondate,
+      StudySessionfriends 
+    });
+
+  } catch (error) {
+    console.error("Error adding study session to database:", error);
+  }
+
+};
+
+/** 
+//Deletes a study session from the Firestore database.
+* @param {string} Studysessionid
+*/
+
+const DeleteStudySessionFromDatabase = async (Studysessionid) => {
+  try {
+    const userRef = doc(db, "StudySessions", Studysessionid);
+    await deleteDoc(userRef);
+  } catch (error) {
+    console.error("Error deleting study session from database:", error);
+  }
+};
+export {AddEventToDatabase, DeleteEventFromDatabase, AddStudySessionToDatabase, DeleteStudySessionFromDatabase};
+=======
  * Retrieves all stored courses for a specific user
  * @param {string} userId - ID of the user 
  * @returns {Promise<Course[]>} - An array of courses
@@ -199,3 +280,4 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
     throw error;
   }
 };
+>>>>>>> c14317f33710485ed883c83de345d9180436db83
