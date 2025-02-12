@@ -1,6 +1,6 @@
 import { getNextColor } from "@/utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
-import { doc, setDoc, deleteDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, getDocs, collection, updateDoc, getDoc } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
@@ -188,7 +188,7 @@ export const deleteCourse = async (userId, courseId) => {
 /**
  * Update or create a user's profile in Firestore.
  * @param {string} uid - The user's unique identifier.
- * @param {Object} profileData - The user's profile data.
+ * @param {Promise<Object>} profileData - The user's profile data.
  */
 
 export const updateUserProfile = async (uid, profileData) => {
@@ -211,11 +211,14 @@ export const updateUserProfile = async (uid, profileData) => {
 export const getUserProfile = async (uid) => {
   try {
     const userRef = doc(db, "users", uid);
-    const userDoc = await getDocs(userRef);
+    const userDoc = await getDoc(userRef);
     
     if (userDoc.exists()) {
+      // get current user data
       return userDoc.data();
-    } else {
+    } 
+    
+    else {
       console.log("No such user!");
       return null;
     }
@@ -228,14 +231,32 @@ export const getUserProfile = async (uid) => {
 /**
  * Updates a specific user's settings in Firestore.
  * @param {string} uid - The user's unique identifier.
- * @param {Object} settings - The user's settings.
+ * @param {Object} newSettings - The user's new settings.
  */
-
-export const updateUserSettings = async (uid, settings) => {
+export const updateUserSettings = async (uid, newSettings) => {
   try {
     const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, { settings });
-    console.log("User settings updated successfully");
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      // get current user data
+      const userData = userDoc.data();
+
+      // get current settings OR initialize empty object if it doesnt exist
+      const currentSettings = userData.settings || {};
+
+      // merge the current settings with new settings
+      const updatedSettings = { ...currentSettings, ...newSettings };
+      
+      // update settings field
+      await updateDoc(userRef, { settings: updatedSettings });
+      console.log("User settings updated successfully");
+    } 
+    
+    else {
+      console.log("No such user!");
+      throw new Error("User not found");
+    }
   } catch (error) {
     console.error("Error updating user settings:", error);
     throw error;
@@ -250,11 +271,19 @@ export const updateUserSettings = async (uid, settings) => {
 export const getUserSettings = async (uid) => {
   try {
     const userRef = doc(db, "users", uid);
-    const userDoc = await getDocs(userRef);
+    const userDoc = await getDoc(userRef);
     
     if (userDoc.exists()) {
-      return userDoc.data().settings || {};
-    } else {
+      // return settings object or default
+      const userData = userDoc.data();
+      return userData.settings || {
+        notificationsEnabled: false,
+        darkModeEnabled: false,
+        textSize: 16
+      };
+    } 
+    
+    else {
       console.log("No such user!");
       return null;
     }
