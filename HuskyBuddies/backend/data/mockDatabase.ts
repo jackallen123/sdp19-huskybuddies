@@ -5,11 +5,11 @@ export interface User {
   lastName: string;
   email: string;
   password: string;
+  settings?: UserSettings;
 }
 
 // user settings related types and data
 export interface UserSettings {
-  id: string;
   notificationsEnabled: boolean;
   darkModeEnabled: boolean;
   textSize: number;
