@@ -1,7 +1,7 @@
 /* Home Screen */
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal, Linking } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal, Linking, StatusBar } from 'react-native';
 import { COLORS } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
@@ -153,7 +153,7 @@ export default function HomePage() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         {/* Campus Services icon */}
@@ -218,7 +218,7 @@ export default function HomePage() {
         </View>
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -236,7 +236,10 @@ const styles = StyleSheet.create({
   // Header styling
   header: {
     backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
