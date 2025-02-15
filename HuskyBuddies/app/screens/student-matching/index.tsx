@@ -21,9 +21,9 @@ const IndexScreen = () => {
         return <MatchingLocation onBack={() => setShowMatchingLocation(false)} />;
     }
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerText}>Husky Buddies</Text>
+                <Text style={styles.headerText}>Match with a Buddy</Text>
             </View>
             
             <View style={styles.viewAllButtonWrapper}>
@@ -59,7 +59,7 @@ const IndexScreen = () => {
             </TouchableOpacity>
             </View>
 
-        </SafeAreaView>
+        </View>
     )
 }
 
@@ -68,12 +68,15 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.UCONN_WHITE,
       },
-    header: {
+      header: {
         backgroundColor: COLORS.UCONN_NAVY,
-        padding: 16,
-        justifyContent: 'center',
+        padding: 20,
+        paddingTop: 60,
+        marginBottom: 20,
+        borderRadius: 1,
+        justifyContent: 'space-between',
         alignItems: 'center',
-    },
+      },
     headerText: {
         color: COLORS.UCONN_WHITE,
         fontSize: 20,
