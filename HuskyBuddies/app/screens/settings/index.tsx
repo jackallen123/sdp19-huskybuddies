@@ -119,7 +119,7 @@ export default function SettingsScreen() {
   
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {showSchedule ? (
         <Schedule onBack={() => setShowSchedule(false)} /> // Conditional rendering for schedule page
       ) : (
@@ -209,7 +209,7 @@ export default function SettingsScreen() {
             </Modal>
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -220,11 +220,14 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
+},
   headerTextContainer: {
     flex: 1,
     alignItems: 'center',

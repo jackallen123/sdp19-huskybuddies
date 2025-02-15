@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   bannerText: {
     color: COLORS.UCONN_WHITE,
-    fontSize: 18,
+    fontSize: 20,
     textAlign: 'center',
     fontWeight: 'bold',
   },
