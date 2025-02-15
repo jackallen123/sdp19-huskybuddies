@@ -165,7 +165,7 @@ export default function MainPage() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header Section */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Events</Text>
@@ -228,7 +228,7 @@ export default function MainPage() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -240,10 +240,13 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
-    justifyContent: 'center',
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
+    justifyContent: 'space-between',
     alignItems: 'center',
-  },
+},
   headerText: {
     color: COLORS.UCONN_WHITE,
     fontSize: 20,

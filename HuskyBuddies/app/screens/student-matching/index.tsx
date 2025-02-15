@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.UCONN_WHITE,
       },
-      header: {
+    header: {
         backgroundColor: COLORS.UCONN_NAVY,
         padding: 20,
         paddingTop: 60,
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
         borderRadius: 1,
         justifyContent: 'space-between',
         alignItems: 'center',
-      },
+    },
     headerText: {
         color: COLORS.UCONN_WHITE,
         fontSize: 20,
