@@ -5,11 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '@/constants/Colors';
+import { AddStudySessionToDatabase, DeleteStudySessionFromDatabase} from '@/backend/firebase/firestoreService';
 
 //Dummy data for friends list until database is set up
 const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana'];
 
-//Interface setup for database 
+//Iinterface setup for database 
 interface StudySession {
   id: number; 
   title: string;
@@ -74,6 +75,10 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
       setSelectedFriends([]); 
       setDate(null); 
       alert('Study session scheduled!');
+      // Store study session in database
+      AddStudySessionToDatabase(newSession.id,newSession.title, newSession.date, newSession.friends);
+
+
     } else {
       alert('Please select at least one friend and set a date and time.');
     }
@@ -84,6 +89,7 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
     const updatedSessions = scheduledSessions.filter((session) => session.id !== id); 
     setScheduledSessions(updatedSessions); 
     saveScheduledSessions(updatedSessions); 
+    DeleteStudySessionFromDatabase(id.toString())
   };
 
   return (
