@@ -235,7 +235,7 @@ export const getStudentProfile = async (studentId) => {
  * @param {string} studentId - The student's ID.
  * @returns {Promise<Array>} List of buddy IDs.
  */
-export const getBuddyList = async (studentId) => {
+export const getFriendList = async (studentId) => {
   try {
     const studentRef = doc(db, "students", studentId);
     const studentDoc = await getDoc(studentRef);
@@ -247,18 +247,57 @@ export const getBuddyList = async (studentId) => {
 };
 
 /**
- * Adds a buddy to a student's buddy list.
- * @param {string} studentId - The student's ID.
- * @param {string} buddyId - The buddy's ID.
+ * Sends a friend request to another student.
+ * @param {string} studentId - The sender's ID.
+ * @param {string} buddyId - The recipient's ID.
  */
-export const addBuddy = async (studentId, buddyId) => {
+export const sendFriendRequest = async (studentId, buddyId) => {
+  try {
+    const buddyRef = doc(db, "students", buddyId);
+    await updateDoc(buddyRef, {
+      friendRequests: arrayUnion(studentId),
+    });
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+  }
+};
+
+/**
+ * Accepts a friend request and adds the buddy to the friend list.
+ * @param {string} studentId - The acceptor's ID.
+ * @param {string} buddyId - The sender's ID.
+ */
+export const acceptFriendRequest = async (studentId, buddyId) => {
+  try {
+    const studentRef = doc(db, "students", studentId);
+    const buddyRef = doc(db, "students", buddyId);
+    
+    await updateDoc(studentRef, {
+      buddies: arrayUnion(buddyId),
+      friendRequests: arrayRemove(buddyId),
+    });
+    
+    await updateDoc(buddyRef, {
+      buddies: arrayUnion(studentId),
+    });
+  } catch (error) {
+    console.error("Error accepting friend request:", error);
+  }
+};
+
+/**
+ * Declines a friend request.
+ * @param {string} studentId - The recipient's ID.
+ * @param {string} buddyId - The sender's ID.
+ */
+export const declineFriendRequest = async (studentId, buddyId) => {
   try {
     const studentRef = doc(db, "students", studentId);
     await updateDoc(studentRef, {
-      buddies: arrayUnion(buddyId),
+      friendRequests: arrayRemove(buddyId),
     });
   } catch (error) {
-    console.error("Error adding buddy:", error);
+    console.error("Error declining friend request:", error);
   }
 };
 
@@ -270,8 +309,14 @@ export const addBuddy = async (studentId, buddyId) => {
 export const removeBuddy = async (studentId, buddyId) => {
   try {
     const studentRef = doc(db, "students", studentId);
+    const buddyRef = doc(db, "students", buddyId);
+    
     await updateDoc(studentRef, {
       buddies: arrayRemove(buddyId),
+    });
+    
+    await updateDoc(buddyRef, {
+      buddies: arrayRemove(studentId),
     });
   } catch (error) {
     console.error("Error removing buddy:", error);
