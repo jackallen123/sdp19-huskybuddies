@@ -206,7 +206,7 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
  */
 export const getAllStudents = async () => {
   try {
-    const studentsSnapshot = await getDocs(collection(db, "students"));
+    const studentsSnapshot = await getDocs(collection(db, "users"));
     return studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error("Error fetching students:", error);
@@ -221,7 +221,7 @@ export const getAllStudents = async () => {
  */
 export const getStudentProfile = async (studentId) => {
   try {
-    const studentRef = doc(db, "students", studentId);
+    const studentRef = doc(db, "users", studentId);
     const studentDoc = await getDoc(studentRef);
     return studentDoc.exists() ? studentDoc.data() : null;
   } catch (error) {
@@ -237,7 +237,7 @@ export const getStudentProfile = async (studentId) => {
  */
 export const getFriendList = async (studentId) => {
   try {
-    const studentRef = doc(db, "students", studentId);
+    const studentRef = doc(db, "users", studentId);
     const studentDoc = await getDoc(studentRef);
     return studentDoc.exists() ? studentDoc.data().buddies || [] : [];
   } catch (error) {
@@ -253,7 +253,7 @@ export const getFriendList = async (studentId) => {
  */
 export const sendFriendRequest = async (studentId, buddyId) => {
   try {
-    const buddyRef = doc(db, "students", buddyId);
+    const buddyRef = doc(db, "users", buddyId);
     await updateDoc(buddyRef, {
       friendRequests: arrayUnion(studentId),
     });
@@ -269,8 +269,8 @@ export const sendFriendRequest = async (studentId, buddyId) => {
  */
 export const acceptFriendRequest = async (studentId, buddyId) => {
   try {
-    const studentRef = doc(db, "students", studentId);
-    const buddyRef = doc(db, "students", buddyId);
+    const studentRef = doc(db, "users", studentId);
+    const buddyRef = doc(db, "users", buddyId);
     
     await updateDoc(studentRef, {
       buddies: arrayUnion(buddyId),
@@ -292,7 +292,7 @@ export const acceptFriendRequest = async (studentId, buddyId) => {
  */
 export const declineFriendRequest = async (studentId, buddyId) => {
   try {
-    const studentRef = doc(db, "students", studentId);
+    const studentRef = doc(db, "users", studentId);
     await updateDoc(studentRef, {
       friendRequests: arrayRemove(buddyId),
     });
@@ -308,8 +308,8 @@ export const declineFriendRequest = async (studentId, buddyId) => {
  */
 export const removeBuddy = async (studentId, buddyId) => {
   try {
-    const studentRef = doc(db, "students", studentId);
-    const buddyRef = doc(db, "students", buddyId);
+    const studentRef = doc(db, "users", studentId);
+    const buddyRef = doc(db, "users", buddyId);
     
     await updateDoc(studentRef, {
       buddies: arrayRemove(buddyId),
