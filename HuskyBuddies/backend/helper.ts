@@ -219,11 +219,8 @@ export async function fetchCourseSections(
           text: option.textContent?.trim() || "",
         }))
 
-        // console.log("All terms:", termValues)
-
+        // filter out winter terms
         .filter(option => !option.text.toLowerCase().includes("winter"))
-
-        // console.log("Filtered terms:", termValues)
 
         // sort in descending order and return the most recent term
         .sort((a, b) => {
@@ -232,13 +229,10 @@ export async function fetchCourseSections(
           return bValue - aValue;
         });
 
-      console.log(termValues);
-
       return termValues.length > 0 ? termValues[0].value : null;
     });
 
-    console.log("Most recent term:", mostRecentTerm);
-
+    // throw error if most recent term is not found
     if (!mostRecentTerm) {
       throw new Error("Failed to determine most recent term");
     }
