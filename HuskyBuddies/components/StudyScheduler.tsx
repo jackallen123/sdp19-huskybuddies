@@ -1,32 +1,31 @@
-//Imports
+// Imports
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '@/constants/Colors';
-import { AddStudySessionToDatabase, DeleteStudySessionFromDatabase} from '@/backend/firebase/firestoreService';
 
-//Dummy data for friends list until database is set up
+// Dummy data for friends list until database is set up
 const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana'];
 
-//Iinterface setup for database 
+// Interface setup for database
 interface StudySession {
-  id: number; 
+  id: string;  
   title: string;
-  date: string; 
-  friends: string[]; 
+  date: string;
+  friends: string[];
 }
 
 export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => void; onSchedule: (session: StudySession) => void }) {
-  //Allows selection of friends, date, and time
+  // Allows selection of friends, date, and time
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [date, setDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [scheduledSessions, setScheduledSessions] = useState<StudySession[]>([]);
 
-  //Load previously scheduled sessions from AsyncStorage
+  // Load previously scheduled sessions from AsyncStorage
   useEffect(() => {
     const loadScheduledSessions = async () => {
       try {
@@ -41,7 +40,7 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
     loadScheduledSessions();
   }, []);
 
-  //Save updates to sessions to AsyncStorage
+  // Save updates to sessions to AsyncStorage
   const saveScheduledSessions = async (sessions: StudySession[]) => {
     try {
       await AsyncStorage.setItem('scheduledSessions', JSON.stringify(sessions));
@@ -50,51 +49,45 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
     }
   };
 
-  //Allows toggle feature for friend selection 
+  // Allows toggle feature for friend selection
   const toggleFriendSelection = (friend: string) => {
     if (selectedFriends.includes(friend)) {
       setSelectedFriends(selectedFriends.filter(f => f !== friend));
     } else {
-      setSelectedFriends([...selectedFriends, friend]); 
+      setSelectedFriends([...selectedFriends, friend]);
     }
   };
 
-  //Schedule a new study session with error handling
+  // Schedule a new study session with error handling
   const scheduleSession = () => {
     if (date && selectedFriends.length > 0) {
       const newSession: StudySession = {
-        id: scheduledSessions.length + 1, 
-        title: `Study session with ${selectedFriends.join(', ')}`, 
-        date: date.toISOString(), 
-        friends: selectedFriends, 
+        id: new Date().toISOString(),  // ID is now a string (timestamp)
+        title: `Study session with ${selectedFriends.join(', ')}`,
+        date: date.toISOString(),
+        friends: selectedFriends,
       };
-      const updatedSessions = [...scheduledSessions, newSession]; 
-      setScheduledSessions(updatedSessions); 
-      saveScheduledSessions(updatedSessions); 
-      onSchedule(newSession); 
-      setSelectedFriends([]); 
-      setDate(null); 
+      const updatedSessions = [...scheduledSessions, newSession];
+      setScheduledSessions(updatedSessions);
+      saveScheduledSessions(updatedSessions);
+      onSchedule(newSession);
+      setSelectedFriends([]);
+      setDate(null);
       alert('Study session scheduled!');
-      // Store study session in database
-      AddStudySessionToDatabase(newSession.id,newSession.title, newSession.date, newSession.friends);
-
-
     } else {
       alert('Please select at least one friend and set a date and time.');
     }
   };
 
-  //Delete a study session
-  const deleteSession = (id: number) => {
-    const updatedSessions = scheduledSessions.filter((session) => session.id !== id); 
-    setScheduledSessions(updatedSessions); 
-    saveScheduledSessions(updatedSessions); 
-    DeleteStudySessionFromDatabase(id.toString())
+  // Delete a study session
+  const deleteSession = (id: string) => {  // id is now a string
+    const updatedSessions = scheduledSessions.filter((session) => session.id !== id);
+    setScheduledSessions(updatedSessions);
+    saveScheduledSessions(updatedSessions);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -129,13 +122,14 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
         {/* Date */}
         {showDatePicker && (
           <DateTimePicker
-            value={date || new Date()}
+            value={date || new Date()}  // Fallback to current date if `date` is null
             mode="date"
             display="default"
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {
-                setDate(selectedDate); 
+                const newDate = new Date(selectedDate);
+                setDate(newDate); 
                 setShowTimePicker(true); 
               }
             }}
@@ -145,13 +139,15 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
         {/* Time */}
         {showTimePicker && (
           <DateTimePicker
-            value={date || new Date()}
+            value={date || new Date()} 
             mode="time"
             display="default"
             onChange={(event, selectedTime) => {
               setShowTimePicker(false);
               if (selectedTime) {
-                setDate(new Date(date!.setHours(selectedTime.getHours(), selectedTime.getMinutes()))); // Set the time for the selected date
+                if (date) {
+                  setDate(new Date(date.setHours(selectedTime.getHours(), selectedTime.getMinutes()))); 
+                }
               }
             }}
           />
@@ -189,7 +185,7 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
               </View>
             ))
           ) : (
-            <Text> No sessions scheduled yet.</Text> // Intial message
+            <Text> No sessions scheduled yet.</Text> // Initial message
           )}
         </ScrollView>
       </View>
@@ -197,7 +193,7 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
   );
 }
 
-//Styles to keep pages consistent 
+// Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -276,7 +272,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   scrollContainer: {
-    maxHeight: 300
+    maxHeight: 300,
   },
   sessionBox: {
     backgroundColor: COLORS.UCONN_WHITE,

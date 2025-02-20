@@ -8,6 +8,8 @@ import {
   collection,
   updateDoc,
   getDoc,
+  onSnapshot,
+  Timestamp,
 } from "firebase/firestore";
 
 
@@ -250,32 +252,28 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
 /*
   * EVENTS DB INTERACTIONS
 */
-
 /**
  * Adds a new event to the Firestore database.
- * @param {number} Eventid
+ * @param {string} Eventid
  * @param {string} Eventtitle
- * @param {string} Eventdate
- * @param {string} Eventlocation
+ * @param {Time} Eventdate
  * @param {string} Eventdescription
- * @param {boolean} Eventoncalendar
+ * @param {boolean} Eventocalendar
  */
 export const AddEventToDatabase = async (
   Eventid,
   Eventtitle,
   Eventdate,
-  Eventlocation,
   Eventdescription,
-  Eventoncalendar
+  Eventocalendar
 ) => {
   try {
     const userRef = doc(db, "Events", Eventid);
     await setDoc(userRef, {
       Eventtitle,
       Eventdate,
-      Eventlocation,
       Eventdescription,
-      Eventoncalendar,
+      Eventocalendar,
     });
   } catch (error) {
     console.error("Error adding event to database:", error);
@@ -284,7 +282,7 @@ export const AddEventToDatabase = async (
 
 /**
  * Deletes an event from the Firestore database.
- @param {string} Eventid
+ * @param {string} Eventid
  */
 export const DeleteEventFromDatabase = async (Eventid) => {
   try {
@@ -297,10 +295,10 @@ export const DeleteEventFromDatabase = async (Eventid) => {
 
 /**
  * Adds a new study session to the Firestore database.
- * @param {number} Studysessionid
+ * @param {string} Studysessionid
  * @param {string} Studysessiontitle
- * @param {string} Studysessiondate
- * @param {string[]} StudySessionfriends //need to pull from users matching page
+ * @param {Timestamp} Studysessiondate
+ * @param {string[]} StudySessionfriends
  */
 export const AddStudySessionToDatabase = async (
   Studysessionid,
@@ -331,4 +329,37 @@ export const DeleteStudySessionFromDatabase = async (Studysessionid) => {
   } catch (error) {
     console.error("Error deleting study session from database:", error);
   }
+};
+
+/**
+ * Fetches events from Firestore (Real-time listener).
+ * @param {function} setEvents 
+ */
+export const FetchEventsFromDatabase = (setEvents) => {
+  const eventsRef = collection(db, "Events");
+
+  return onSnapshot(eventsRef, (snapshot) => {
+    const eventsList = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setEvents(eventsList);
+  });
+};
+
+/**
+ * Fetches study sessions from Firestore (Real-time listener).
+ * @param {function} setSessions 
+ */
+export const FetchStudySessionsFromDatabase = (setSessions) => {
+  const sessionsRef = collection(db, "StudySession");
+
+  return onSnapshot(sessionsRef, (snapshot) => {
+    const sessionsList = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setSessions(sessionsList);
+  });
+
 };

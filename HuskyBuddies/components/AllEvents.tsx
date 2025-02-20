@@ -1,14 +1,15 @@
-//Imports
+// Imports
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { Timestamp } from 'firebase/firestore';
 
-//Interface setup for database 
+// Interface setup for the database
 interface Event {
-  id: number; 
+  id: string; 
   title: string; 
-  date: string;
+  date: Timestamp;
   description: string; 
   isadded?: boolean; 
 }
@@ -19,7 +20,7 @@ interface AllEventsProps {
   onAddToCalendar: (event: Event) => void; 
 }
 
-//Handling "add to calendar" functionality with error handling
+// Handling "add to calendar" functionality with error handling
 const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }) => {
   const [localEvents, setLocalEvents] = useState<Event[]>([]);
 
@@ -44,18 +45,21 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
     onAddToCalendar(event);
   };
 
-  //Displays each event from all add event pages
+  // Displays each event from all add event pages
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text>{item.date}</Text>
+      
+      {/* Convert the Timestamp to a Date object and format it */}
+      <Text>{item.date.toDate().toLocaleString()}</Text> {/* Convert Timestamp to Date and format as a string */}
+      
       <Text>{item.description}</Text>
 
       {/* Button to add event to calendar */}
       <TouchableOpacity
         style={styles.addToCalendarButton}
-        onPress={() => handleAddToCalendar(item)} // Trigger the add to calendar functionality
-        disabled={item.isadded} // Disable button if isadded is true
+        onPress={() => handleAddToCalendar(item)} 
+        disabled={item.isadded} 
       >
         <Text style={styles.addToCalendarButtonText}>
           {item.isadded ? 'Added to Calendar' : 'Add to Calendar'}
@@ -80,17 +84,17 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
       <View style={styles.eventsContainer}>
         <Text style={styles.eventsTitle}>Posted Events:</Text>
         <FlatList
-          data={localEvents} // Use local state for events
-          renderItem={renderEventItem} // Function to render each event item
-          keyExtractor={(item) => item.id.toString()} // Unique key for each item
-          contentContainerStyle={styles.listContainer} // Style for the FlatList container
+          data={localEvents} 
+          renderItem={renderEventItem} 
+          keyExtractor={(item) => item.id.toString()} 
+          contentContainerStyle={styles.listContainer}
         />
       </View>
     </SafeAreaView>
   );
 };
 
-//Styles to keep pages consistent 
+// Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
