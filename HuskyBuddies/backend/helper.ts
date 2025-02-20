@@ -212,17 +212,27 @@ export async function fetchCourseSections(
       const termOptions = Array.from(
         document.querySelectorAll("#crit-srcdb option")
       );
-      const termValues = termOptions.map((option) => ({
-        value: option.getAttribute("value"),
-        text: option.textContent?.trim() || "",
-      }));
+      const termValues = termOptions
+      
+        .map((option) => ({
+          value: option.getAttribute("value"),
+          text: option.textContent?.trim() || "",
+        }))
 
-      // sort in descending order and return the most recent term
-      termValues.sort((a, b) => {
-        const aValue = a.value ? parseInt(a.value) : -1;
-        const bValue = b.value ? parseInt(b.value) : -1;
-        return bValue - aValue;
-      });
+        // console.log("All terms:", termValues)
+
+        .filter(option => !option.text.toLowerCase().includes("winter"))
+
+        // console.log("Filtered terms:", termValues)
+
+        // sort in descending order and return the most recent term
+        .sort((a, b) => {
+          const aValue = a.value ? parseInt(a.value) : -1;
+          const bValue = b.value ? parseInt(b.value) : -1;
+          return bValue - aValue;
+        });
+
+      console.log(termValues);
 
       return termValues.length > 0 ? termValues[0].value : null;
     });
