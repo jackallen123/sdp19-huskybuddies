@@ -204,8 +204,41 @@ export async function fetchCourseSections(
     // wait for the form to load
     await page.waitForSelector("#search-form");
 
+    // wait for crit-srcdb selector
+    await page.waitForSelector("#crit-srcdb");
+
+    // extract available terms and determine the most recent
+    const mostRecentTerm = await page.evaluate(() => {
+      const termOptions = Array.from(
+        document.querySelectorAll("#crit-srcdb option")
+      );
+      const termValues = termOptions
+      
+        .map((option) => ({
+          value: option.getAttribute("value"),
+          text: option.textContent?.trim() || "",
+        }))
+
+        // filter out winter terms
+        .filter(option => !option.text.toLowerCase().includes("winter"))
+
+        // sort in descending order and return the most recent term
+        .sort((a, b) => {
+          const aValue = a.value ? parseInt(a.value) : -1;
+          const bValue = b.value ? parseInt(b.value) : -1;
+          return bValue - aValue;
+        });
+
+      return termValues.length > 0 ? termValues[0].value : null;
+    });
+
+    // throw error if most recent term is not found
+    if (!mostRecentTerm) {
+      throw new Error("Failed to determine most recent term");
+    }
+
     // fills out the search form
-    await page.select("#crit-srcdb", "1253");
+    await page.select("#crit-srcdb", mostRecentTerm);
     await page.select("#crit-camp", "STORR@STORRS");
     await page.select("#crit-coursetype", "coursetype_ugrad");
     await page.type("#crit-keyword", courseCode);
@@ -272,8 +305,11 @@ export async function fetchCourseSections(
               }
             }
 
-            course.sections = course.sections.filter(section => 
-              section.sectionNumber !== '' || section.meets !== '' || section.instructor !== ''
+            course.sections = course.sections.filter(
+              (section) =>
+                section.sectionNumber !== "" ||
+                section.meets !== "" ||
+                section.instructor !== ""
             );
 
             sections.push(course);
@@ -299,7 +335,10 @@ export async function fetchCourseSections(
  * @param sectionNumber - the section number we want the location for
  * @returns promise resolving to a string of the section's location
  */
-export async function fetchSectionLocation(courseCode: string, sectionNumber: string): Promise<string | null> {
+export async function fetchSectionLocation(
+  courseCode: string,
+  sectionNumber: string
+): Promise<string | null> {
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
@@ -318,7 +357,7 @@ export async function fetchSectionLocation(courseCode: string, sectionNumber: st
     // click search button and wait for results
     await Promise.all([
       page.click("#search-button"),
-      page.waitForSelector(".result")
+      page.waitForSelector(".result"),
     ]);
 
     // click on the course to open the more detailed panel containing meeting info
@@ -330,9 +369,11 @@ export async function fetchSectionLocation(courseCode: string, sectionNumber: st
 
     // find and click on the specific section in order to render the meeting info on the page
     await page.evaluate((sectionNumber) => {
-      const sectionElements = document.querySelectorAll('.course-section');
+      const sectionElements = document.querySelectorAll(".course-section");
       for (const element of sectionElements) {
-        const sectionText = element.querySelector('.course-section-section')?.textContent;
+        const sectionText = element.querySelector(
+          ".course-section-section"
+        )?.textContent;
         if (sectionText && sectionText.includes(sectionNumber)) {
           (element as HTMLElement).click();
           return;
@@ -345,19 +386,22 @@ export async function fetchSectionLocation(courseCode: string, sectionNumber: st
 
     // extract the location
     const location = await page.evaluate(() => {
-      const meetElement = document.querySelector('.meet');
+      const meetElement = document.querySelector(".meet");
       if (meetElement) {
-        const roomSpan = meetElement.querySelector('.meet-room-1248');
+        const roomSpan = meetElement.querySelector(".meet-room-1248");
         if (roomSpan) {
-          return roomSpan.textContent?.trim().replace(/^in\s+/, '') || null;
+          return roomSpan.textContent?.trim().replace(/^in\s+/, "") || null;
         }
       }
-      return null
+      return null;
     });
 
-    return location
+    return location;
   } catch (error) {
-    console.error(`Error fetching location for ${courseCode} section ${sectionNumber}: `, error)
+    console.error(
+      `Error fetching location for ${courseCode} section ${sectionNumber}: `,
+      error
+    );
     return null;
   } finally {
     await browser.close();
