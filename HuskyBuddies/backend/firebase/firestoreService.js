@@ -270,15 +270,16 @@ export const AddEventToDatabase = async (
   try {
     const userRef = doc(db, "Events", Eventid);
     await setDoc(userRef, {
-      Eventtitle,
-      Eventdate,
-      Eventdescription,
-      Eventocalendar,
+      title: Eventtitle,
+      date: Eventdate,
+      description: Eventdescription,
+      isadded: Eventocalendar,
     });
   } catch (error) {
     console.error("Error adding event to database:", error);
   }
 };
+
 
 /**
  * Deletes an event from the Firestore database.
@@ -343,10 +344,10 @@ export const FetchEventsFromDatabase = (setEvents) => {
       const data = doc.data();
       return {
         id: doc.id,
-        title: data.Eventtitle,
-        date: data.Eventdate,
-        description: data.Eventdescription,
-        isadded: data.Eventocalendar,
+        title: data.title,
+        date: data.date,
+        description: data.description,
+        isadded: data.isadded,
       };
     });
     setEvents(eventsList);

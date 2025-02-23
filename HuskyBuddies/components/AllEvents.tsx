@@ -26,8 +26,11 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
 
   useEffect(() => {
     const updatedEvents = events.map((event) => ({
-      ...event,
-      isadded: event.isadded ?? false, 
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      description: event.description,
+      isadded: event.isadded,
     }));
     setLocalEvents(updatedEvents);
   }, [events]);
@@ -50,8 +53,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
       
-      {/* Convert the Timestamp to a Date object and format it */}
-      <Text>{item.date.toDate().toLocaleString()}</Text> {/* Convert Timestamp to Date and format as a string */}
+      
+      <Text>{item.date.toDate().toLocaleString()}</Text>
       
       <Text>{item.description}</Text>
 
