@@ -77,7 +77,6 @@ const AddEvent: React.FC<{
   const handleDeleteEvent = async (id: string) => {
     try {
       await DeleteEventFromDatabase(id);
-      console.log(`Event with ID ${id} deleted successfully!`);
       alert('Event deleted successfully!');
     } catch (error) {
       console.error('Error deleting event:', error);
