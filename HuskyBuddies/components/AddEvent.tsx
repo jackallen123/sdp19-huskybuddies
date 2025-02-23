@@ -19,7 +19,7 @@ const AddEvent: React.FC<{
   onAddEvent: (event: Event) => void; 
   onDeleteEvent: (id: string) => void;
   events?: Event[];
-}> = ({ onBack, onAddEvent, onDeleteEvent }) => {
+}> = ({ onBack, onAddEvent }) => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState<Date | null>(null);
   const [description, setDescription] = useState('');
@@ -38,8 +38,6 @@ const AddEvent: React.FC<{
       alert('Please fill out all fields!');
       return;
     }
-
-    const eventDateString = date.toISOString();
 
     const newEvent: Event = {
       id: Date.now().toString(),
@@ -76,6 +74,16 @@ const AddEvent: React.FC<{
     setShowTimePicker(false);
   };
 
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await DeleteEventFromDatabase(id);
+      console.log(`Event with ID ${id} deleted successfully!`);
+      alert('Event deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+    }
+  }
+
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
@@ -83,7 +91,7 @@ const AddEvent: React.FC<{
         {item.date ? new Date(item.date.toDate()).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'No date available'}
       </Text>
       <Text>{item.description}</Text>
-      <TouchableOpacity onPress={() => onDeleteEvent(item.id)} style={styles.deleteButton}>
+      <TouchableOpacity onPress={() => handleDeleteEvent(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
     </View>

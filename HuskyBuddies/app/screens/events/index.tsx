@@ -95,11 +95,6 @@ export default function MainPage() {
     await AddStudySessionToDatabase(newStudySession.id, newStudySession.title, newStudySession.date, newStudySession.friends);
   };
 
-  // Delete a study session from Firestore
-  const onDeleteSession = async (id: string) => {  
-    await DeleteStudySessionFromDatabase(id); 
-  };
-
   // Format event time for display
   const formatEventTime = (eventDate: Date) => {
     if (isNaN(eventDate.getTime())) {
