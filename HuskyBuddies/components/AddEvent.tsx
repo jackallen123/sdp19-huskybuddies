@@ -32,11 +32,6 @@ const AddEvent: React.FC<{
     return () => unsubscribe();
   }, []);
 
-  // Log fetched events
-  useEffect(() => {
-    console.log('Fetched Events:', events); 
-  }, [events]);
-
   const handleSubmit = () => {
     console.log('Selected Date:', date);  
     if (!title || !description || !date) {
@@ -45,7 +40,6 @@ const AddEvent: React.FC<{
     }
 
     const eventDateString = date.toISOString();
-    console.log('Event Date String:', eventDateString);  
 
     const newEvent: Event = {
       id: Date.now().toString(),
