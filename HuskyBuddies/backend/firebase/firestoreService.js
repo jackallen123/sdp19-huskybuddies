@@ -1,6 +1,6 @@
 import { getNextColor } from "@/utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
-import { doc, setDoc, deleteDoc, getDoc, getDocs, collection, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, getDocs, getDoc, updateDoc } from "firebase/firestore";
 
 /**
  * Adds a new user to the Firestore database.
@@ -201,124 +201,85 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
 };
 
 /**
- * Fetches all students from Firestore.
- * @returns {Promise<Array>} List of student profiles.
+ * Fetch all users from Firestore
  */
-export const getAllStudents = async () => {
+export const getAllUsers = async () => {
   try {
-    const studentsSnapshot = await getDocs(collection(db, "users"));
-    return studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error fetching students:", error);
+    console.error("Error fetching users:", error);
     return [];
   }
 };
 
 /**
- * Fetches a specific student's profile from Firestore.
- * @param {string} studentId - The student's ID.
- * @returns {Promise<Object>} The student's profile data.
+ * Send a friend request
  */
-export const getStudentProfile = async (studentId) => {
+export const sendFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const studentRef = doc(db, "users", studentId);
-    const studentDoc = await getDoc(studentRef);
-    return studentDoc.exists() ? studentDoc.data() : null;
-  } catch (error) {
-    console.error("Error fetching student profile:", error);
-    return null;
-  }
-};
-
-/**
- * Fetches a student's buddy list from Firestore.
- * @param {string} studentId - The student's ID.
- * @returns {Promise<Array>} List of buddy IDs.
- */
-export const getFriendList = async (studentId) => {
-  try {
-    const studentRef = doc(db, "users", studentId);
-    const studentDoc = await getDoc(studentRef);
-    return studentDoc.exists() ? studentDoc.data().buddies || [] : [];
-  } catch (error) {
-    console.error("Error fetching buddy list:", error);
-    return [];
-  }
-};
-
-/**
- * Sends a friend request to another student.
- * @param {string} studentId - The sender's ID.
- * @param {string} buddyId - The recipient's ID.
- */
-export const sendFriendRequest = async (studentId, buddyId) => {
-  try {
-    const buddyRef = doc(db, "users", buddyId);
-    await updateDoc(buddyRef, {
-      friendRequests: arrayUnion(studentId),
-    });
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await setDoc(requestRef, { from: currentUserId, to: targetUserId, status: "pending" });
   } catch (error) {
     console.error("Error sending friend request:", error);
   }
 };
 
 /**
- * Accepts a friend request and adds the buddy to the friend list.
- * @param {string} studentId - The acceptor's ID.
- * @param {string} buddyId - The sender's ID.
+ * Cancel a sent friend request
  */
-export const acceptFriendRequest = async (studentId, buddyId) => {
+export const cancelFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const studentRef = doc(db, "users", studentId);
-    const buddyRef = doc(db, "users", buddyId);
-    
-    await updateDoc(studentRef, {
-      buddies: arrayUnion(buddyId),
-      friendRequests: arrayRemove(buddyId),
-    });
-    
-    await updateDoc(buddyRef, {
-      buddies: arrayUnion(studentId),
-    });
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error canceling friend request:", error);
+  }
+};
+
+/**
+ * Accept a friend request
+ */
+export const acceptFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    // Add to friends list
+    const userFriendsRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await setDoc(userFriendsRef, { friendId: targetUserId });
+
+    const targetFriendsRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await setDoc(targetFriendsRef, { friendId: currentUserId });
+
+    // Remove from requests
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
     console.error("Error accepting friend request:", error);
   }
 };
 
 /**
- * Declines a friend request.
- * @param {string} studentId - The recipient's ID.
- * @param {string} buddyId - The sender's ID.
+ * Reject a friend request
  */
-export const declineFriendRequest = async (studentId, buddyId) => {
+export const rejectFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const studentRef = doc(db, "users", studentId);
-    await updateDoc(studentRef, {
-      friendRequests: arrayRemove(buddyId),
-    });
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
-    console.error("Error declining friend request:", error);
+    console.error("Error rejecting friend request:", error);
   }
 };
 
 /**
- * Removes a buddy from a student's buddy list.
- * @param {string} studentId - The student's ID.
- * @param {string} buddyId - The buddy's ID.
+ * Remove a friend
  */
-export const removeBuddy = async (studentId, buddyId) => {
+export const removeFriend = async (currentUserId, targetUserId) => {
   try {
-    const studentRef = doc(db, "users", studentId);
-    const buddyRef = doc(db, "users", buddyId);
-    
-    await updateDoc(studentRef, {
-      buddies: arrayRemove(buddyId),
-    });
-    
-    await updateDoc(buddyRef, {
-      buddies: arrayRemove(studentId),
-    });
+    const userFriendRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await deleteDoc(userFriendRef);
+
+    const targetFriendRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await deleteDoc(targetFriendRef);
   } catch (error) {
-    console.error("Error removing buddy:", error);
+    console.error("Error removing friend:", error);
   }
 };
