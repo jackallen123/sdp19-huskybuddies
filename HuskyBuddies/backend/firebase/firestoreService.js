@@ -339,13 +339,20 @@ export const FetchEventsFromDatabase = (setEvents) => {
   const eventsRef = collection(db, "Events");
 
   return onSnapshot(eventsRef, (snapshot) => {
-    const eventsList = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const eventsList = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.Eventtitle,
+        date: data.Eventdate,
+        description: data.Eventdescription,
+        isadded: data.Eventocalendar,
+      };
+    });
     setEvents(eventsList);
   });
 };
+
 
 /**
  * Fetches study sessions from Firestore (Real-time listener).
