@@ -249,6 +249,100 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
   }
 };
 
+/**
+ * Fetch all users from Firestore
+ */
+export const getAllUsers = async () => {
+  try {
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+};
+
+/**
+ * Send a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const sendFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await setDoc(requestRef, { from: currentUserId, to: targetUserId, status: "pending" });
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+  }
+};
+
+/**
+ * Cancel a sent friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const cancelFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error canceling friend request:", error);
+  }
+};
+
+/**
+ * Accept a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const acceptFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    // Add to friends list
+    const userFriendsRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await setDoc(userFriendsRef, { friendId: targetUserId });
+
+    const targetFriendsRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await setDoc(targetFriendsRef, { friendId: currentUserId });
+
+    // Remove from requests
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error accepting friend request:", error);
+  }
+};
+
+/**
+ * Reject a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const rejectFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error rejecting friend request:", error);
+  }
+};
+
+/**
+ * Remove a friend
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const removeFriend = async (currentUserId, targetUserId) => {
+  try {
+    const userFriendRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await deleteDoc(userFriendRef);
+
+    const targetFriendRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await deleteDoc(targetFriendRef);
+  } catch (error) {
+    console.error("Error removing friend:", error);
+  }
+};
+
 /*
   * EVENTS DB INTERACTIONS
 */
