@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal, Alert} from 'react-native';
 import { COLORS } from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
@@ -8,14 +8,56 @@ import ProfileEditor from '@/components/ProfileEditor';
 import { Ionicons } from '@expo/vector-icons';
 import { signOutUser, deleteUserAccount } from '@/backend/firebase/authService';
 import { auth } from '@/backend/firebase/firebaseConfig';
+import { getUserSettings, updateUserSettings } from '@/backend/firebase/firestoreService';
+import { UserSettings } from '../../../backend/data/mockDatabase'
 
 export default function SettingsScreen() {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
-  const [textSize, setTextSize] = useState(16);
-  const [showSchedule, setShowSchedule] = React.useState(false);
+  const [settings, setSettings] = useState<UserSettings>({
+    notificationsEnabled: false,
+    darkModeEnabled: false,
+    textSize: 16,
+  });
+  const [showSchedule, setShowSchedule] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const router = useRouter();
+
+  // fetch user settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const userSettings = await getUserSettings(user.uid);
+          
+          if (userSettings) {
+            // update local state
+            setSettings(userSettings as UserSettings);
+          }
+
+        } catch (error) {
+          console.error("Error fetching user settings:", error);
+          Alert.alert("Error", "Failed to load settings. Please try again.");
+        }
+      }
+    };
+    fetchSettings();
+  }, []);
+  
+  const handleSettingChange = async (setting: keyof UserSettings, value: boolean | number) => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        // update local state
+        const updatedSettings = { ...settings, [setting]: value };
+        // update settings in database - only changed ones for better complexity
+        await updateUserSettings(user.uid, { [setting]: value });
+        setSettings(updatedSettings);
+      } catch (error) {
+        console.error("Error updating user settings:", error);
+        Alert.alert("Error", "Failed to update settings. Please try again.");
+      }
+    }
+  };
   
   const handleManageCourses = () => {
     // navigate to schedule page
@@ -77,7 +119,7 @@ export default function SettingsScreen() {
   
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {showSchedule ? (
         <Schedule onBack={() => setShowSchedule(false)} /> // Conditional rendering for schedule page
       ) : (
@@ -93,55 +135,55 @@ export default function SettingsScreen() {
 
             {/* edit profile */}
             <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
-              <Text style={[styles.settingText, { fontSize: textSize }]}>Edit Profile</Text>
+              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Edit Profile</Text>
               <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
             </TouchableOpacity>
 
             {/* Manage Courses */}
             <TouchableOpacity style={styles.settingItem} onPress={handleManageCourses}>
-              <Text style={[styles.settingText, { fontSize: textSize }]}>Manage Courses</Text>
+              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Manage Courses</Text>
               <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
             </TouchableOpacity>
 
             {/* enable notifications */}
             <View style={styles.settingItem}>
-              <Text style={[styles.settingText, { fontSize: textSize }]}>Enable Notifications</Text>
+              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Enable Notifications</Text>
               <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                value={settings.notificationsEnabled}
+                onValueChange={(value) => handleSettingChange('notificationsEnabled', value)}
                 trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
-                thumbColor={notificationsEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
+                thumbColor={settings.notificationsEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
               />
             </View>
 
             {/* enable dark mode */}
             <View style={styles.settingItem}>
-              <Text style={[styles.settingText, { fontSize: textSize }]}>Dark Mode</Text>
+              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Dark Mode</Text>
               <Switch
-                value={darkModeEnabled}
-                onValueChange={setDarkModeEnabled}
+                value={settings.darkModeEnabled}
+                onValueChange={(value) => handleSettingChange('darkModeEnabled', value)}
                 trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
-                thumbColor={darkModeEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
+                thumbColor={settings.darkModeEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
               />
             </View>
 
             {/* change font size */}
             <View style={styles.settingItem}>
-              <Text style={[styles.settingText, { fontSize: textSize }]}>Text Size</Text>
+              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Text Size</Text>
               <View style={styles.sliderContainer}>
-                <Text style={[styles.sliderLabel, { fontSize: textSize }]}>A</Text>
+                <Text style={[styles.sliderLabel, { fontSize: settings.textSize }]}>A</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={12}
                   maximumValue={24}
                   step={1}
-                  value={textSize}
-                  onValueChange={setTextSize}
+                  value={settings.textSize}
+                  onValueChange={(value) => handleSettingChange('textSize', value)}
                   minimumTrackTintColor={COLORS.UCONN_NAVY}
                   maximumTrackTintColor={COLORS.UCONN_GREY}
                   thumbTintColor={COLORS.UCONN_NAVY}
                 />
-                <Text style={[styles.sliderLabel, { fontSize: textSize * 1.5 }]}>A</Text>
+                <Text style={[styles.sliderLabel, { fontSize: settings.textSize * 1.5 }]}>A</Text>
               </View>
             </View>
 
@@ -167,7 +209,7 @@ export default function SettingsScreen() {
             </Modal>
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -178,11 +220,14 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
+},
   headerTextContainer: {
     flex: 1,
     alignItems: 'center',

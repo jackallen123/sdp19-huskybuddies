@@ -1,20 +1,32 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import AddCourseScreen from './addCourse';
-import { COLORS } from '@/constants/Colors';
-import { Course } from '@/utils/types/course';
-import { getAllCourses, deleteCourse } from '@/backend/firebase/firestoreService';
-import { auth } from '@/backend/firebase/firebaseConfig';
+import React, { useMemo, useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Modal,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import AddCourseScreen from "./addCourse";
+import { COLORS } from "@/constants/Colors";
+import { Course } from "@/utils/types/course";
+import {
+  getAllCourses,
+  deleteCourse,
+} from "@/backend/firebase/firestoreService";
+import { auth } from "@/backend/firebase/firebaseConfig";
 
-const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+const weekdays = ["MON", "TUE", "WED", "THU", "FRI"];
 
 const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
   <View style={[styles.courseCard, { backgroundColor: course.color }]}>
     <Text style={styles.courseTime}>{course.startTime}</Text>
     <View style={styles.courseInfo}>
-      <Text numberOfLines={1} style={styles.courseName}>{course.name}</Text>
+      <Text numberOfLines={1} style={styles.courseName}>
+        {course.name}
+      </Text>
       <Text style={styles.courseInstructor}>{course.instructor}</Text>
       {/* <Text style={styles.courseLocation}>{course.location}</Text> */}
       <Text style={styles.courseSection}>{course.section}</Text>
@@ -23,16 +35,16 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
   </View>
 );
 
-const DeleteCourseModal = ({ 
-  visible, 
-  courses, 
-  onClose, 
-  onDelete 
-}: { 
-  visible: boolean; 
-  courses: Course[]; 
-  onClose: () => void; 
-  onDelete: (courseId: string) => Promise<void>; 
+const DeleteCourseModal = ({
+  visible,
+  courses,
+  onClose,
+  onDelete,
+}: {
+  visible: boolean;
+  courses: Course[];
+  onClose: () => void;
+  onDelete: (courseId: string) => Promise<void>;
 }) => (
   <Modal
     visible={visible}
@@ -58,10 +70,7 @@ const DeleteCourseModal = ({
             <Ionicons name="trash-outline" size={20} color="red" />
           </TouchableOpacity>
         ))}
-        <TouchableOpacity 
-          style={styles.cancelButton}
-          onPress={onClose}
-        >
+        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       </View>
@@ -90,7 +99,7 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
       } catch (error) {
         Alert.alert("Error", "Failed to load courses.");
       }
-    }
+    };
     loadCourses();
   }, []);
 
@@ -101,7 +110,7 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
         Alert.alert("Error", "User not authenticated.");
         return;
       }
-  
+
       await deleteCourse(userId, courseId);
       const updatedCourses = await getAllCourses(userId);
       setCourses(updatedCourses);
@@ -112,36 +121,38 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
   };
 
   const sortedCoursesByDay = useMemo(() => {
-    return weekdays.map(day => ({
+    return weekdays.map((day) => ({
       day,
       courses: courses
-        .filter(course => course.days.includes(day))
-        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+        .filter((course) => course.days.includes(day))
+        .sort((a, b) => a.startTime.localeCompare(b.startTime)),
     }));
   }, [courses]);
 
   if (isAddingCourse) {
-    return (
-      <AddCourseScreen onBack={() => setIsAddingCourse(false)} />
-    );
+    return <AddCourseScreen onBack={() => setIsAddingCourse(false)} />;
   }
 
   return (
     <View style={styles.container}>
-      <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
+      <SafeAreaView edges={["left", "right"]} style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <TouchableOpacity onPress={onBack}>
             <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
           </TouchableOpacity>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerText}>Schedule</Text>
           </View>
           <TouchableOpacity onPress={() => setShowOptions(!showOptions)}>
-            <Ionicons name="ellipsis-vertical" size={24} color={COLORS.UCONN_WHITE} />
+            <Ionicons
+              name="ellipsis-vertical"
+              size={24}
+              color={COLORS.UCONN_WHITE}
+            />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-      
+
       {showOptions && (
         <View style={styles.optionsContainer}>
           <TouchableOpacity
@@ -154,7 +165,7 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
             <Ionicons name="add" size={24} color="black" />
             <Text style={styles.optionText}>Add Course</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.option}
             onPress={() => {
               setShowOptions(false);
@@ -173,7 +184,7 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
         onClose={() => setShowDeleteModal(false)}
         onDelete={handleDeleteCourse}
       />
-      
+
       <View style={styles.scheduleWrapper}>
         <View style={styles.weekdaysHeader}>
           {weekdays.map((day) => (
@@ -182,11 +193,11 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
             </View>
           ))}
         </View>
-        
+
         <View style={styles.scheduleContainer}>
           {sortedCoursesByDay.map(({ day, courses }) => (
             <View key={day} style={styles.dayColumn}>
-              {courses.map(course => (
+              {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
             </View>
@@ -200,46 +211,45 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
   },
   safeArea: {
     backgroundColor: COLORS.UCONN_NAVY,
   },
   header: {
     backgroundColor: COLORS.UCONN_NAVY,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    padding: 8,
+    padding: 10,
+    paddingTop: 60,
+    borderRadius: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   headerTextContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   headerText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.UCONN_WHITE,
   },
   optionsContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 60,
     right: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 8,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     zIndex: 1,
   },
   option: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 12,
   },
   optionText: {
@@ -250,21 +260,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   weekdaysHeader: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: COLORS.UCONN_NAVY,
     paddingVertical: 16,
   },
   dayHeaderColumn: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   weekday: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.UCONN_WHITE,
   },
   scheduleContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     flex: 1,
     paddingHorizontal: 2,
     paddingTop: 8,
@@ -277,27 +287,27 @@ const styles = StyleSheet.create({
     padding: 1,
     marginBottom: 8,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   courseTime: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginVertical: 4,
   },
   courseInfo: {
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
     marginVertical: 4,
   },
   courseName: {
     fontSize: 9,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
     marginTop: 8,
   },
   courseInstructor: {
     fontSize: 9,
-    textAlign: 'center'
+    textAlign: "center",
   },
   // courseLocation: {
   //   fontSize: 9,
@@ -305,35 +315,35 @@ const styles = StyleSheet.create({
   // },
   courseSection: {
     fontSize: 9,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 8,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 8,
     padding: 20,
-    width: '80%',
-    maxHeight: '80%',
+    width: "80%",
+    maxHeight: "80%",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   courseDeleteItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   courseDeleteText: {
     fontSize: 16,
@@ -343,13 +353,13 @@ const styles = StyleSheet.create({
   cancelButton: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelButtonText: {
     fontSize: 16,
     color: COLORS.UCONN_NAVY,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
