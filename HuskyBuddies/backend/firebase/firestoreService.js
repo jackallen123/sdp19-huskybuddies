@@ -215,6 +215,8 @@ export const getAllUsers = async () => {
 
 /**
  * Send a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
  */
 export const sendFriendRequest = async (currentUserId, targetUserId) => {
   try {
@@ -227,6 +229,8 @@ export const sendFriendRequest = async (currentUserId, targetUserId) => {
 
 /**
  * Cancel a sent friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
  */
 export const cancelFriendRequest = async (currentUserId, targetUserId) => {
   try {
@@ -239,6 +243,8 @@ export const cancelFriendRequest = async (currentUserId, targetUserId) => {
 
 /**
  * Accept a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
  */
 export const acceptFriendRequest = async (currentUserId, targetUserId) => {
   try {
@@ -259,6 +265,8 @@ export const acceptFriendRequest = async (currentUserId, targetUserId) => {
 
 /**
  * Reject a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
  */
 export const rejectFriendRequest = async (currentUserId, targetUserId) => {
   try {
@@ -271,6 +279,8 @@ export const rejectFriendRequest = async (currentUserId, targetUserId) => {
 
 /**
  * Remove a friend
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
  */
 export const removeFriend = async (currentUserId, targetUserId) => {
   try {

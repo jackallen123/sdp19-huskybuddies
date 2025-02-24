@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,94 +11,120 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
-
-const studentProfiles = [
-  { id: '1', name: 'Alice', image: 'https://i.pravatar.cc/150?img=1', classes: ['Math', 'Physics', 'Chemistry'] },
-  { id: '2', name: 'Bob', image: 'https://i.pravatar.cc/150?img=2', classes: ['Physics', 'Biology', 'English'] },
-  { id: '3', name: 'Charlie', image: 'https://i.pravatar.cc/150?img=3', classes: ['Math', 'Computer Science', 'English'] }
-];
-
-const USER_ID = '1';
+import { 
+  getAllUsers, 
+  sendFriendRequest, 
+  cancelFriendRequest, 
+  acceptFriendRequest, 
+  rejectFriendRequest, 
+  removeFriend 
+} from '../backend/firebase/firestoreService';
+import { auth } from '../backend/firebase/firebaseConfig';
 
 export default function MatchingClasses({ onBack }) {
+  const [currentUser, setCurrentUser] = useState(null);
   const [matchedStudents, setMatchedStudents] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [friends, setFriends] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const findMatches = () => {
-    const filteredMatches = studentProfiles.filter(student => 
-      student.id !== USER_ID && 
-      student.classes.some(cls => studentProfiles[0].classes.includes(cls))
-    );
-    setMatchedStudents(filteredMatches);
-  };
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        setCurrentUser(user);
+        const users = await getAllUsers();
+        const filteredMatches = users.filter(student => 
+          student.id !== user.uid && 
+          student.classes && student.classes.some(cls => user.classes && user.classes.includes(cls))
+        );
+        setMatchedStudents(filteredMatches);
+      }
+    };
+    fetchUserData();
+  }, []);
 
-  const sendFriendRequest = (studentId) => {
+  const handleSendRequest = async (studentId) => {
     if (!outgoingRequests.includes(studentId) && !friends.includes(studentId)) {
+      await sendFriendRequest(currentUser.uid, studentId);
       setOutgoingRequests([...outgoingRequests, studentId]);
     }
   };
 
-  const cancelFriendRequest = (studentId) => {
+  const handleCancelRequest = async (studentId) => {
+    await cancelFriendRequest(currentUser.uid, studentId);
     setOutgoingRequests(outgoingRequests.filter(id => id !== studentId));
   };
 
-  const acceptFriendRequest = (studentId) => {
+  const handleAcceptRequest = async (studentId) => {
+    await acceptFriendRequest(currentUser.uid, studentId);
     setFriends([...friends, studentId]);
     setFriendRequests(friendRequests.filter(id => id !== studentId));
   };
 
-  const rejectFriendRequest = (studentId) => {
+  const handleRejectRequest = async (studentId) => {
+    await rejectFriendRequest(currentUser.uid, studentId);
     setFriendRequests(friendRequests.filter(id => id !== studentId));
   };
 
-  const removeFriend = (studentId) => {
+  const handleRemoveFriend = async (studentId) => {
+    await removeFriend(currentUser.uid, studentId);
     setFriends(friends.filter(id => id !== studentId));
   };
-
-  const renderStudentCard = ({ item }) => (
-    <View style={styles.card}>
-      <Image source={{ uri: item.image }} style={styles.avatar} />
-      <Text style={styles.profileName}>{item.name}</Text>
-      {friends.includes(item.id) ? (
-        <TouchableOpacity style={styles.removeButton} onPress={() => removeFriend(item.id)}>
-          <Text style={styles.buttonText}>Remove Friend</Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity 
-          style={[styles.requestButton, outgoingRequests.includes(item.id) && styles.cancelButton]} 
-          onPress={() => outgoingRequests.includes(item.id) ? cancelFriendRequest(item.id) : sendFriendRequest(item.id)}
-        >
-          <Text style={styles.buttonText}>{outgoingRequests.includes(item.id) ? 'Cancel Request' : 'Send Request'}</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <Ionicons name="arrow-back" size={24} color={'#fff'} />
+        </TouchableOpacity>
         <Text style={styles.headerText}>Match By Classes</Text>
         <TouchableOpacity onPress={() => setModalVisible(true)}>
           <Ionicons name="people" size={24} color={'#fff'} />
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Ionicons name="arrow-back" size={24} color={'#002654'} />
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.filterButton} onPress={findMatches}>
+      <TouchableOpacity style={styles.filterButton} onPress={() => setMatchedStudents(matchedStudents)}>
         <Text style={styles.filterButtonText}>Find Matches by Classes</Text>
       </TouchableOpacity>
 
       <FlatList
         data={matchedStudents}
-        renderItem={renderStudentCard}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Image source={{ uri: item.image }} style={styles.avatar} />
+            <Text style={styles.profileName}>{item.name}</Text>
+            <TouchableOpacity 
+              style={styles.requestButton} 
+              onPress={() => handleSendRequest(item.id)}
+            >
+              <Text style={styles.buttonText}>Send Request</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         keyExtractor={item => item.id}
       />
+
+      <Modal visible={modalVisible} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <Text style={styles.sectionHeader}>Friend Requests</Text>
+          {friendRequests.map(id => (
+            <View key={id} style={styles.friendRequestItem}>
+              <Text>{matchedStudents.find(s => s.id === id)?.name || 'Unknown'}</Text>
+              <TouchableOpacity onPress={() => handleAcceptRequest(id)}>
+                <Text>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleRejectRequest(id)}>
+                <Text>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TouchableOpacity onPress={() => setModalVisible(false)}>
+            <Text>Close</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
