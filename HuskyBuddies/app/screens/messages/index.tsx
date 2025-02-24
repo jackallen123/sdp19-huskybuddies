@@ -24,6 +24,8 @@ export default function MessagingPage() {
           lastName={selectedChat.lastName} 
           lastMessage={selectedChat.lastMessage} 
           profilePicture={selectedChat.profilePicture}
+          userId={"U2axb8FQwicVxqN4gmMK4P4Zr9i1"} 
+          // receiver={selectedChat.id}
         />
       );
     }

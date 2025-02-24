@@ -332,3 +332,66 @@ export const DeleteStudySessionFromDatabase = async (Studysessionid) => {
     console.error("Error deleting study session from database:", error);
   }
 };
+
+/*
+  * MESSAGES DB INTERACTIONS
+*/
+
+/**
+ * Sends a message between users and stores it in Firestore.
+ * @param {string} senderId - The sender's UID.
+ * @param {string} receiverId - The receiver's UID.
+ * @param {string} message - The message content.
+ */
+export const sendMessage = async (senderId, receiverId, message) => {
+  try {
+    await addDoc(collection(db, "messages"), {
+      senderId,
+      receiverId,
+      message,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("Error sending message:", error);
+  }
+};
+
+/**
+ * Retrieves an array of direct messages sent to logged in user.
+ * @param {string} currentUserId - The logged-in user's UID.
+ * @returns {Promise<Array>} - Array of messages.
+ */
+export const getMessages = async (currentUserId) => {
+  try {
+    const messagesRef = collection(db, "messages");
+
+    const q = query(
+      messagesRef,
+      where("sentTo", "==", currentUserId), // query messages sent to logged in user
+      orderBy("sentAt", "asc") // sort messages so most recent are on top
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map((doc) => ({ //return array of firestone docs from previous query
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error retrieving direct messages:", error);
+    return [];
+  }
+};
+
+/**
+ * Deletes a message from Firestore.
+ * @param {string} messageId - The message ID.
+ */
+export const deleteMessage = async (messageId) => {
+  try {
+    await deleteDoc(doc(db, "messages", messageId));
+    console.log("Message deleted successfully");
+  } catch (error) {
+    console.error("Error deleting message:", error);
+  }
+};
