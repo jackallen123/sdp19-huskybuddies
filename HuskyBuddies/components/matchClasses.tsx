@@ -57,22 +57,6 @@ export default function MatchingClasses({ onBack }) {
     setOutgoingRequests(outgoingRequests.filter(id => id !== studentId));
   };
 
-  const handleAcceptRequest = async (studentId) => {
-    await acceptFriendRequest(currentUser.uid, studentId);
-    setFriends([...friends, studentId]);
-    setFriendRequests(friendRequests.filter(id => id !== studentId));
-  };
-
-  const handleRejectRequest = async (studentId) => {
-    await rejectFriendRequest(currentUser.uid, studentId);
-    setFriendRequests(friendRequests.filter(id => id !== studentId));
-  };
-
-  const handleRemoveFriend = async (studentId) => {
-    await removeFriend(currentUser.uid, studentId);
-    setFriends(friends.filter(id => id !== studentId));
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -95,12 +79,21 @@ export default function MatchingClasses({ onBack }) {
           <View style={styles.card}>
             <Image source={{ uri: item.image }} style={styles.avatar} />
             <Text style={styles.profileName}>{item.name}</Text>
-            <TouchableOpacity 
-              style={styles.requestButton} 
-              onPress={() => handleSendRequest(item.id)}
-            >
-              <Text style={styles.buttonText}>Send Request</Text>
-            </TouchableOpacity>
+            {outgoingRequests.includes(item.id) ? (
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => handleCancelRequest(item.id)}
+              >
+                <Text style={styles.buttonText}>Cancel Request</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.requestButton} 
+                onPress={() => handleSendRequest(item.id)}
+              >
+                <Text style={styles.buttonText}>Send Request</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
         keyExtractor={item => item.id}
@@ -117,6 +110,15 @@ export default function MatchingClasses({ onBack }) {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleRejectRequest(id)}>
                 <Text>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          <Text style={styles.sectionHeader}>Friends</Text>
+          {friends.map(id => (
+            <View key={id} style={styles.friendItem}>
+              <Text>{matchedStudents.find(s => s.id === id)?.name || 'Unknown'}</Text>
+              <TouchableOpacity onPress={() => handleRemoveFriend(id)}>
+                <Text>Remove Friend</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -144,4 +146,5 @@ const styles = StyleSheet.create({
   sectionHeader: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
   friendRequestItem: { flexDirection: 'row', justifyContent: 'space-between', padding: 8, borderBottomWidth: 1 },
   cancelButton: { backgroundColor: '#FF6347', padding: 8, borderRadius: 4, alignItems: 'center', marginTop: 8 },
+  friendItem: { flexDirection: 'row', justifyContent: 'space-between', padding: 8, borderBottomWidth: 1 },
 });
