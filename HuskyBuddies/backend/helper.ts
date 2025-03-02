@@ -260,7 +260,7 @@ export async function fetchCourseSections(
     // fills out the search form
     await page.select("#crit-srcdb", mostRecentTerm);
     await page.select("#crit-camp", "STORR@STORRS");
-    await page.select("#crit-coursetype", "coursetype_ugrad");
+    // await page.select("#crit-coursetype", "coursetype_ugrad");
     await page.type("#crit-keyword", courseCode);
 
     // click the search button and wait for results
