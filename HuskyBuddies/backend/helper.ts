@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import puppeteer from "puppeteer";
-import chromium from "chrome-aws-lambda";
+import chromium from "@sparticuz/chromium";
 import { setTimeout } from "timers/promises";
 
 const baseUrl = "https://catalog.uconn.edu";
@@ -188,6 +188,10 @@ export async function scrapeAllCourses() {
   }
 }
 
+const chromeArgs = [
+  '--font-render-hinting=none',
+]
+
 /**
  * fetches course sections for a specific course
  * @param courseCode - the course code to fetch sections for
@@ -196,13 +200,21 @@ export async function scrapeAllCourses() {
 export async function fetchCourseSections(
   courseCode: string
 ): Promise<Course[]> {
+
+  // need to set manually @sparticuz/chromium does not work on ARM, so if using locally set isLocal to true
+  const isLocal = false;
+
   // launch the browser using chrome-aws-lambda's config
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath,
-    headless: chromium.headless,
-  });
+  const browser = await puppeteer.launch(
+    isLocal
+      ? { headless: true, channel: 'chrome' }
+      : {
+          args: chromeArgs.concat(chromium.args),
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: true,
+        }
+  );
 
   const page = await browser.newPage();
 
