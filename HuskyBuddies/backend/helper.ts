@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import puppeteer from "puppeteer";
+import chromium from "chrome-aws-lambda";
 import { setTimeout } from "timers/promises";
 
 const baseUrl = "https://catalog.uconn.edu";
@@ -195,7 +196,14 @@ export async function scrapeAllCourses() {
 export async function fetchCourseSections(
   courseCode: string
 ): Promise<Course[]> {
-  const browser = await puppeteer.launch({ headless: true });
+  // launch the browser using chrome-aws-lambda's config
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath,
+    headless: chromium.headless,
+  });
+
   const page = await browser.newPage();
 
   try {
