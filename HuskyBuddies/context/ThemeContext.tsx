@@ -5,6 +5,7 @@ import { auth } from '@/backend/firebase/firebaseConfig';
 import { getUserSettings, updateUserSettings } from '@/backend/firebase/firestoreService';
 import { UserSettings } from '@/backend/data/mockDatabase';
 import { darkTheme, lightTheme } from '@/themes/theme';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export interface ThemeContextType {
   darkMode: boolean;
@@ -39,10 +40,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [textSize, setTextSizeValue] = useState(16);
 
+  // auth before showing UI
+  const [initializing, setInitializing] = useState(true);
+
   // load from database
   useEffect(() => {
-    const loadSettings = async () => {
-      const user = auth.currentUser;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // load users settings
       if (user) {
         try {
           const settings = (await getUserSettings(user.uid)) as UserSettings;
@@ -56,11 +60,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           console.error('Error loading settings:', error);
         }
       }
-    };
-    loadSettings();
+      setInitializing(false);
+    });
+
+    // clean up
+    return () => unsubscribe();
   }, []);
 
-  // save any changed settings to database
+  // save changed values to database
   useEffect(() => {
     const saveSettings = async () => {
       const user = auth.currentUser;
@@ -76,8 +83,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
     };
-    saveSettings();
-  }, [darkMode, notificationsEnabled, textSize]);
+
+    // only save after we're done initializing (so we don't overwrite defaults)
+    if (!initializing) {
+      saveSettings();
+    }
+
+  }, [darkMode, notificationsEnabled, textSize, initializing]);
 
   // toggle
   const toggleDarkMode = () => setDarkMode(prev => !prev);
