@@ -24,12 +24,12 @@ interface Event {
   isadded?: boolean; 
 }
 
-interface StudySession {
-  id: string;  
-  title: string; 
-  date: Timestamp; 
-  friends: string[]; 
-}
+type StudySession = {
+  id: string;
+  title: string;
+  date: Timestamp;
+  friends: string[];
+};
 
 // Allows navigation between pages
 export default function MainPage() {
@@ -62,14 +62,6 @@ export default function MainPage() {
     if (!event.date) {
       console.error('Event date is missing for event:', event);
       return;
-    }
-
-    const eventExists = events.some(e => e.id === event.id); 
-    if (!eventExists) {
-      const eventTimestamp = Timestamp.fromDate(new Date(event.date.toDate())); // Convert date to Firestore Timestamp
-      await AddEventToDatabase(event.id, event.title, eventTimestamp, event.description, event.isadded || false); 
-    } else {
-      console.log('Event already exists, not adding duplicate'); 
     }
   };
 
@@ -109,6 +101,32 @@ export default function MainPage() {
     });
   };
 
+  // Get the start and end of the current week
+  const getStartOfWeek = (date: Date) => {
+    const day = date.getDay(),
+          diff = date.getDate() - day + (day == 0 ? -6 : 1); 
+    return new Date(date.setDate(diff));
+  };
+
+  const getEndOfWeek = (date: Date) => {
+    const startOfWeek = getStartOfWeek(date);
+    startOfWeek.setDate(startOfWeek.getDate() + 6); 
+    return startOfWeek;
+  };
+
+  const startOfWeek = getStartOfWeek(new Date());
+  const endOfWeek = getEndOfWeek(new Date());
+
+  // Filter events to only include those within the current week
+  const filteredEvents = events.filter((event) => {
+    const eventDate = event.date?.toDate();
+    if (!eventDate) {
+      console.error('Invalid event date:', event);
+      return false;
+    }
+    return eventDate >= startOfWeek && eventDate <= endOfWeek;
+  });
+
   // Multipage event/study session handling
   if (showCalendar) {
     return <CustomCalendar onBack={() => setShowCalendar(false)} />;
@@ -120,7 +138,7 @@ export default function MainPage() {
         onBack={() => setShowStudyScheduler(false)} 
         onSchedule={(session) =>
           onScheduleSession({
-            date: new Date(session.date),
+            date: new Date(session.date.toDate()), 
             friends: session.friends,
           })
         }
@@ -143,7 +161,7 @@ export default function MainPage() {
       <AddEvent
         onBack={() => setShowAddEvent(false)} 
         onAddEvent={handleAddEvent} 
-        events={events}  // Pass events prop here
+        events={events}  
         onDeleteEvent={handleDeleteEvent} 
       />
     );
@@ -157,32 +175,33 @@ export default function MainPage() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Events</Text>
+        <Text style={styles.headerText}>Scheduler</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.eventsWrapper}>
-          <Text style={styles.sectionTitle}>Your Upcoming Events:</Text>
+          <Text style={styles.sectionTitle}>Your Upcoming Items:</Text>
           <ScrollView style={styles.eventsList}>
-            {events.length > 0 ? (
-              events.map((event) => {
-                // Check if event.date is defined and valid
-                const eventDate = event.date?.toDate();
-                if (!eventDate) {
-                  console.error('Invalid event date:', event);
-                  return null; // Skip this event if date is invalid
-                }
+            {filteredEvents.length > 0 ? (
+              filteredEvents
+                .filter((event) => event.isadded)  // Only show events where isadded is true
+                .map((event) => {
+                  const eventDate = event.date?.toDate();
+                  if (!eventDate) {
+                    console.error('Invalid event date:', event);
+                    return null; // Skip this event if date is invalid
+                  }
 
-                return (
-                  <View key={event.id} style={styles.eventItem}>
-                    <Text style={styles.eventItemText}>
-                      {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
-                    </Text>
-                  </View>
-                );
-              })
+                  return (
+                    <View key={event.id} style={styles.eventItem}>
+                      <Text style={styles.eventItemText}>
+                        {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
+                      </Text>
+                    </View>
+                  );
+                })
             ) : (
-              <Text style={styles.noEventsText}>No upcoming events</Text>
+              <Text style={styles.noEventsText}>No upcoming items this week</Text>
             )}
           </ScrollView>
         </View>
