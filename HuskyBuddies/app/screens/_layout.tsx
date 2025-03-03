@@ -3,13 +3,25 @@ import { Tabs } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { MessageCircle, Users, Home, Calendar, Settings } from 'lucide-react-native';
 import { COLORS } from '../../constants/Colors';
+import { useTheme } from 'react-native-paper';
+import { useThemeSettings } from '@/context/ThemeContext';
 
 export default function ScreenLayout() {
+
+  // grab the current theme and darkMode from context 
+  const theme = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.navbar,
+        tabBarStyle: [styles.navbar,
+        {
+          // dynamically styling nav bar
+          backgroundColor: theme.colors.primary,
+          borderTopColor: theme.colors.primary,
+        },
+      ],
         tabBarShowLabel: false,
       }}
     >
@@ -17,7 +29,7 @@ export default function ScreenLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <Home color={focused ? COLORS.UCONN_NAVY : COLORS.UCONN_GREY} size={24} />
+            <Home color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
@@ -25,16 +37,16 @@ export default function ScreenLayout() {
         name="messages/index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <MessageCircle color={focused ? COLORS.UCONN_NAVY : COLORS.UCONN_GREY} size={24} />
+            <MessageCircle color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
       <Tabs.Screen
         name="student-matching/index"
         options={{
-          tabBarIcon: () => (
-            <View style={styles.homeIconContainer}>
-              <Users color={COLORS.UCONN_WHITE} size={28} />
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.homeIconContainer, { backgroundColor: theme.colors.primary }]}>
+              <Users color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={28} />
             </View>
           ),
         }}
@@ -43,7 +55,7 @@ export default function ScreenLayout() {
         name="events/index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <Calendar color={focused ? COLORS.UCONN_NAVY : COLORS.UCONN_GREY} size={24} />
+            <Calendar color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
@@ -51,7 +63,7 @@ export default function ScreenLayout() {
         name="settings/index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <Settings color={focused ? COLORS.UCONN_NAVY : COLORS.UCONN_GREY} size={24} />
+            <Settings color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
@@ -64,13 +76,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: COLORS.UCONN_WHITE,
     borderTopWidth: 1,
-    borderTopColor: COLORS.UCONN_GREY,
     height: 75,
   },
   homeIconContainer: {
-    backgroundColor: COLORS.UCONN_NAVY,
     borderRadius: 30,
     width: 60,
     height: 60,

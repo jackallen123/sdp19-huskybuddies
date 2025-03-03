@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal, Alert} from 'react-native';
 import { COLORS } from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
@@ -8,56 +8,19 @@ import ProfileEditor from '@/components/ProfileEditor';
 import { Ionicons } from '@expo/vector-icons';
 import { signOutUser, deleteUserAccount } from '@/backend/firebase/authService';
 import { auth } from '@/backend/firebase/firebaseConfig';
-import { getUserSettings, updateUserSettings } from '@/backend/firebase/firestoreService';
-import { UserSettings } from '../../../backend/data/mockDatabase'
+import { useTheme } from 'react-native-paper';
+import { useThemeSettings } from '@/context/ThemeContext';
 
 export default function SettingsScreen() {
-  const [settings, setSettings] = useState<UserSettings>({
-    notificationsEnabled: false,
-    darkModeEnabled: false,
-    textSize: 16,
-  });
   const [showSchedule, setShowSchedule] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const router = useRouter();
 
-  // fetch user settings
-  useEffect(() => {
-    const fetchSettings = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const userSettings = await getUserSettings(user.uid);
-          
-          if (userSettings) {
-            // update local state
-            setSettings(userSettings as UserSettings);
-          }
+  // destructuring from global theme context
+  const { darkMode, toggleDarkMode, notificationsEnabled, toggleNotifications, textSize, setTextSize} = useThemeSettings();
 
-        } catch (error) {
-          console.error("Error fetching user settings:", error);
-          Alert.alert("Error", "Failed to load settings. Please try again.");
-        }
-      }
-    };
-    fetchSettings();
-  }, []);
-  
-  const handleSettingChange = async (setting: keyof UserSettings, value: boolean | number) => {
-    const user = auth.currentUser;
-    if (user) {
-      try {
-        // update local state
-        const updatedSettings = { ...settings, [setting]: value };
-        // update settings in database - only changed ones for better complexity
-        await updateUserSettings(user.uid, { [setting]: value });
-        setSettings(updatedSettings);
-      } catch (error) {
-        console.error("Error updating user settings:", error);
-        Alert.alert("Error", "Failed to update settings. Please try again.");
-      }
-    }
-  };
+  // set theme which changes based on darkMode set or not
+  const theme = useTheme();
   
   const handleManageCourses = () => {
     // navigate to schedule page
@@ -119,15 +82,15 @@ export default function SettingsScreen() {
   
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {showSchedule ? (
         <Schedule onBack={() => setShowSchedule(false)} /> // Conditional rendering for schedule page
       ) : (
         <>
           {/* headers */}
-          <View style={styles.header}>
+          <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.headerText}>Settings</Text>
+              <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Settings</Text>
             </View>
           </View>
 
@@ -135,66 +98,66 @@ export default function SettingsScreen() {
 
             {/* edit profile */}
             <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
-              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Edit Profile</Text>
-              <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
+            <Text style={[styles.settingText, { fontSize: textSize, color: theme.colors.onBackground }]}>Edit Profile</Text>
+              <Ionicons name="chevron-forward" size={24} color={theme.colors.onBackground} />
             </TouchableOpacity>
 
             {/* Manage Courses */}
             <TouchableOpacity style={styles.settingItem} onPress={handleManageCourses}>
-              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Manage Courses</Text>
-              <Ionicons name="chevron-forward" size={24} color={COLORS.UCONN_NAVY} />
+            <Text style={[styles.settingText, { fontSize: textSize, color: theme.colors.onBackground }]}>Manage Courses</Text>
+              <Ionicons name="chevron-forward" size={24} color={theme.colors.onBackground} />
             </TouchableOpacity>
 
             {/* enable notifications */}
             <View style={styles.settingItem}>
-              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Enable Notifications</Text>
+            <Text style={[styles.settingText, { fontSize: textSize, color: theme.colors.onBackground }]}>Enable Notifications</Text>
               <Switch
-                value={settings.notificationsEnabled}
-                onValueChange={(value) => handleSettingChange('notificationsEnabled', value)}
-                trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
-                thumbColor={settings.notificationsEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
+                value={notificationsEnabled}
+                onValueChange={toggleNotifications}
+                trackColor={{ false: theme.colors.surface, true: theme.colors.surface }}
+                thumbColor={notificationsEnabled ? theme.colors.onBackground : theme.colors.outline}
               />
             </View>
 
             {/* enable dark mode */}
             <View style={styles.settingItem}>
-              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Dark Mode</Text>
+            <Text style={[styles.settingText, { fontSize: textSize, color: theme.colors.onBackground }]}>Dark Mode</Text>
               <Switch
-                value={settings.darkModeEnabled}
-                onValueChange={(value) => handleSettingChange('darkModeEnabled', value)}
-                trackColor={{ false: COLORS.UCONN_WHITE, true: COLORS.UCONN_NAVY }}
-                thumbColor={settings.darkModeEnabled ? COLORS.UCONN_WHITE : COLORS.UCONN_NAVY}
+                value={darkMode}
+                onValueChange={toggleDarkMode}
+                trackColor={{ false: theme.colors.surface, true: theme.colors.surface }}
+                thumbColor={darkMode ? theme.colors.onBackground : theme.colors.outline}
               />
             </View>
 
             {/* change font size */}
             <View style={styles.settingItem}>
-              <Text style={[styles.settingText, { fontSize: settings.textSize }]}>Text Size</Text>
+            <Text style={[styles.settingText, { fontSize: textSize, color: theme.colors.onBackground }]}>Text Size</Text>
               <View style={styles.sliderContainer}>
-                <Text style={[styles.sliderLabel, { fontSize: settings.textSize }]}>A</Text>
+              <Text style={[styles.sliderLabel, { fontSize: textSize, color: theme.colors.onBackground }]}>A</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={12}
                   maximumValue={24}
                   step={1}
-                  value={settings.textSize}
-                  onValueChange={(value) => handleSettingChange('textSize', value)}
-                  minimumTrackTintColor={COLORS.UCONN_NAVY}
-                  maximumTrackTintColor={COLORS.UCONN_GREY}
-                  thumbTintColor={COLORS.UCONN_NAVY}
+                  value={textSize}
+                  onValueChange={setTextSize}
+                  minimumTrackTintColor={theme.colors.primary}
+                  maximumTrackTintColor={theme.colors.onSurface}
+                  thumbTintColor={theme.colors.primary}
                 />
-                <Text style={[styles.sliderLabel, { fontSize: settings.textSize * 1.5 }]}>A</Text>
+                <Text style={[styles.sliderLabel, { fontSize: textSize * 1.5, color: theme.colors.onBackground }]}>A</Text>
               </View>
             </View>
 
             {/* sign out */}
-            <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-              <Text style={styles.buttonText}>Sign Out</Text>
+            <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={handleSignOut}>
+              <Text style={[styles.buttonText, { fontSize: textSize, color: theme.colors.onPrimary }]}>Sign Out</Text>
             </TouchableOpacity>
 
             {/* delete account */}
             <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDeleteAccount}>
-              <Text style={styles.buttonText}>Delete Account</Text>
+              <Text style={[styles.buttonText, { fontSize: textSize }]}>Delete Account</Text>
             </TouchableOpacity>
           </ScrollView>
 
@@ -209,28 +172,29 @@ export default function SettingsScreen() {
             </Modal>
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
+},
   headerTextContainer: {
     flex: 1,
     alignItems: 'center',
   },
   headerText: {
-    color: COLORS.UCONN_WHITE,
+    // in theme
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -245,7 +209,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   settingText: {
-    color: COLORS.UCONN_NAVY,
+    // in theme
   },
   sliderContainer: {
     flexDirection: 'row',
@@ -257,11 +221,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   sliderLabel: {
-    color: COLORS.UCONN_NAVY,
     fontWeight: 'bold',
   },
   button: {
-    backgroundColor: COLORS.UCONN_NAVY,
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
