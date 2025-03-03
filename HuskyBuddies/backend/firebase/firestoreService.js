@@ -10,6 +10,8 @@ import {
   getDoc,
   onSnapshot,
   Timestamp,
+  query,
+  where,
 } from "firebase/firestore";
 
 
@@ -258,6 +260,50 @@ export const getAllUsers = async () => {
     return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error("Error fetching users:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve the friend list of a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getFriends = async (uid) => {
+  try {
+    const friendsSnapshot = await getDocs(collection(db, "users", uid, "friends"));
+    return friendsSnapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve incoming friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getIncomingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("to", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().from);
+  } catch (error) {
+    console.error("Error fetching incoming friend requests:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve outgoing friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getOutgoingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("from", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().to);
+  } catch (error) {
+    console.error("Error fetching outgoing friend requests:", error);
     return [];
   }
 };
