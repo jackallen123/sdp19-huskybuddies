@@ -392,21 +392,22 @@ export const DeleteEventFromDatabase = async (Eventid) => {
  * Adds a new study session to the Firestore database.
  * @param {string} Studysessionid
  * @param {string} Studysessiontitle
- * @param {Timestamp} Studysessiondate
+ * @param {Time} Studysessiondate
  * @param {string[]} StudySessionfriends
  */
+
 export const AddStudySessionToDatabase = async (
   Studysessionid,
   Studysessiontitle,
   Studysessiondate,
-  StudySessionfriends
+  Studysessionfriends
 ) => {
   try {
     const userRef = doc(db, "StudySession", Studysessionid);
     await setDoc(userRef, {
-      Studysessiontitle,
-      Studysessiondate,
-      StudySessionfriends,
+      title: Studysessiontitle,         
+      date: Studysessiondate,                                   
+      friends: Studysessionfriends,     
     });
   } catch (error) {
     console.error("Error adding study session to database:", error);
@@ -448,7 +449,6 @@ export const FetchEventsFromDatabase = (setEvents) => {
   });
 };
 
-
 /**
  * Fetches study sessions from Firestore (Real-time listener).
  * @param {function} setSessions 
@@ -457,10 +457,15 @@ export const FetchStudySessionsFromDatabase = (setSessions) => {
   const sessionsRef = collection(db, "StudySession");
 
   return onSnapshot(sessionsRef, (snapshot) => {
-    const sessionsList = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const sessionsList = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.Studysessiontitle,
+        date: data.Studysessiondate, 
+        friends: data.Studysessionfriends
+      };
+    });
     setSessions(sessionsList);
   });
 

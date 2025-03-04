@@ -42,17 +42,22 @@ const AddEvent: React.FC<{
     const newEvent: Event = {
       id: Date.now().toString(),
       title,
-      date: Timestamp.fromDate(date),  // Convert Date to Timestamp
+      date: Timestamp.fromDate(date),  
       description,
-      isadded: false,
+      isadded: false,  
     };
 
+    // Add event to the database
     AddEventToDatabase(newEvent.id, newEvent.title, newEvent.date, newEvent.description, false);
 
+    // Add event to local state
     onAddEvent(newEvent);
+
+    // Clear form inputs
     setTitle('');
     setDate(null);
     setDescription('');
+
     alert('Event posted successfully!');
   };
 
@@ -81,7 +86,7 @@ const AddEvent: React.FC<{
     } catch (error) {
       console.error('Error deleting event:', error);
     }
-  }
+  };
 
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
