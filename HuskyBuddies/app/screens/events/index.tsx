@@ -24,7 +24,7 @@ interface Event {
   isadded?: boolean; 
 }
 
-type StudySession = {
+interface StudySession {
   id: string;
   title: string;
   date: Timestamp;
@@ -41,7 +41,7 @@ export default function MainPage() {
   // Manage events and study sessions
   const [events, setEvents] = useState<Event[]>([]);
   const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [loading, setLoading] = useState(true); // Added loading state
+  const [loading, setLoading] = useState(true); 
 
   // Load events and study sessions from Firestore
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function MainPage() {
     const newStudySession: StudySession = {
       id: Date.now().toString(),
       title: `Study Session with ${session.friends.join(', ')}`,
-      date: Timestamp.fromDate(session.date), // Convert date to Firestore Timestamp
+      date: Timestamp.fromDate(session.date), 
       friends: session.friends,
     };
     
@@ -124,8 +124,13 @@ export default function MainPage() {
       console.error('Invalid event date:', event);
       return false;
     }
-    return eventDate >= startOfWeek && eventDate <= endOfWeek;
+    const today = new Date();
+    return (
+      (eventDate >= startOfWeek && eventDate <= endOfWeek) ||
+      eventDate.toDateString() === today.toDateString()
+    );
   });
+  
 
   // Multipage event/study session handling
   if (showCalendar) {
@@ -184,12 +189,12 @@ export default function MainPage() {
           <ScrollView style={styles.eventsList}>
             {filteredEvents.length > 0 ? (
               filteredEvents
-                .filter((event) => event.isadded)  // Only show events where isadded is true
+                .filter((event) => event.isadded)  
                 .map((event) => {
                   const eventDate = event.date?.toDate();
                   if (!eventDate) {
                     console.error('Invalid event date:', event);
-                    return null; // Skip this event if date is invalid
+                    return null; 
                   }
 
                   return (

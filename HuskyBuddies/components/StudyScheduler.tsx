@@ -6,12 +6,12 @@ import { COLORS } from '@/constants/Colors';
 import { Timestamp } from 'firebase/firestore';
 import { FetchStudySessionsFromDatabase, AddStudySessionToDatabase, DeleteStudySessionFromDatabase } from '@/backend/firebase/firestoreService';
 
-type StudySession = {
+interface StudySession {
   id: string;
   title: string;
   date: Timestamp;
   friends: string[];
-};
+}
 
 const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana'];
 
