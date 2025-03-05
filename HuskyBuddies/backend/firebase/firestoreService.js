@@ -205,7 +205,7 @@ export const updateUserSettings = async (uid, newSettings) => {
 /**
  * Retrieves a specific user's settings from Firestore.
  * @param {string} uid - The user's unique identifier.
- * @returns {Promise<Object>} - The user's settings.
+ * @returns {Promise<Object|null>} - The user's settings object or null if no user found.
  */
 export const getUserSettings = async (uid) => {
   try {
@@ -215,6 +215,7 @@ export const getUserSettings = async (uid) => {
     if (userDoc.exists()) {
       // return settings object or default
       const userData = userDoc.data();
+
       return (
         userData.settings || {
           notificationsEnabled: false,
