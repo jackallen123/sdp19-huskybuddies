@@ -13,17 +13,21 @@ interface ProfileEditorProps {
   onClose: () => void;
 }
 
-const studyPreferenceOptions = ['Group Study', 'Individual Study', 'Library', 'Coffee Shop', 'Outdoors', 'Other'];
-const interestOptions = ['Sports', 'Music', 'Art', 'Technology', 'Science', 'Literature', 'Other'];
+const studyPreferenceOptions = ['Group Study', 'Individual Study', 'Library', 'Coffee Shop', 'Outdoors'];
+const interestOptions = ['Sports', 'Music', 'Art', 'Technology', 'Science', 'Literature'];
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   const [name, setName] = useState('');
   const [isCommuter, setIsCommuter] = useState(false);
-  const [studyPreferences, setStudyPreferences] = useState<string[]>([]);
-  const [otherStudyPreference, setOtherStudyPreference] = useState('');
-  const [interests, setInterests] = useState<string[]>([]);
-  const [otherInterest, setOtherInterest] = useState('');
   
+  const [studyPreferences, setStudyPreferences] = useState<string[]>([]);
+  const [additionalStudyPreferences, setAdditionalStudyPreferences] = useState<string[]>([]);
+  const [currentStudyPreference, setCurrentStudyPreference] = useState('');
+  
+  const [interests, setInterests] = useState<string[]>([]);
+  const [additionalInterests, setAdditionalInterests] = useState<string[]>([]);
+  const [currentAdditionalInterest, setCurrentAdditionalInterest] = useState('');
+
   // for opening or closing the dropdown
   const [open, setOpen] = useState(false);
   const [major, setMajor] = useState<string | null>(null);
@@ -50,7 +54,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
             setIsCommuter(profileData.isCommuter || false);
             setProfilePicture(profileData.profilePicture || null);
             setStudyPreferences(profileData.studyPreferences || []);
+            setAdditionalStudyPreferences(profileData.additionalStudyPreferences || []);
             setInterests(profileData.interests || []);
+            setAdditionalInterests(profileData.additionalInterests || []);
             setMajor(profileData.major || null);
             setClubs(profileData.clubs || []);
             setSocialMediaLinks(profileData.socialMediaLinks || []);
@@ -96,12 +102,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
           isCommuter,
           profilePicture,
           studyPreferences,
-          otherStudyPreference,
+          additionalStudyPreferences,
           interests,
-          otherInterest,
+          additionalInterests,
           major,
           clubs,
-          socialMediaLinks
+          socialMediaLinks,
         };
         await updateUserProfile(user.uid, profileData);
         onClose();
@@ -149,6 +155,29 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   };
   const removeLink = (link: string) => {
     setSocialMediaLinks(socialMediaLinks.filter(l => l !== link));
+  };
+
+  {/* add other interests */}
+  const addAdditionalInterest = () => {
+    if (currentAdditionalInterest.trim() !== '' && !additionalInterests.includes(currentAdditionalInterest.trim())) {
+      setAdditionalInterests([...additionalInterests, currentAdditionalInterest.trim()]);
+      setCurrentAdditionalInterest('');
+    }
+  };
+
+  const removeAdditionalInterest = (interest: string) => {
+    setAdditionalInterests(additionalInterests.filter(i => i !== interest));
+  };
+
+  {/* add other study preferences */}
+  const addAdditionalStudyPreference = () => {
+    if (currentStudyPreference.trim() !== '' && !additionalStudyPreferences.includes(currentStudyPreference.trim())) {
+      setAdditionalStudyPreferences([...additionalStudyPreferences, currentStudyPreference.trim()]);
+      setCurrentStudyPreference('');
+    }
+  };
+  const removeAdditionalStudyPreference = (pref: string) => {
+    setAdditionalStudyPreferences(additionalStudyPreferences.filter(p => p !== pref));
   };
 
   return (
@@ -233,17 +262,36 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
                 </TouchableOpacity>
               ))}
             </View>
-
-            {studyPreferences.includes('Other') && (
-              <TextInput
-                style={[styles.input, styles.customInput]}
-                value={otherStudyPreference}
-                onChangeText={setOtherStudyPreference}
-                placeholder="Enter study preference"
-                placeholderTextColor={COLORS.UCONN_GREY}
-              />
-            )}
           </View>
+
+          {/* additional study preferences */}
+          <View style={styles.inputContainer}>
+          <Text style={styles.label}>Other Study Preferences</Text>
+          <View style={styles.tagInputContainer}>
+            <TextInput
+              style={styles.tagInput}
+              value={currentStudyPreference}
+              onChangeText={setCurrentStudyPreference}
+              placeholder="Enter other study preference"
+              placeholderTextColor={COLORS.UCONN_GREY}
+              onSubmitEditing={addAdditionalStudyPreference}
+            />
+            <TouchableOpacity style={styles.addButton} onPress={addAdditionalStudyPreference}>
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tagsContainer}>
+            {additionalStudyPreferences.map((pref) => (
+              <View key={pref} style={styles.tag}>
+                <Text style={styles.tagText}>{pref}</Text>
+                <TouchableOpacity onPress={() => removeAdditionalStudyPreference(pref)}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.UCONN_WHITE} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </View>
 
           {/* interests */}
           <View style={styles.inputContainer}>
@@ -266,18 +314,37 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
-
-            {interests.includes('Other') && (
-              <TextInput
-                style={[styles.input, styles.customInput]}
-                value={otherInterest}
-                onChangeText={setOtherInterest}
-                placeholder="Enter interest"
-                placeholderTextColor={COLORS.UCONN_GREY}
-              />
-            )}
           </View>
+        </View>
+
+        {/* additional interests */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Other Interests</Text>
+          <View style={styles.tagInputContainer}>
+            <TextInput
+              style={styles.tagInput}
+              value={currentAdditionalInterest}
+              onChangeText={setCurrentAdditionalInterest}
+              placeholder="Enter other interests"
+              placeholderTextColor={COLORS.UCONN_GREY}
+              onSubmitEditing={addAdditionalInterest}
+            />
+            <TouchableOpacity style={styles.addButton} onPress={addAdditionalInterest}>
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tagsContainer}>
+            {additionalInterests.map((interest) => (
+              <View key={interest} style={styles.tag}>
+                <Text style={styles.tagText}>{interest}</Text>
+                <TouchableOpacity onPress={() => removeAdditionalInterest(interest)}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.UCONN_WHITE} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </View>
 
           {/* major */}
           <View style={styles.inputContainer}>

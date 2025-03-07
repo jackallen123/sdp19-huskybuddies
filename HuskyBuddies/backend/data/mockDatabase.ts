@@ -14,7 +14,9 @@ export interface UserProfile {
   isCommuter?: boolean;
   profilePicture?: string;
   studyPreferences?: string[];
+  additionalStudyPreferences?: string[];
   interests?: string[];
+  additionalInterests?: string[];
   major?: string;
   clubs?: string[];
   socialMediaLinks?: string[];
