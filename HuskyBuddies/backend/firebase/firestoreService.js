@@ -129,9 +129,9 @@ export const deleteCourse = async (userId, courseId) => {
 */
 
 /**
- * Update or create a user's profile in Firestore.
+ * Updates a specific user's profile in Firestore.
  * @param {string} uid - The user's unique identifier.
- * @param {Promise<Object>} profileData - The user's profile data.
+ * @param {Object} profileData - The user's profile data.
  */
 
 export const updateUserProfile = async (uid, profileData) => {

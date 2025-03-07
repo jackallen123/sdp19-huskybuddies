@@ -1,10 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Switch, Image, SafeAreaView, KeyboardAvoidingView, Platform, Dimensions} from 'react-native';
 import { COLORS } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as ImagePicker from 'expo-image-picker';
 import uconnMajors from '../backend/data/uconn-majors.json';
+import { getUserProfile, updateUserProfile, updateProfilePicture } from '@/backend/firebase/firestoreService';
+import { auth } from '@/backend/firebase/firebaseConfig';
+import { UserProfile } from '@/backend/data/mockDatabase';
 
 interface ProfileEditorProps {
   onClose: () => void;
@@ -23,9 +26,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   
   // for opening or closing the dropdown
   const [open, setOpen] = useState(false);
-  const [major, setMajor] = useState(null);
-  const [majors, setMajors] = useState( uconnMajors.map((majorItem) => ({ label: majorItem, value: majorItem })));
-  
+  const [major, setMajor] = useState<string | null>(null);
+  const [majors, setMajors] = useState(
+    uconnMajors.map((majorItem) => ({ label: majorItem, value: majorItem }))
+  );
   const [clubs, setClubs] = useState<string[]>([]);
   const [currentClub, setCurrentClub] = useState('');
   const [socialMediaLinks, setSocialMediaLinks] = useState<string[]>([]);
@@ -34,33 +38,90 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   
   const scrollViewRef = useRef<ScrollView>(null);
 
-  {/* pick profle picture */}
+  // fetch profile from Firestore on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const profileData = (await getUserProfile(user.uid)) as UserProfile;
+          if (profileData) {
+            setName(profileData.name || '');
+            setIsCommuter(profileData.isCommuter || false);
+            setProfilePicture(profileData.profilePicture || null);
+            setStudyPreferences(profileData.studyPreferences || []);
+            setInterests(profileData.interests || []);
+            setMajor(profileData.major || null);
+            setClubs(profileData.clubs || []);
+            setSocialMediaLinks(profileData.socialMediaLinks || []);
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // image picker handler
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 1,
+      quality: 1
     });
 
     if (!result.canceled) {
-      setProfilePicture(result.assets[0].uri);
+      const selectedUri = result.assets[0].uri;
+      setProfilePicture(selectedUri);
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          await updateProfilePicture(user.uid, selectedUri);
+        } catch (error) {
+          console.error('Error updating profile picture:', error);
+        }
+      }
     }
   };
 
-
-  {/* save edits to profile */}
-  const handleSave = () => {
-    onClose();
+  // save profile to Firestore
+  const handleSave = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        const profileData = {
+          name,
+          isCommuter,
+          profilePicture,
+          studyPreferences,
+          otherStudyPreference,
+          interests,
+          otherInterest,
+          major,
+          clubs,
+          socialMediaLinks
+        };
+        await updateUserProfile(user.uid, profileData);
+        onClose();
+      } catch (error) {
+        console.error('Error updating profile:', error);
+      }
+    }
   };
 
   {/* needed for keyboard - it was covering text boxes while typing */}
   const handleFocus = (y: number) => {
-    scrollViewRef.current?.scrollTo({ y: y, animated: true });
+    scrollViewRef.current?.scrollTo({ y, animated: true });
   };
 
   {/* pick options for study preferences and interests */}
-  const toggleOption = (option: string, array: string[], setArray: React.Dispatch<React.SetStateAction<string[]>>) => {
+  const toggleOption = (
+    option: string,
+    array: string[],
+    setArray: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
     if (array.includes(option)) {
       setArray(array.filter(item => item !== option));
     } else {
@@ -75,8 +136,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
       setCurrentClub('');
     }
   };
-
-  {/* remove club */}
   const removeClub = (club: string) => {
     setClubs(clubs.filter(c => c !== club));
   };
@@ -88,16 +147,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
       setCurrentLink('');
     }
   };
-
-  {/* remove social media links */}
   const removeLink = (link: string) => {
     setSocialMediaLinks(socialMediaLinks.filter(l => l !== link));
   };
 
   return (
     <SafeAreaView style={styles.container}>
-
-      {/* needed for keyboard - it was covering text boxes while typing */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
