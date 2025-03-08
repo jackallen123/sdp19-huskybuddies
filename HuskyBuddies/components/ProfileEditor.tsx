@@ -185,7 +185,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -475,7 +475,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -487,10 +487,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
   },
   headerText: {
     fontSize: 18,
