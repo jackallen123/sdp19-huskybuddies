@@ -386,14 +386,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
               style={[
                 styles.dropdown,
                 {
-                  backgroundColor: theme.colors.onSecondaryContainer,
+                  backgroundColor: theme.colors.secondary,
                   borderColor: theme.colors.outline,
                 },
               ]}
               dropDownContainerStyle={[
                 styles.dropdownContainer,
                 {
-                  backgroundColor: theme.colors.onSecondaryContainer,
+                  backgroundColor: theme.colors.secondary,
                   borderColor: theme.colors.outline,
                 },
               ]}

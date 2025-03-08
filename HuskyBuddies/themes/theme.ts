@@ -13,7 +13,8 @@ export const lightTheme: MD3Theme = {
     onBackground: COLORS.UCONN_NAVY,
     onSurface: COLORS.UCONN_NAVY,
     onSecondaryContainer: COLORS.UCONN_WHITE,
-    onPrimaryContainer: COLORS.UCONN_NAVY
+    onPrimaryContainer: COLORS.UCONN_NAVY,
+    secondary: COLORS.UCONN_WHITE
   },
 };
 
@@ -29,6 +30,7 @@ export const darkTheme: MD3Theme = {
     onBackground: COLORS.UCONN_WHITE,
     onSurface: COLORS.UCONN_WHITE,
     onSecondaryContainer: COLORS.UCONN_GREY,
-    onPrimaryContainer: COLORS.UCONN_DARK_BACKGROUND
+    onPrimaryContainer: COLORS.UCONN_DARK_BACKGROUND,
+    secondary: COLORS.UCONN_DARK_BACKGROUND
   },
 };
