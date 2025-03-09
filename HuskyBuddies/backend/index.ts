@@ -32,20 +32,20 @@ app.get('/sections/:courseCode', async (req, res) => {
 });
 
 // endpoint to get location for section
-app.get('/section-location/:courseCode/:sectionNumber', async (req, res) => {
-    try {
-        const {courseCode, sectionNumber } = req.params;
-        const location = await fetchSectionLocation(courseCode, sectionNumber);
-        if (location) {
-            res.json({ location })
-        } else {
-            res.status(404).json({ error: 'Location not found' })
-        }
-    } catch (error) {
-        console.error(`Error fetching location for ${req.params.courseCode} section ${req.params.sectionNumber}:`, error);
-        res.status(500).json({ error: 'Failed to fetch location' });
-    }
-});
+// app.get('/section-location/:courseCode/:sectionNumber', async (req, res) => {
+//     try {
+//         const {courseCode, sectionNumber } = req.params;
+//         const location = await fetchSectionLocation(courseCode, sectionNumber);
+//         if (location) {
+//             res.json({ location })
+//         } else {
+//             res.status(404).json({ error: 'Location not found' })
+//         }
+//     } catch (error) {
+//         console.error(`Error fetching location for ${req.params.courseCode} section ${req.params.sectionNumber}:`, error);
+//         res.status(500).json({ error: 'Failed to fetch location' });
+//     }
+// });
 
 // runs the server
 app.listen(port, host, () => {
