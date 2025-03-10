@@ -7,12 +7,14 @@ import {
   TextInput,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { COLORS } from "@/constants/Colors";
 import AddSection from "./addSection";
+import Constants from "expo-constants";
 
 interface Course {
   code: string;
@@ -26,17 +28,18 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // get base url from env
+  const base_url = Constants.expoConfig?.extra?.VERCEL_BASE_URL;
+
   useEffect(() => {
     fetchCourses();
   }, []);
 
-  const ip_address = ""; // set your IP address here
-
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://${ip_address}:3000/courses`);
-      setCourses(response.data);
+      const { data } = await axios.get(`${base_url}/courses`);
+      setCourses(data);
     } catch (error) {
       console.error("Error fetching courses:", error);
       Alert.alert("Error", "Failed to fetch courses");
@@ -96,7 +99,7 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
 
         {loading ? (
           <View style={styles.centerContent}>
-            <Text>Loading courses...</Text>
+            <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
           </View>
         ) : (
           <FlatList
