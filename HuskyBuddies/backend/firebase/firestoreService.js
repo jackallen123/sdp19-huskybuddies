@@ -129,15 +129,15 @@ export const deleteCourse = async (userId, courseId) => {
 */
 
 /**
- * Update or create a user's profile in Firestore.
+ * Updates a specific user's profile in Firestore.
  * @param {string} uid - The user's unique identifier.
- * @param {Promise<Object>} profileData - The user's profile data.
+ * @param {Object} profileData - The user's profile data.
  */
 
 export const updateUserProfile = async (uid, profileData) => {
   try {
     const userRef = doc(db, "users", uid);
-    await setDoc(userRef, profileData, { merge: true });
+    await setDoc(userRef, { profile: profileData}, { merge: true });
     console.log("User profile updated successfully");
   } catch (error) {
     console.error("Error updating user profile:", error);
@@ -158,7 +158,8 @@ export const getUserProfile = async (uid) => {
 
     if (userDoc.exists()) {
       // get current user data
-      return userDoc.data();
+      const userData = userDoc.data();
+      return userData.profile || null;
     } else {
       console.log("No such user!");
       return null;
