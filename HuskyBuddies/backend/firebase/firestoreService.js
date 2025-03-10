@@ -389,6 +389,33 @@ export const removeFriend = async (currentUserId, targetUserId) => {
   }
 };
 
+/**
+ * Retrieves all courses for a specific user
+ * @param {string} userId - ID of the user
+ * @returns {Promise<Array>} - An array of course objects
+ */
+export const getUserCourses = async (userId) => {
+  try {
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    return coursesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || "",
+        section: data.section || "",
+        instructor: data.instructor || "",
+        days: data.days || [],
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        color: data.color || "#FFFFFF",
+      };
+    });
+  } catch (error) {
+    console.error("Error retrieving user courses:", error);
+    return [];
+  }
+};
+
 /*
   * EVENTS DB INTERACTIONS
 */

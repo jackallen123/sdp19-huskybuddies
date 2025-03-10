@@ -17,6 +17,7 @@ import {
   getFriends,
   getIncomingFriendRequests,
   getOutgoingFriendRequests,
+  getUserCourses,
   sendFriendRequest, 
   cancelFriendRequest, 
   acceptFriendRequest, 
@@ -27,8 +28,11 @@ import { auth } from '../backend/firebase/firebaseConfig';
 
 export default function MatchingClasses({ onBack }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentUserCourses, setCurrentUserCourses] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
   const [matchedStudents, setMatchedStudents] = useState([]);
+  const [studentCourses, setStudentCourses] = useState({});
+  const [sharedCourses, setSharedCourses] = useState({});
   const [friendRequests, setFriendRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -48,10 +52,35 @@ export default function MatchingClasses({ onBack }) {
           const users = await getAllUsers();
           setAllStudents(users);
           
+          // Get current user's courses
+          const userCourses = await getUserCourses(user.uid);
+          setCurrentUserCourses(userCourses);
+          
+          // Get courses for all students
+          const coursesMap = {};
+          const sharedCoursesMap = {};
+          
+          for (const student of users) {
+            if (student.id !== user.uid) {
+              const courses = await getUserCourses(student.id);
+              coursesMap[student.id] = courses;
+              
+              // Find shared courses
+              const shared = findSharedCourses(userCourses, courses);
+              if (shared.length > 0) {
+                sharedCoursesMap[student.id] = shared;
+              }
+            }
+          }
+          
+          setStudentCourses(coursesMap);
+          setSharedCourses(sharedCoursesMap);
+          
           // Filter for matched students by default
           const filteredMatches = users.filter(student => 
             student.id !== user.uid && 
-            student.classes && student.classes.some(cls => user.classes && user.classes.includes(cls))
+            sharedCoursesMap[student.id] && 
+            sharedCoursesMap[student.id].length > 0
           );
           setMatchedStudents(filteredMatches);
           
@@ -77,6 +106,22 @@ export default function MatchingClasses({ onBack }) {
     fetchUserData();
   }, []);
 
+  // Find courses with matching names
+  const findSharedCourses = (userCourses, otherCourses) => {
+    const shared = [];
+    
+    for (const userCourse of userCourses) {
+      for (const otherCourse of otherCourses) {
+        if (userCourse.name === otherCourse.name) {
+          shared.push(userCourse.name);
+          break;
+        }
+      }
+    }
+    
+    return shared;
+  };
+
   const toggleMatchingFilter = () => {
     setMatchingEnabled(!matchingEnabled);
     
@@ -84,7 +129,8 @@ export default function MatchingClasses({ onBack }) {
       // Filter for students with matching classes
       const filteredMatches = allStudents.filter(student => 
         student.id !== currentUser.uid && 
-        student.classes && student.classes.some(cls => currentUser.classes && currentUser.classes.includes(cls))
+        sharedCourses[student.id] && 
+        sharedCourses[student.id].length > 0
       );
       setMatchedStudents(filteredMatches);
     } else {
@@ -204,11 +250,19 @@ export default function MatchingClasses({ onBack }) {
             />
             <View style={styles.cardContent}>
               <Text style={styles.profileName}>{item.name || `${item.firstName || ''} ${item.lastName || ''}`}</Text>
-              {item.classes && (
-                <Text style={styles.classesText}>
-                  {item.classes.slice(0, 2).join(', ')}
-                  {item.classes.length > 2 ? '...' : ''}
-                </Text>
+              
+              {/* Display shared courses */}
+              {sharedCourses[item.id] && sharedCourses[item.id].length > 0 ? (
+                <View style={styles.sharedCoursesContainer}>
+                  <Text style={styles.sharedCoursesLabel}>Shared Classes:</Text>
+                  {sharedCourses[item.id].map((course, index) => (
+                    <View key={index} style={styles.courseTag}>
+                      <Text style={styles.courseTagText}>{course}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noSharedClasses}>No shared classes</Text>
               )}
             </View>
             {friends.includes(item.id) ? (
@@ -257,7 +311,14 @@ export default function MatchingClasses({ onBack }) {
                         source={{ uri: getStudentImage(id) }} 
                         style={styles.smallAvatar} 
                       />
-                      <Text style={styles.userName}>{getStudentName(id)}</Text>
+                      <View>
+                        <Text style={styles.userName}>{getStudentName(id)}</Text>
+                        {sharedCourses[id] && sharedCourses[id].length > 0 && (
+                          <Text style={styles.sharedClassesText}>
+                            {sharedCourses[id].length} shared {sharedCourses[id].length === 1 ? 'class' : 'classes'}
+                          </Text>
+                        )}
+                      </View>
                     </View>
                     <View style={styles.actionButtons}>
                       <TouchableOpacity 
@@ -288,7 +349,14 @@ export default function MatchingClasses({ onBack }) {
                         source={{ uri: getStudentImage(id) }} 
                         style={styles.smallAvatar} 
                       />
-                      <Text style={styles.userName}>{getStudentName(id)}</Text>
+                      <View>
+                        <Text style={styles.userName}>{getStudentName(id)}</Text>
+                        {sharedCourses[id] && sharedCourses[id].length > 0 && (
+                          <Text style={styles.sharedClassesText}>
+                            {sharedCourses[id].length} shared {sharedCourses[id].length === 1 ? 'class' : 'classes'}
+                          </Text>
+                        )}
+                      </View>
                     </View>
                     <TouchableOpacity 
                       style={styles.removeButton} 
@@ -396,10 +464,33 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: 'bold'
   },
-  classesText: {
+  sharedCoursesContainer: {
+    marginTop: 4,
+    flexDirection: 'column',
+  },
+  sharedCoursesLabel: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginBottom: 2
+  },
+  courseTag: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 4,
+    alignSelf: 'flex-start'
+  },
+  courseTagText: {
+    fontSize: 12,
+    color: '#1F2937'
+  },
+  noSharedClasses: {
     fontSize: 12,
     color: '#6B7280',
-    marginTop: 4
+    marginTop: 4,
+    fontStyle: 'italic'
   },
   friendLabel: {
     fontSize: 14,
@@ -487,7 +578,8 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    flex: 1
   },
   smallAvatar: {
     width: 40,
@@ -499,6 +591,11 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '500'
+  },
+  sharedClassesText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2
   },
   actionButtons: {
     flexDirection: 'row',
