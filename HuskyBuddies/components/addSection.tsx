@@ -55,7 +55,7 @@ export default function AddSection({
           params: { courseCode }
         }
       );
-      console.log(data);
+      console.log(JSON.stringify(data, null, 2));
       setSections(data[0]?.sections || []);
     } catch (error) {
       console.error("Error fetching sections:", error);
@@ -149,7 +149,7 @@ export default function AddSection({
                 <Text style={styles.sectionText}>
                   Section {item.sectionNumber}
                 </Text>
-                <Text style={styles.sectionDetails}>{item.instructor}</Text>
+                {/* <Text style={styles.sectionDetails}>{courseCode}</Text> */}
                 <Text style={styles.sectionDetails}>{item.meets}</Text>
               </View>
               <TouchableOpacity

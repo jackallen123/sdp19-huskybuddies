@@ -7,6 +7,7 @@ import {
   TextInput,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -98,7 +99,7 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
 
         {loading ? (
           <View style={styles.centerContent}>
-            <Text>Loading courses...</Text>
+            <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
           </View>
         ) : (
           <FlatList
