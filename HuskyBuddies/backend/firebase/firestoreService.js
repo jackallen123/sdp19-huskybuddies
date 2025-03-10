@@ -205,7 +205,7 @@ export const updateUserSettings = async (uid, newSettings) => {
 /**
  * Retrieves a specific user's settings from Firestore.
  * @param {string} uid - The user's unique identifier.
- * @returns {Promise<Object>} - The user's settings.
+ * @returns {Promise<Object|null>} - The user's settings object or null if no user found.
  */
 export const getUserSettings = async (uid) => {
   try {
@@ -215,6 +215,7 @@ export const getUserSettings = async (uid) => {
     if (userDoc.exists()) {
       // return settings object or default
       const userData = userDoc.data();
+
       return (
         userData.settings || {
           notificationsEnabled: false,
@@ -392,21 +393,22 @@ export const DeleteEventFromDatabase = async (Eventid) => {
  * Adds a new study session to the Firestore database.
  * @param {string} Studysessionid
  * @param {string} Studysessiontitle
- * @param {Timestamp} Studysessiondate
+ * @param {Time} Studysessiondate
  * @param {string[]} StudySessionfriends
  */
+
 export const AddStudySessionToDatabase = async (
   Studysessionid,
   Studysessiontitle,
   Studysessiondate,
-  StudySessionfriends
+  Studysessionfriends
 ) => {
   try {
     const userRef = doc(db, "StudySession", Studysessionid);
     await setDoc(userRef, {
-      Studysessiontitle,
-      Studysessiondate,
-      StudySessionfriends,
+      title: Studysessiontitle,         
+      date: Studysessiondate,                                   
+      friends: Studysessionfriends,     
     });
   } catch (error) {
     console.error("Error adding study session to database:", error);
@@ -448,7 +450,6 @@ export const FetchEventsFromDatabase = (setEvents) => {
   });
 };
 
-
 /**
  * Fetches study sessions from Firestore (Real-time listener).
  * @param {function} setSessions 
@@ -457,10 +458,15 @@ export const FetchStudySessionsFromDatabase = (setSessions) => {
   const sessionsRef = collection(db, "StudySession");
 
   return onSnapshot(sessionsRef, (snapshot) => {
-    const sessionsList = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const sessionsList = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.Studysessiontitle,
+        date: data.Studysessiondate, 
+        friends: data.Studysessionfriends
+      };
+    });
     setSessions(sessionsList);
   });
 
