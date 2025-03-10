@@ -27,7 +27,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
       <Text numberOfLines={1} style={styles.courseName}>
         {course.name}
       </Text>
-      <Text style={styles.courseInstructor}>{course.instructor}</Text>
+      {/* <Text style={styles.courseInstructor}>{course.instructor}</Text> */}
       {/* <Text style={styles.courseLocation}>{course.location}</Text> */}
       <Text style={styles.courseSection}>{course.section}</Text>
     </View>

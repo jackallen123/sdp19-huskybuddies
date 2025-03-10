@@ -15,6 +15,7 @@ import { Alert } from "react-native";
 import { storeCourse } from "@/backend/firebase/firestoreService";
 import { auth } from "@/backend/firebase/firebaseConfig";
 import axios from "axios";
+import Constants from "expo-constants";
 
 interface Section {
   sectionNumber: string;
@@ -39,19 +40,23 @@ export default function AddSection({
     message: "",
   });
 
+  // get base url from env
+  const base_url = Constants?.expoConfig?.extra?.VERCEL_BASE_URL;
+
   useEffect(() => {
     fetchSections();
   }, []);
 
-  const ip_address = ""; // set your IP address here
-
   const fetchSections = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `http://${ip_address}:3000/sections/${courseCode}`
+      const { data } = await axios.get(
+        `${base_url}/sections`, {
+          params: { courseCode }
+        }
       );
-      setSections(response.data[0]?.sections || []);
+      console.log(JSON.stringify(data, null, 2));
+      setSections(data[0]?.sections || []);
     } catch (error) {
       console.error("Error fetching sections:", error);
     } finally {
@@ -144,7 +149,7 @@ export default function AddSection({
                 <Text style={styles.sectionText}>
                   Section {item.sectionNumber}
                 </Text>
-                <Text style={styles.sectionDetails}>{item.instructor}</Text>
+                {/* <Text style={styles.sectionDetails}>{courseCode}</Text> */}
                 <Text style={styles.sectionDetails}>{item.meets}</Text>
               </View>
               <TouchableOpacity
