@@ -10,6 +10,8 @@ import {
   getDoc,
   onSnapshot,
   Timestamp,
+  query,
+  where,
 } from "firebase/firestore";
 
 
@@ -265,6 +267,50 @@ export const getAllUsers = async () => {
 };
 
 /**
+ * Retrieve the friend list of a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getFriends = async (uid) => {
+  try {
+    const friendsSnapshot = await getDocs(collection(db, "users", uid, "friends"));
+    return friendsSnapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve incoming friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getIncomingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("to", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().from);
+  } catch (error) {
+    console.error("Error fetching incoming friend requests:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve outgoing friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getOutgoingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("from", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().to);
+  } catch (error) {
+    console.error("Error fetching outgoing friend requests:", error);
+    return [];
+  }
+};
+
+/**
  * Send a friend request
  * @param {string} currentUserId - The user's and request sender's unique identifier.
  * @param {string} targetUserId - The request recipient's unique identifier.
@@ -342,6 +388,33 @@ export const removeFriend = async (currentUserId, targetUserId) => {
     await deleteDoc(targetFriendRef);
   } catch (error) {
     console.error("Error removing friend:", error);
+  }
+};
+
+/**
+ * Retrieves all courses for a specific user
+ * @param {string} userId - ID of the user
+ * @returns {Promise<Array>} - An array of course objects
+ */
+export const getUserCourses = async (userId) => {
+  try {
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    return coursesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || "",
+        section: data.section || "",
+        instructor: data.instructor || "",
+        days: data.days || [],
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        color: data.color || "#FFFFFF",
+      };
+    });
+  } catch (error) {
+    console.error("Error retrieving user courses:", error);
+    return [];
   }
 };
 
