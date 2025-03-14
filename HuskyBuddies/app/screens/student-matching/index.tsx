@@ -208,7 +208,7 @@ const IndexScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeftPlaceholder}></View>
         <Text style={styles.headerText}>Match with a Buddy</Text>
@@ -376,7 +376,7 @@ const IndexScreen = () => {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
