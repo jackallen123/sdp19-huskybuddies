@@ -138,6 +138,7 @@ export const deleteCourse = async (userId, courseId) => {
 
 export const updateUserProfile = async (uid, profileData) => {
   try {
+    // create or overwrite the profile document in the "userProfile" subcollection
     const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
     await setDoc(userProfileRef, profileData);
   } catch (error) {
@@ -154,15 +155,12 @@ export const updateUserProfile = async (uid, profileData) => {
 
 export const getUserProfile = async (uid) => {
   try {
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
+    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
+    const userProfileDoc = await getDoc(userProfileRef);
 
-    if (userDoc.exists()) {
-      // get current user data
-      const userData = userDoc.data();
-      return userData.profile || null;
+    if (userProfileDoc.exists()) {
+      return userProfileDoc.data();
     } else {
-      console.log("No such user!");
       return null;
     }
   } catch (error) {
@@ -178,26 +176,9 @@ export const getUserProfile = async (uid) => {
  */
 export const updateUserSettings = async (uid, newSettings) => {
   try {
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
-
-    if (userDoc.exists()) {
-      // get current user data
-      const userData = userDoc.data();
-
-      // get current settings OR initialize empty object if it doesnt exist
-      const currentSettings = userData.settings || {};
-
-      // merge the current settings with new settings
-      const updatedSettings = { ...currentSettings, ...newSettings };
-
-      // update settings field
-      await updateDoc(userRef, { settings: updatedSettings });
-      console.log("User settings updated successfully");
-    } else {
-      console.log("No such user!");
-      throw new Error("User not found");
-    }
+    // create or overwrite the settings document in the "settings" subcollection
+    const settingsRef = doc(db, "users", uid, "settings", "settings");
+    await setDoc(settingsRef, newSettings, { merge: true });
   } catch (error) {
     console.error("Error updating user settings:", error);
     throw error;
@@ -211,23 +192,17 @@ export const updateUserSettings = async (uid, newSettings) => {
  */
 export const getUserSettings = async (uid) => {
   try {
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
-
-    if (userDoc.exists()) {
-      // return settings object or default
-      const userData = userDoc.data();
-
-      return (
-        userData.settings || {
-          notificationsEnabled: false,
-          darkModeEnabled: false,
-          textSize: 16,
-        }
-      );
+    const settingsRef = doc(db, "users", uid, "settings", "settings");
+    const settingsDoc = await getDoc(settingsRef);
+    if (settingsDoc.exists()) {
+      return settingsDoc.data();
     } else {
-      console.log("No such user!");
-      return null;
+      // return to defaults if no data found
+      return {
+        notificationsEnabled: false,
+        darkModeEnabled: false,
+        textSize: 16,
+      };
     }
   } catch (error) {
     console.error("Error getting user settings:", error);
@@ -243,8 +218,8 @@ export const getUserSettings = async (uid) => {
  */
 export const updateProfilePicture = async (uid, pictureUrl) => {
   try {
-    const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, { profilePicture: pictureUrl });
+    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
+    await setDoc(userProfileRef, { profilePicture: pictureUrl }, { merge: true });
     console.log("Profile picture updated successfully");
   } catch (error) {
     console.error("Error updating profile picture:", error);
