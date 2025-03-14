@@ -138,9 +138,8 @@ export const deleteCourse = async (userId, courseId) => {
 
 export const updateUserProfile = async (uid, profileData) => {
   try {
-    const userRef = doc(db, "users", uid);
-    await setDoc(userRef, { profile: profileData}, { merge: true });
-    console.log("User profile updated successfully");
+    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
+    await setDoc(userProfileRef, profileData);
   } catch (error) {
     console.error("Error updating user profile:", error);
     throw error;
