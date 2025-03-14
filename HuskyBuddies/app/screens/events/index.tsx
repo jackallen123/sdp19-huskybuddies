@@ -6,10 +6,8 @@ import AddEvent from '@/components/AddEvent';
 import AllEvents from '@/components/AllEvents';
 import StudyScheduler from '@/components/StudyScheduler';
 import { Timestamp } from 'firebase/firestore';
-import { 
-  AddStudySessionToDatabase, 
-  DeleteStudySessionFromDatabase, 
-  AddEventToDatabase, 
+import {  
+  DeleteStudySessionFromDatabase,  
   DeleteEventFromDatabase, 
   FetchEventsFromDatabase,
   FetchStudySessionsFromDatabase
@@ -70,21 +68,29 @@ export default function MainPage() {
     await DeleteEventFromDatabase(id); 
   };
 
+// Delete study session from Firestore
+const handleDeleteStudySession = async (id: string) => {  
+  try{
+    await DeleteStudySessionFromDatabase(id); 
+  } catch(error){
+    console.error('Error deleting study session:', error)
+  }
+  
+};
+
   // Add a new study session to Firestore
-  const onScheduleSession = async (session: { date: Date; friends: string[] }) => {
+  const ScheduleSession = async (session: { date: Date; friends: string[] }) => {
     if (!(session.date instanceof Date) || isNaN(session.date.getTime())) {
       console.error('Invalid session date:', session.date);
       return;
     }
 
     const newStudySession: StudySession = {
-      id: Date.now().toString(),
+      id: '',
       title: `Study Session with ${session.friends.join(', ')}`,
       date: Timestamp.fromDate(session.date), 
       friends: session.friends,
-    };
-    
-    await AddStudySessionToDatabase(newStudySession.id, newStudySession.title, newStudySession.date, newStudySession.friends);
+    }
   };
 
   // Format event time for display
@@ -130,7 +136,16 @@ export default function MainPage() {
       eventDate.toDateString() === today.toDateString()
     );
   });
-  
+
+  // Filter study sessions to only include those within the current week
+  const filteredSessions = sessions.filter((session) => {
+    const sessionDate = session.date?.toDate();
+    if (!sessionDate) {
+      console.error('Invalid session date:', session);
+      return false;
+    }
+    return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+  });
 
   // Multipage event/study session handling
   if (showCalendar) {
@@ -141,8 +156,9 @@ export default function MainPage() {
     return (
       <StudyScheduler
         onBack={() => setShowStudyScheduler(false)} 
+        onDeleteSession = {handleDeleteStudySession} 
         onSchedule={(session) =>
-          onScheduleSession({
+          ScheduleSession({
             date: new Date(session.date.toDate()), 
             friends: session.friends,
           })
@@ -167,7 +183,7 @@ export default function MainPage() {
         onBack={() => setShowAddEvent(false)} 
         onAddEvent={handleAddEvent} 
         events={events}  
-        onDeleteEvent={handleDeleteEvent} 
+        onDeleteEvent = {handleDeleteEvent} 
       />
     );
   }
@@ -187,24 +203,41 @@ export default function MainPage() {
         <View style={styles.eventsWrapper}>
           <Text style={styles.sectionTitle}>Your Upcoming Items:</Text>
           <ScrollView style={styles.eventsList}>
-            {filteredEvents.length > 0 ? (
-              filteredEvents
-                .filter((event) => event.isadded)  
-                .map((event) => {
-                  const eventDate = event.date?.toDate();
-                  if (!eventDate) {
-                    console.error('Invalid event date:', event);
+            {filteredEvents.length > 0 || filteredSessions.length > 0 ? (
+              <>
+                {filteredEvents
+                  .filter((event) => event.isadded)  
+                  .map((event) => {
+                    const eventDate = event.date?.toDate();
+                    if (!eventDate) {
+                      console.error('Invalid event date:', event);
+                      return null; 
+                    }
+
+                    return (
+                      <View key={event.id} style={styles.eventItem}>
+                        <Text style={styles.eventItemText}>
+                          {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                {filteredSessions.map((session) => {
+                  const sessionDate = session.date?.toDate();
+                  if (!sessionDate) {
+                    console.error('Invalid session date:', session);
                     return null; 
                   }
 
                   return (
-                    <View key={event.id} style={styles.eventItem}>
+                    <View key={session.id} style={styles.eventItem}>
                       <Text style={styles.eventItemText}>
-                        {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
+                        {session.title} on {sessionDate.toLocaleDateString()} at {formatEventTime(sessionDate)}
                       </Text>
                     </View>
                   );
-                })
+                })}
+              </>
             ) : (
               <Text style={styles.noEventsText}>No upcoming items this week</Text>
             )}
@@ -219,7 +252,7 @@ export default function MainPage() {
 
         <View style={styles.buttonWrapper}>
           <TouchableOpacity style={styles.button} onPress={() => setShowAddEvent(true)}>
-            <Text style={styles.buttonText}>Add An Event</Text>
+            <Text style={styles.buttonText}>Post An Event</Text>
           </TouchableOpacity>
         </View>
 
@@ -231,7 +264,7 @@ export default function MainPage() {
 
         <View style={styles.buttonWrapper}>
           <TouchableOpacity style={styles.button} onPress={() => setShowCalendar(true)}>
-            <Text style={styles.buttonText}>View Calendar</Text>
+            <Text style={styles.buttonText}>View Your Calendar</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

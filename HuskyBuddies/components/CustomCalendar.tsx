@@ -1,36 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { db } from "@/backend/firebase/firebaseConfig"; // Import your Firebase config
+import { db } from "@/backend/firebase/firebaseConfig"; 
 import { collection, getDocs, doc, updateDoc, query, Timestamp } from 'firebase/firestore';
 import { COLORS } from '@/constants/Colors';
+import { FetchStudySessionsFromDatabase } from '@/backend/firebase/firestoreService';
 
 // Event interface 
 interface Event {
   id: string;
   title: string;
-  date: Timestamp;  
+  date: Timestamp;
   description: string;
   isadded?: boolean;
+}
+
+// Study session interface
+interface StudySession {
+  id: string;
+  title: string;
+  date: Timestamp;
+  description: string;
 }
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function CustomCalendar({ onBack }: { onBack: () => void }) {
-  // Manage state for current date, events, and selected date
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
+  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Fetch events from Firestore
+  // Fetch events and study sessions from Firestore
   useEffect(() => {
     const loadItems = async () => {
       try {
+        // Fetch events
         const eventsQuery = query(collection(db, "Events"));
-        const querySnapshot = await getDocs(eventsQuery);
+        const eventSnapshot = await getDocs(eventsQuery);
         const fetchedEvents: Event[] = [];
         
-        querySnapshot.forEach((docSnapshot) => {
+        eventSnapshot.forEach((docSnapshot) => {
           const eventData = docSnapshot.data();
           const event: Event = {
             id: docSnapshot.id,
@@ -49,6 +59,12 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
     };
 
     loadItems();
+
+    // Fetch study sessions in real-time
+    const unsubscribe = FetchStudySessionsFromDatabase(setStudySessions);
+
+    // Cleanup the listener when the component is unmounted
+    return () => unsubscribe();
   }, []);
 
   // Update event to Firestore
@@ -69,11 +85,15 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
     }
   };
 
-  // Function to get events for the selected date with isadded set to true
-  const getItemsForDate = (date: Date): Event[] => {
-    return events.filter(
-      (event) => event.date.toDate().toDateString() === date.toDateString() && event.isadded === true
+  // Function to get events and study sessions for the selected date
+  const getItemsForDate = (date: Date): (Event | StudySession)[] => {
+    const filteredEvents = events.filter(
+      (event) => event.date.toDate().toDateString() === date.toDateString()
     );
+    const filteredStudySessions = studySessions.filter(
+      (studySession) => studySession.date.toDate().toDateString() === date.toDateString()
+    );
+    return [...filteredEvents, ...filteredStudySessions];
   };
 
   // Check if a date is today
@@ -103,7 +123,6 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
   
     return daysArray;
   };
-  
 
   // Function to format the date
   const formatDate = (date: Date) => {
@@ -163,22 +182,20 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
         </View>
       </View>
 
-      {/* Event List */}
+      {/* Event and Study Session List */}
       <View style={styles.eventListContainer}>
         <Text style={styles.eventListTitle}>Your Items:</Text>
         {selectedDate ? (
-          getItemsForDate(selectedDate).map((item) => (
-            <View key={item.id} style={styles.eventItem}>
-              <Text style={styles.eventItemText}>
-                {item.title} on {new Date(item.date.toDate()).toLocaleDateString()} at {item.date.toDate().toLocaleTimeString()}
-              </Text>
-              {!item.isadded && (
-                <TouchableOpacity onPress={() => handleToggleEvent(item)}>
-                  <Text>Add to Calendar</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))
+          <ScrollView contentContainerStyle={styles.eventListContent}>
+            {getItemsForDate(selectedDate).map((item) => (
+              <View key={item.id} style={styles.eventItem}>
+                <Text style={styles.eventItemText}>
+                  {item.title} on {new Date(item.date.toDate()).toLocaleDateString()} at{" "}
+                  {new Date(item.date.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
         ) : (
           <Text style={styles.noEventsText}>Select a date to view items.</Text>
         )}
@@ -187,7 +204,6 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
   );
 }
 
-// Styles to keep pages consistent
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -266,16 +282,23 @@ const styles = StyleSheet.create({
   eventListContainer: {
     padding: 16,
     backgroundColor: COLORS.UCONN_WHITE,
+    flex: 1,
+  },
+  eventListContent: {
+    paddingBottom: 16,
   },
   eventListTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 8,
   },
   eventItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
   },
   eventItemText: {
     fontSize: 16,
@@ -283,8 +306,5 @@ const styles = StyleSheet.create({
   noEventsText: {
     fontSize: 16,
     color: COLORS.UCONN_GREY,
-  },
-  errorText: {
-    color: COLORS.ERROR_COLOR,
   },
 });

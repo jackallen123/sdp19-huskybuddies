@@ -468,21 +468,21 @@ export const DeleteEventFromDatabase = async (Eventid) => {
  * @param {string} Studysessionid
  * @param {string} Studysessiontitle
  * @param {Time} Studysessiondate
- * @param {string[]} StudySessionfriends
+ * @param {string[]} Studysessionfriends
  */
 
 export const AddStudySessionToDatabase = async (
   Studysessionid,
-  Studysessiontitle,
-  Studysessiondate,
-  Studysessionfriends
+  title,
+  date,
+  friends
 ) => {
   try {
     const userRef = doc(db, "StudySession", Studysessionid);
     await setDoc(userRef, {
-      title: Studysessiontitle,         
-      date: Studysessiondate,                                   
-      friends: Studysessionfriends,     
+      title: title,         
+      date: date,                                   
+      friends: friends,     
     });
   } catch (error) {
     console.error("Error adding study session to database:", error);
@@ -495,7 +495,7 @@ export const AddStudySessionToDatabase = async (
  */
 export const DeleteStudySessionFromDatabase = async (Studysessionid) => {
   try {
-    const userRef = doc(db, "StudySessions", Studysessionid);
+    const userRef = doc(db, "StudySession", Studysessionid);
     await deleteDoc(userRef);
   } catch (error) {
     console.error("Error deleting study session from database:", error);
@@ -536,9 +536,9 @@ export const FetchStudySessionsFromDatabase = (setSessions) => {
       const data = doc.data();
       return {
         id: doc.id,
-        title: data.Studysessiontitle,
-        date: data.Studysessiondate, 
-        friends: data.Studysessionfriends
+        title: data.title,
+        date: data.date, 
+        friends: data.friends
       };
     });
     setSessions(sessionsList);
