@@ -20,7 +20,7 @@ import Constants from "expo-constants";
 interface Section {
   sectionNumber: string;
   meets: string;
-  instructor: string;
+  // instructor: string;
 }
 
 export default function AddSection({

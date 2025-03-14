@@ -100,7 +100,6 @@ export const getAllCourses = async (userId) => {
         id: doc.id,
         name: data.name || "",
         section: data.section || "",
-        instructor: data.instructor || "",
         days: data.days || [],
         startTime: data.startTime || "",
         endTime: data.endTime || "",
