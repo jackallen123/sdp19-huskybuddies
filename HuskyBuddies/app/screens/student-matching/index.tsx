@@ -208,7 +208,7 @@ const IndexScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeftPlaceholder}></View>
         <Text style={styles.headerText}>Match with a Buddy</Text>
@@ -376,14 +376,13 @@ const IndexScreen = () => {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: COLORS.UCONN_WHITE 
   },
   loadingContainer: {
     flex: 1,
@@ -396,19 +395,19 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_NAVY,
     fontSize: 16
   },
-  header: { 
+  header: {
     backgroundColor: COLORS.UCONN_NAVY,
     padding: 20,
     paddingTop: 60,
     marginBottom: 20,
     borderRadius: 1,
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexDirection: 'row'
   },
   headerText: { 
     color: '#fff', 
-    fontSize: 22, 
+    fontSize: 20, 
     fontWeight: 'bold',
     textAlign: 'center'
   },
@@ -416,8 +415,6 @@ const styles = StyleSheet.create({
     width: 40, // Same width as the icon button on the right
   },
   iconButton: {
-    padding: 8,
-    borderRadius: 20,
     width: 40,
     alignItems: 'center'
   },
