@@ -18,8 +18,8 @@ export default function ScreenLayout() {
         tabBarStyle: [styles.navbar,
         {
           // dynamically styling nav bar
-          backgroundColor: theme.colors.primary,
-          borderTopColor: theme.colors.primary,
+          backgroundColor: theme.colors.onPrimary,
+          borderTopColor: COLORS.UCONN_GREY,
         },
       ],
         tabBarShowLabel: false,
@@ -29,7 +29,7 @@ export default function ScreenLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <Home color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
+            <Home color={focused ? theme.colors.primary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
@@ -37,7 +37,7 @@ export default function ScreenLayout() {
         name="messages/index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <MessageCircle color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
+            <MessageCircle color={focused ? theme.colors.primary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
@@ -55,7 +55,7 @@ export default function ScreenLayout() {
         name="events/index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <Calendar color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
+            <Calendar color={focused ? theme.colors.primary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
@@ -63,7 +63,7 @@ export default function ScreenLayout() {
         name="settings/index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <Settings color={focused ? theme.colors.onPrimary : COLORS.UCONN_GREY} size={24} />
+            <Settings color={focused ? theme.colors.primary : COLORS.UCONN_GREY} size={24} />
           ),
         }}
       />
