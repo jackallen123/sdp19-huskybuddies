@@ -4,7 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '@/constants/Colors';
 import { Timestamp } from 'firebase/firestore';
-import { FetchStudySessionsFromDatabase, AddStudySessionToDatabase, DeleteStudySessionFromDatabase } from '@/backend/firebase/firestoreService';
+import { 
+  FetchStudySessionsFromDatabase,  
+  AddStudySessionToDatabase,   
+  DeleteStudySessionFromDatabase 
+} from '@/backend/firebase/firestoreService';
 
 interface StudySession {
   id: string;
@@ -18,9 +22,10 @@ const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana'];
 type StudySchedulerProps = {
   onBack: () => void;
   onSchedule: (session: StudySession) => void;
+  onDeleteSession: (id: string) => void;
 };
 
-export default function StudyScheduler({ onBack, onSchedule }: StudySchedulerProps) {
+export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: StudySchedulerProps) {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [date, setDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -65,17 +70,31 @@ export default function StudyScheduler({ onBack, onSchedule }: StudySchedulerPro
     }
   };
 
-  const deleteSession = async (id: string) => {
-    await DeleteStudySessionFromDatabase(id);
-    setScheduledSessions((prevSessions) => prevSessions.filter((session) => session.id !== id));
+  const handleDeleteStudySession = async (id: string) => {
+    try {
+      await DeleteStudySessionFromDatabase(id);
+      alert('Study session deleted!');
+    } catch (error) {
+      alert('Error deleting study session');
+    }
   };
+  
 
   const formatDate = (timestamp: Timestamp) => {
     if (timestamp && timestamp.toDate) {
-      return timestamp.toDate().toLocaleString();  
+      return timestamp.toDate().toLocaleString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
+      });
     }
     return 'Invalid Date';
   };
+  
+  
   
   return (
     <SafeAreaView style={styles.container}>
@@ -127,7 +146,7 @@ export default function StudyScheduler({ onBack, onSchedule }: StudySchedulerPro
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { flex: 1 }]}>
         <Text style={styles.sectionTitle}>Scheduled Study Sessions:</Text>
         <ScrollView style={styles.scrollContainer}>
           {scheduledSessions.length > 0 ? (
@@ -135,12 +154,11 @@ export default function StudyScheduler({ onBack, onSchedule }: StudySchedulerPro
               <View key={session.id} style={styles.sessionBox}>
                 <View style={styles.sessionDetails}>
                   <Text style={styles.sessionText}>{session.title}</Text>
-                  {/* Use formatDate to render the date correctly */}
                   <Text style={styles.sessionDate}>
                     {session.date ? formatDate(session.date) : 'Invalid Date'}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => deleteSession(session.id)} style={styles.deleteButton}>
+                <TouchableOpacity onPress={() => handleDeleteStudySession(session.id)} style={styles.deleteButton}>
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               </View>
@@ -232,7 +250,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   scrollContainer: {
-    maxHeight: 300,
+    paddingBottom: 20
   },
   sessionBox: {
     backgroundColor: COLORS.UCONN_WHITE,
@@ -248,20 +266,18 @@ const styles = StyleSheet.create({
   sessionText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
   },
   sessionDate: {
     fontSize: 16,
-    color: COLORS.UCONN_NAVY,
   },
   deleteButton: {
-    backgroundColor: 'red',
+    marginTop: 8,
+    backgroundColor: '#FF4C4C',
     padding: 8,
     borderRadius: 5,
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: COLORS.UCONN_WHITE,
-    fontWeight: 'bold',
+    color: '#FFFFFF'
   },
 });

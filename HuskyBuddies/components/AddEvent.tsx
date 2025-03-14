@@ -19,6 +19,7 @@ const AddEvent: React.FC<{
   onAddEvent: (event: Event) => void; 
   onDeleteEvent: (id: string) => void;
   events?: Event[];
+
 }> = ({ onBack, onAddEvent }) => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState<Date | null>(null);
@@ -32,15 +33,14 @@ const AddEvent: React.FC<{
     return () => unsubscribe();
   }, []);
 
-  const handleSubmit = () => {
-    console.log('Selected Date:', date);  
+  const handleSubmit = () => {  
     if (!title || !description || !date) {
       alert('Please fill out all fields!');
       return;
     }
 
     const newEvent: Event = {
-      id: Date.now().toString(),
+      id: new Date().toISOString(),
       title,
       date: Timestamp.fromDate(date),  
       description,
@@ -91,15 +91,25 @@ const AddEvent: React.FC<{
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text>
-        {item.date ? new Date(item.date.toDate()).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'No date available'}
+      <Text style={styles.eventText}>
+        {item.date 
+          ? new Date(item.date.toDate()).toLocaleString('en-US', { 
+              month: '2-digit', 
+              day: '2-digit', 
+              year: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              hour12: true 
+            }) 
+          : 'No date available'}
       </Text>
-      <Text>{item.description}</Text>
+      <Text style={styles.eventText}>{item.description}</Text>
       <TouchableOpacity onPress={() => handleDeleteEvent(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
     </View>
   );
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -273,6 +283,10 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: '#FFFFFF',
   },
+  eventText: {
+    fontSize: 16, 
+    color: '#000',
+  }
 });
 
 export default AddEvent;

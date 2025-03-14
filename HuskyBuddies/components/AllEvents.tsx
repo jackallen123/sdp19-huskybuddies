@@ -53,9 +53,11 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text>{item.date.toDate().toLocaleString()}</Text>
-      <Text>{item.description}</Text>
-
+      <Text style={styles.eventText}>
+        {item.date.toDate().toLocaleDateString()} {item.date.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </Text>
+      <Text style={styles.eventText}>{item.description}</Text>
+  
       <TouchableOpacity
         style={styles.addToCalendarButton}
         onPress={() => handleAddToCalendar(item)}
@@ -67,26 +69,26 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events, onAddToCalendar }
     </View>
   );
 
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+      </TouchableOpacity>
+      <View style={styles.headerTextContainer}>
+        <Text style={styles.headerText}>All Events</Text>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
-        </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerText}>All Events</Text>
-        </View>
-      </View>
-
-      <View style={styles.eventsContainer}>
-        <Text style={styles.eventsTitle}>Posted Events:</Text>
-        <FlatList
-          data={localEvents}
-          renderItem={renderEventItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContainer}
-        />
-      </View>
+      <FlatList
+        data={localEvents}
+        renderItem={renderEventItem}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderHeader} // Using FlatList's ListHeaderComponent
+      />
     </SafeAreaView>
   );
 };
@@ -116,25 +118,26 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   eventsContainer: {
+    flex: 1,
     padding: 16,
-  },
-  eventsTitle: {
-    fontSize: 20,
-    marginBottom: 10,
   },
   eventItem: {
     marginBottom: 12,
-    padding: 10,
+    padding: 16,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 5,
+    backgroundColor: COLORS.UCONN_WHITE,
   },
   eventTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  listContainer: {
-    marginTop: 40,
+  eventText: {
+    fontSize: 16,
+    color: '#000',
+    marginBottom: 4,
   },
   addToCalendarButton: {
     marginTop: 10,
@@ -146,6 +149,9 @@ const styles = StyleSheet.create({
   addToCalendarButtonText: {
     color: COLORS.UCONN_WHITE,
     fontSize: 14,
+  },
+  listContainer: {
+    marginTop: 40,
   },
 });
 
