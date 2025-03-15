@@ -7,7 +7,6 @@ import {
   TextInput,
   FlatList,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +14,7 @@ import axios from "axios";
 import { COLORS } from "@/constants/Colors";
 import AddSection from "./addSection";
 import Constants from "expo-constants";
+import { ActivityIndicator } from "react-native-paper";
 
 interface Course {
   code: string;
