@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +15,7 @@ import { storeCourse } from "@/backend/firebase/firestoreService";
 import { auth } from "@/backend/firebase/firebaseConfig";
 import axios from "axios";
 import Constants from "expo-constants";
+import { ActivityIndicator } from "react-native-paper";
 
 interface Section {
   sectionNumber: string;
@@ -55,7 +55,6 @@ export default function AddSection({
           params: { courseCode }
         }
       );
-      console.log(JSON.stringify(data, null, 2));
       setSections(data[0]?.sections || []);
     } catch (error) {
       console.error("Error fetching sections:", error);

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
-  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
@@ -25,6 +24,7 @@ import {
   removeFriend 
 } from '../../../backend/firebase/firestoreService';
 import { auth } from '../../../backend/firebase/firebaseConfig';
+import { ActivityIndicator } from "react-native-paper";
 
 const IndexScreen = () => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -202,7 +202,7 @@ const IndexScreen = () => {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
-        <Text style={styles.loadingText}>Loading students...</Text>
+        {/* <Text style={styles.loadingText}>Loading students...</Text> */}
       </SafeAreaView>
     );
   }
