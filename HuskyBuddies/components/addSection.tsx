@@ -55,7 +55,6 @@ export default function AddSection({
           params: { courseCode }
         }
       );
-      console.log(JSON.stringify(data, null, 2));
       setSections(data[0]?.sections || []);
     } catch (error) {
       console.error("Error fetching sections:", error);
