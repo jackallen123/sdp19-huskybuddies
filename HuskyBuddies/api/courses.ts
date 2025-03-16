@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getGlobalCourses } from '../backend/firebase/firestoreService'; 
+import { scrapeAllCourses } from '../backend/helper';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -8,11 +8,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   
   try {
-    // fetch courses from Firestore
-    const courses = await getGlobalCourses();
+    const courses = await scrapeAllCourses();
     res.status(200).json(courses);
   } catch (error) {
-    console.error('Error fetching courses from Firestore:', error);
+    console.error('Error fetching courses:', error);
     res.status(500).json({ error: 'Failed to fetch courses' });
   }
 }
