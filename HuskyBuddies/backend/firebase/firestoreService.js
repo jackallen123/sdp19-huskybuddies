@@ -1,5 +1,5 @@
 import { getNextColor } from "../../utils/transform/courseTransform.js";
-import { db } from "./firebaseConfig";
+import { db } from "./firebaseConfig.js";
 import {
   doc,
   setDoc,
