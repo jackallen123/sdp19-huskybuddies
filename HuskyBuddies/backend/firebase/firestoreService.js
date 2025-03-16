@@ -1,4 +1,4 @@
-import { getNextColor } from "../../utils/transform/courseTransform.js";
+import { getNextColor } from "../../utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
 import {
   doc,
