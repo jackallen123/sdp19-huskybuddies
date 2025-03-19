@@ -1,0 +1,9 @@
+/app
+/assets
+/components
+/constants
+/context
+/.expo
+/.vscode
+/themes
+/utils

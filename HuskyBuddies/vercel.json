@@ -1,33 +1,19 @@
 {
-    "functions": {
-      "api/cron.ts": {
-        "includeFiles": "backend/**"
-      },
-      "api/courses.ts": {
-        "includeFiles": "backend/**"
-      },
-      "api/sections.ts": {
-        "includeFiles": "backend/**"
-      }
+  "functions": {
+    "api/cron.ts": {
+      "includeFiles": "backend/**"
     },
-    "build": {
-      "ignore": [
-        ".expo/**",
-        "app/**",
-        "assets/**",
-        "components/**",
-        "constants/**",
-        "context/**",
-        "themes/**",
-        "utils/**",
-        ".vscode/**"
-      ]
+    "api/courses.ts": {
+      "includeFiles": "backend/**"
     },
-    "crons": [
-      {
-        "path": "/api/cron",
-        "schedule": "0 12 * * *"
-      }
-    ]
-  }
-  
+    "api/sections.ts": {
+      "includeFiles": "backend/**"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 12 * * *"
+    }
+  ]
+}
