@@ -1,4 +1,4 @@
-import { getNextColor } from "@/utils/transform/courseTransform";
+import { getNextColor } from "../../utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
 import {
   doc,
@@ -52,6 +52,11 @@ export const deleteUserFromDatabase = async (uid) => {
     console.error("Error deleting user from database:", error);
   }
 };
+
+/*
+  * COURSE CRON JOB
+*/
+
 
 /*
   * COURSE DB INTERACTIONS
