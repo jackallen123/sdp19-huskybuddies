@@ -57,6 +57,50 @@ export const deleteUserFromDatabase = async (uid) => {
   * COURSE CRON JOB
 */
 
+/**
+ * Stores global courses in a dedicated Firestore collection.
+ * This function uses a batch write for efficiency.
+ * @param {Array} courses - An array of course objects
+ */
+export const storeGlobalCourses = async (courses) => {
+  try {
+    const coursesCollectionRef = collection(db, "globalCourses");
+    const batch = writeBatch(db);
+
+    // Delete all existing courses
+    const existingSnapshot = await getDocs(coursesCollectionRef);
+    existingSnapshot.forEach((existingDoc) => {
+      batch.delete(existingDoc.ref);
+    });
+
+    // For each new course, add or update the document (using course.id as key)
+    courses.forEach(course => {
+      const courseDocRef = doc(coursesCollectionRef, course.id);
+      batch.set(courseDocRef, course);
+    });
+
+    await batch.commit();
+    console.log("Global courses updated successfully (existing courses deleted and new courses added).");
+  } catch (error) {
+    console.error("Error storing global courses:", error);
+    throw error;
+  }
+};
+
+/**
+ * Retrieves global courses from Firestore.
+ * @returns {Promise<Array>} - An array of course objects
+ */
+export const getGlobalCourses = async () => {
+  try {
+    const coursesCollectionRef = collection(db, "globalCourses");
+    const snapshot = await getDocs(coursesCollectionRef);
+    return snapshot.docs.map(doc => doc.data());
+  } catch (error) {
+    console.error("Error fetching global courses:", error);
+    return [];
+  }
+};
 
 /*
   * COURSE DB INTERACTIONS
