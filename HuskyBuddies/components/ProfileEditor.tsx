@@ -4,10 +4,10 @@ import { COLORS } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as ImagePicker from 'expo-image-picker';
-import uconnMajors from '../backend/data/uconn-majors.json';
+import uconnMajors from '../api-service/backend/data/uconn-majors.json';
 import { getUserProfile, updateUserProfile, updateProfilePicture } from '@/backend/firebase/firestoreService';
 import { auth } from '@/backend/firebase/firebaseConfig';
-import { UserProfile } from '@/backend/data/mockDatabase';
+import { UserProfile } from '@/api-service/backend/data/mockDatabase';
 
 import { useTheme } from 'react-native-paper';
 

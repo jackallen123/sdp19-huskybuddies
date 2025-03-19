@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { MD3Theme, PaperProvider } from 'react-native-paper';
 import { auth } from '@/backend/firebase/firebaseConfig';
 import { getUserSettings, updateUserSettings } from '@/backend/firebase/firestoreService';
-import { UserSettings } from '@/backend/data/mockDatabase';
+import { UserSettings } from '@/api-service/backend/data/mockDatabase';
 import { darkTheme, lightTheme } from '@/themes/theme';
 import { onAuthStateChanged } from 'firebase/auth';
 

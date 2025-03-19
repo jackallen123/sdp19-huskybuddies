@@ -22,8 +22,8 @@ import {
   acceptFriendRequest, 
   rejectFriendRequest, 
   removeFriend 
-} from '../../../backend/firebase/firestoreService';
-import { auth } from '../../../backend/firebase/firebaseConfig';
+} from '../../../api-service/backend/firebase/firestoreService';
+import { auth } from '../../../api-service/backend/firebase/firebaseConfig';
 import { ActivityIndicator } from "react-native-paper";
 
 const IndexScreen = () => {

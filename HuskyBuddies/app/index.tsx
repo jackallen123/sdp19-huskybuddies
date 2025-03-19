@@ -14,7 +14,7 @@ import { Input, Button } from "react-native-elements";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "@/constants/Colors";
 import { useRouter } from "expo-router";
-import { signUp, signIn } from "../backend/firebase/authService";
+import { signUp, signIn } from "../api-service/backend/firebase/authService";
 
 // types for props for login and signup components
 type LoginProps = {

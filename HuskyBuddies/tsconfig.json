@@ -19,7 +19,7 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "api",
-    "backend"
+    "api-service/api",
+    "api-service/backend"
   ]
 }
