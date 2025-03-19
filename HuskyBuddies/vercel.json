@@ -1,5 +1,4 @@
 {
-  "rootDirectory": "api-service",
   "functions": {
     "api/cron.ts": {
       "includeFiles": "backend/**"
