@@ -1,3 +1,4 @@
+//test
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { getGlobalCourses } from '../backend/firebase/firestoreService';
 
