@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { scrapeAllCourses } from '../backend/helper';
-import { getGlobalCourses, storeGlobalCourses } from '@/backend/firebase/firestoreService';
+import { getGlobalCourses, storeGlobalCourses } from '../backend/firebase/firestoreService'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
