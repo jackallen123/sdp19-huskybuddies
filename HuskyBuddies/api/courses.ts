@@ -9,26 +9,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   
   try {
-    // check if force refresh is requested
-    const forceRefresh = req.query.refresh === 'true';
+    // first try to get cached courses
+    const cachedCourses = await getGlobalCourses();
 
-    // check if we have cached data
-    let courses;
-    if (!forceRefresh) {
-      // try to get cached courses
-      const cachedCourses = await getGlobalCourses();
-      if (cachedCourses) {
-        // cache hit - return cached data
-        return res.status(200).json({
-          source: 'cache',
-          data:cachedCourses
-        });
-      }
+    if (cachedCourses) {
+      console.log("Cache hit, fetching course data from database");
+      // cache hit - return cached data
+      return res.status(200).json({
+        source: 'cache',
+        data: cachedCourses
+      });
     }
 
-    // cache miss or force refresh - call script to update data
-    console.log("Cache miss or refresh requested, fetching fresh course data");
-    courses = await scrapeAllCourses();
+    // cache miss - call script to fetch fresh data
+    console.log("Cache miss, fetching fresh course data");
+    const courses = await scrapeAllCourses();
 
     // store in cache for future requests
     await storeGlobalCourses(courses);
