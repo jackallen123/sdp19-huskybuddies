@@ -47,6 +47,7 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
       const response = await axios.get<CourseResponse>(`${base_url}/courses`);
       const { data , source } = response.data;
       setDataSource(source);
+      console.log(`DATA SOURCE: ${dataSource}`);
       setCourses(data);
     } catch (error) {
       console.error("Error fetching courses:", error);
