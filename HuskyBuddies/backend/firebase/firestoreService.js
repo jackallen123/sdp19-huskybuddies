@@ -14,6 +14,29 @@ import {
   where,
 } from "firebase/firestore";
 
+/*
+  * GLOBAL CACHE DB INTERACTIONS
+*/
+
+/**
+ * Stores courses in the global cache
+ * @param {Array} courses - Array of courses to cache
+ */
+export const storeGlobalCourses = async (courses) => {
+  try {
+    // store courses w/ timestamp 
+    const globalCacheRef = doc(db, "globalCache", "courses");
+    await setDoc(globalCacheRef, {
+      data: courses,
+      lastUpdated: Timestamp.now(),
+    });
+    console.log(`Cached ${courses.length} courses in global cache`);
+  } catch (error) {
+    console.error("Error storing courses in global cache:", error);
+    throw error;
+  }
+};
+
 
 /*
   * USER DB INTERACTIONS
