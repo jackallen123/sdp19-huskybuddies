@@ -32,7 +32,6 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dataSource, setDataSource] = useState<'cache' | 'live' | null>(null);
 
   // get base url from env
   const base_url = Constants.expoConfig?.extra?.VERCEL_BASE_URL;
@@ -46,8 +45,7 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
       setLoading(true);
       const response = await axios.get<CourseResponse>(`${base_url}/courses`);
       const { data , source } = response.data;
-      setDataSource(source);
-      console.log(`DATA SOURCE: ${dataSource}`);
+      console.log(`Course data source: ${source}`);
       setCourses(data);
     } catch (error) {
       console.error("Error fetching courses:", error);

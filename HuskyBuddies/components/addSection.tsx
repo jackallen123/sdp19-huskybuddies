@@ -41,7 +41,6 @@ export default function AddSection({
 }) {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dataSource, setDataSource] = useState<'cache' | 'live' | null>(null);
   const [locationPopup, setLocationPopup] = useState<{
     visible: boolean;
     message: string;
@@ -66,8 +65,7 @@ export default function AddSection({
         }
       );
       const { data, source } = response.data;
-      setDataSource(source);
-      console.log(`Section data source: ${dataSource}`);
+      console.log(`Section data source: ${source}`);
       setSections(data[0]?.sections || []);
     } catch (error) {
       console.error("Error fetching sections:", error);
