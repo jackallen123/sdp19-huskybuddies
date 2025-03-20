@@ -21,12 +21,18 @@ interface Course {
   name: string;
 }
 
+interface CourseResponse {
+  source: 'cache' | 'live';
+  data: Course[];
+}
+
 export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddingSection, setIsAddingSection] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<'cache' | 'live' | null>(null);
 
   // get base url from env
   const base_url = Constants.expoConfig?.extra?.VERCEL_BASE_URL;
@@ -38,7 +44,9 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${base_url}/courses`);
+      const response = await axios.get<CourseResponse>(`${base_url}/courses`);
+      const { data , source } = response.data;
+      setDataSource(source);
       setCourses(data);
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -102,29 +110,31 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
             <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
           </View>
         ) : (
-          <FlatList
-            data={filteredCourses}
-            keyExtractor={(item) => item.code}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.courseItem}
-                onPress={() => {
-                  setSelectedCourse(item);
-                  setIsAddingSection(true);
-                }}
-              >
-                <View>
-                  <Text style={styles.courseName}>{item.code}</Text>
+          <>
+            <FlatList
+              data={filteredCourses}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.courseItem}
+                  onPress={() => {
+                    setSelectedCourse(item);
+                    setIsAddingSection(true);
+                  }}
+                >
+                  <View>
+                    <Text style={styles.courseName}>{item.code}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color="black" />
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={() => (
+                <View style={styles.centerContent}>
+                  <Text>No courses found</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={24} color="black" />
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={() => (
-              <View style={styles.centerContent}>
-                <Text>No courses found</Text>
-              </View>
-            )}
-          />
+              )}
+            />
+          </>
         )}
       </View>
     </View>
