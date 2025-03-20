@@ -1,4 +1,4 @@
-import { getNextColor } from "@/utils/transform/courseTransform";
+import { getNextColor } from "../../utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
 import {
   doc,
@@ -13,7 +13,6 @@ import {
   query,
   where,
 } from "firebase/firestore";
-
 
 /*
   * USER DB INTERACTIONS

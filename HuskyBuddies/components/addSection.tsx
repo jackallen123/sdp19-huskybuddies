@@ -23,6 +23,15 @@ interface Section {
   // instructor: string;
 }
 
+interface SectionData {
+  sections: Section[];
+}
+
+interface SectionResponse {
+  source: 'cache' | 'live';
+  data: SectionData[];
+}
+
 export default function AddSection({
   onBack,
   courseCode,
@@ -50,14 +59,17 @@ export default function AddSection({
   const fetchSections = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(
+      const response = await axios.get<SectionResponse>(
         `${base_url}/sections`, {
           params: { courseCode }
         }
       );
+      const { data, source } = response.data;
+      console.log(`Section data source: ${source}`);
       setSections(data[0]?.sections || []);
     } catch (error) {
       console.error("Error fetching sections:", error);
+      Alert.alert("Error", "Failed to fetch sections");
     } finally {
       setLoading(false);
     }
