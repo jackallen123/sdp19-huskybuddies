@@ -1,13 +1,16 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { scrapeAllCourses } from '../backend/helper';
-import { getGlobalCourses, storeGlobalCourses } from '../backend/firebase/serverService'
+import { VercelRequest, VercelResponse } from "@vercel/node";
+import { scrapeAllCourses } from "../backend/helper";
+import {
+  getGlobalCourses,
+  storeGlobalCourses,
+} from "../backend/firebase/serverService";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "GET") {
+    res.status(405).json({ error: "Method not allowed" });
     return;
   }
-  
+
   try {
     // first try to get cached courses
     const cachedCourses = await getGlobalCourses();
@@ -16,8 +19,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log("Cache hit, fetching course data from database");
       // cache hit - return cached data
       return res.status(200).json({
-        source: 'cache',
-        data: cachedCourses
+        source: "cache",
+        data: cachedCourses,
       });
     }
 
@@ -29,12 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await storeGlobalCourses(courses);
 
     res.status(200).json({
-      source: 'live',
-      data: courses
+      source: "live",
+      data: courses,
     });
-
   } catch (error) {
-    console.error('Error fetching courses:', error);
-    res.status(500).json({ error: 'Failed to fetch courses' });
+    console.error("Error fetching courses:", error);
+    res.status(500).json({ error: "Failed to fetch courses" });
   }
 }
