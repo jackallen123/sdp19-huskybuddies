@@ -1,31 +1,56 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { COLORS } from '@/constants/Colors'; 
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import SingleChatView from '@/components/SingleChat';
+import { getAuth } from "firebase/auth";
+import { getUsersWithMessages } from "@/backend/firebase/firestoreService";
 
 {/* MAIN PAGE */}
 export default function MessagingPage() {
-    const [showSingleChat, setShowSingleChat] = React.useState(false);
-    const [selectedChat, setSelectedChat] = React.useState<chatDataProps | null>(null); //specifies chat data to use when a chat item is pressed. Data type is initialized to null
+  const [userId, setUserId] = useState<string | null>(null);
+  const [users, setUsers] = useState<chatDataProps[]>([]);
+  const [showSingleChat, setShowSingleChat] = React.useState(false);
+  const [selectedChat, setSelectedChat] = React.useState<chatDataProps | null>(null); //specifies chat data to use when a chat item is pressed. Data type is initialized to null
+
+  {/* Retrieve logged in user's ID */}
+  useEffect(() => {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
   
-    //switches to single chat view and with data from chat item selected...
-    const handleChatPress = (chat: chatDataProps) => {
-      setSelectedChat(chat);
-      setShowSingleChat(true);
+    if (currentUser) {
+      setUserId(currentUser.uid); // store user's ID
+      console.log("Logged-in User ID:", currentUser.uid);
+    } else {
+      console.log("No user is logged in.");
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (!userId) return;
+    const fetchUsers = async () => {
+      const usersData = await getUsersWithMessages(userId);
+      setUsers(usersData);
+      console.log("Fetched users with messages:", usersData);
     };
+    fetchUsers();
+  }, [userId]);
+  
+  //switches to single chat view and with data from chat item selected...
+  const handleChatPress = (chat: chatDataProps) => {
+    setSelectedChat(chat);
+    setShowSingleChat(true);
+  };
   
     if (showSingleChat && selectedChat && ischatDataProps(selectedChat)) {
       return (
         <SingleChatView
-          //passing params...
           onBack={() => setShowSingleChat(false)} 
           firstName={selectedChat.firstName} 
           lastName={selectedChat.lastName} 
           lastMessage={selectedChat.lastMessage} 
           profilePicture={selectedChat.profilePicture}
-          userId={"U2axb8FQwicVxqN4gmMK4P4Zr9i1"} 
-          // receiver={selectedChat.id}
+          userId={userId!} //use userId iff user id exists
+          otherUserId={selectedChat.id}
         />
       );
     }
@@ -34,13 +59,13 @@ export default function MessagingPage() {
       <View style={styles.pageContainer}>
         <Banner />
         <View style={styles.container}>
-          <ChatList onChatPress={handleChatPress} />
+          <ChatList onChatPress={handleChatPress} chatData={users} />
         </View>
       </View>
     );
 }
 
-{/* COMPONENTS */}
+{/* U/I COMPONENTS */}
 const Banner = () => (
     <View style={styles.banner}>
       <Text style={styles.bannerText}>Let's Chat!</Text>
@@ -57,7 +82,7 @@ interface chatDataProps {
   profilePicture: string;
 }
 
-//type guard to check chat data type...
+//type guard to check data type...
 function ischatDataProps(chat: any): chat is chatDataProps {
   return (
     chat &&
@@ -70,19 +95,13 @@ function ischatDataProps(chat: any): chat is chatDataProps {
   );
 }
 
-const chatData: chatDataProps[] = [
-  { id: '1', firstName: 'John', lastName: 'Doe', lastMessage: 'Thanks for the chili powder.', time: '2:15 PM', profilePicture: 'https://robohash.org/stefan-one' },
-  { id: '2', firstName: 'Jane', lastName: 'Smith', lastMessage: 'Coral!', time: '2:15 PM', profilePicture: 'https://robohash.org/stefan-two'},
-  { id: '3', firstName: 'Alex', lastName: 'Johnson', lastMessage: 'Is this Squidward?', time: '2:15 PM', profilePicture: 'https://robohash.org/stefan-three' },
-];
-
-const ChatList = ({ onChatPress }: { onChatPress: (chat: chatDataProps) => void }) => {
+const ChatList = ({ onChatPress, chatData }: { onChatPress: (chat: chatDataProps) => void, chatData: chatDataProps[] }) => {
   return (
     <FlatList
       data={chatData}
       renderItem={({ item }) => (
         <ChatItem 
-          id  = {item.id} 
+          id = {item.id} 
           firstName={item.firstName} 
           lastName={item.lastName} 
           lastMessage={item.lastMessage} 
@@ -97,10 +116,10 @@ const ChatList = ({ onChatPress }: { onChatPress: (chat: chatDataProps) => void 
   );
 };
 
+//pass the data from a selected chat item to onPress function...
 const ChatItem: React.FC<chatDataProps & { onPress: (chat: chatDataProps) => void; chat: chatDataProps }> = ({ firstName, lastName, lastMessage, time, profilePicture, onPress, chat }) => {
   return (
     <TouchableOpacity style={styles.chatItem} onPress={() => onPress(chat)}>
-      {/* Passes the data from a selected chat item to onPress function */}
       <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
       <View style={styles.chatInfo}>
         <Text style={styles.chatName}>{firstName} {lastName}</Text>
@@ -110,7 +129,6 @@ const ChatItem: React.FC<chatDataProps & { onPress: (chat: chatDataProps) => voi
     </TouchableOpacity>
   );
 };
-
 
 const styles = StyleSheet.create({
   pageContainer: {
