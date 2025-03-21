@@ -381,16 +381,15 @@ export const getFullName = async (uid) => {
 
 /**
  * Adds a new event to a specific user's Firestore database.
- * @param {string} userId 
- * @param {string} eventId 
- * @param {string} title 
- * @param {Timestamp} date
- * @param {string} description
- * @param {boolean} isadded 
+ * @param {string} userId - The ID of the current user.
+ * @param {string} eventId - The event ID.
+ * @param {string} title - The title of the event.
+ * @param {Timestamp} date - The date and time of the event.
+ * @param {string} description - The description of the event.
+ * @param {boolean} isadded - Whether the event is added to the calendar.
  */
 export const AddEventToDatabase = async (userId, eventId, title, date, description, isadded) => {
   try {
-
     // Generate a unique ID if one is not provided
     const finalEventId = eventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -414,7 +413,8 @@ export const AddEventToDatabase = async (userId, eventId, title, date, descripti
       createdBy: userId,
     })
 
-    return finalEventId 
+    console.log(`Event added successfully: ${title} with ID: ${finalEventId}`)
+    return finalEventId // Return the ID for reference
   } catch (error) {
     console.error("Error adding event to database:", error)
     throw error
@@ -423,8 +423,8 @@ export const AddEventToDatabase = async (userId, eventId, title, date, descripti
 
 /**
  * Deletes an event from a specific user's Firestore database.
- * @param {string} userId 
- * @param {string} eventId 
+ * @param {string} userId - The ID of the current user.
+ * @param {string} eventId - The ID of the event.
  */
 export const DeleteEventFromDatabase = async (userId, eventId) => {
   try {
@@ -470,6 +470,7 @@ export const FetchEventsFromDatabase = (userId, setEvents) => {
           createdBy: data.createdBy || userId, // Ensure createdBy is set
         }
       })
+      console.log(`Fetched ${eventsList.length} events for user ${userId}`)
       setEvents(eventsList)
     },
     (error) => {
@@ -480,11 +481,12 @@ export const FetchEventsFromDatabase = (userId, setEvents) => {
 
 /**
  * Fetches events for all users and stores them in the 'allEvents' collection under each user.
- * @param {string} userId 
- * @param {function} setEvents
+ * @param {string} userId - The ID of the current user (for logging purposes).
+ * @param {function} setEvents - A function to update the state with the fetched events.
  */
 export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
   try {
+    console.log(`User ${userId} is syncing all events`)
 
     const usersRef = collection(db, "users")
     const usersSnapshot = await getDocs(usersRef)
@@ -524,7 +526,7 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
           title: data.title,
           date: data.date,
           description: data.description,
-          isadded: false, 
+          isadded: false, // Default to false for other users
           createdBy: creatorId,
         }
 
@@ -543,6 +545,8 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
       }
     }
 
+    console.log(`Total events synced: ${allEvents.length}`)
+
     // Update state with all events
     if (setEvents) {
       setEvents(allEvents)
@@ -558,7 +562,7 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
 export const FetchAllEventsFromDatabase = (userId, setEvents) => {
   if (!userId) {
     console.error("Cannot fetch all events: No user ID provided")
-    return () => {} 
+    return () => {} // Return empty unsubscribe function
   }
 
   // This should fetch from the user's own allEvents subcollection
@@ -578,6 +582,7 @@ export const FetchAllEventsFromDatabase = (userId, setEvents) => {
           createdBy: data.createdBy,
         }
       })
+      console.log(`Fetched ${eventsList.length} events for user ${userId}`)
       setEvents(eventsList)
     },
     (error) => {
@@ -601,7 +606,6 @@ export const AddStudySessionToDatabase = async (
   studySessionDate,
   studySessionFriends,
 ) => {
-
   // Generate a unique ID if one is not provided
   const sessionId = studySessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -613,13 +617,13 @@ export const AddStudySessionToDatabase = async (
     createdBy: userId,
   })
 
-  return sessionId 
+  return sessionId // Return the ID for reference
 }
 
 /**
  * Deletes a study session from the Firestore database under the user's sub-collection.
- * @param {string} userId 
- * @param {string} studySessionId 
+ * @param {string} userId - The ID of the current user.
+ * @param {string} studySessionId - The ID of the study session.
  */
 export const DeleteStudySessionFromDatabase = async (userId, studySessionId) => {
   try {
@@ -644,11 +648,12 @@ export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
       return {
         id: doc.id,
         title: data.title,
-        date: data.date, 
-        friends: data.friends
-      };
-    });
-    setSessions(sessionsList);
-  });
+        date: data.date,
+        friends: data.friends,
+        createdBy: data.createdBy,
+      }
+    })
+    setSessions(sessionsList)
+  })
+}
 
-};
