@@ -1,7 +1,17 @@
-import { getNextColor } from "@/utils/transform/courseTransform"
-import { db } from "./firebaseConfig"
-import { getAuth } from "firebase/auth"
-import { doc, setDoc, deleteDoc, getDocs, collection, updateDoc, getDoc, onSnapshot } from "firebase/firestore"
+import { getNextColor } from "@/utils/transform/courseTransform";
+import { db } from "./firebaseConfig";
+import {
+  doc,
+  setDoc,
+  deleteDoc,
+  getDocs,
+  collection,
+  updateDoc,
+  getDoc,
+  onSnapshot,
+  Timestamp,
+} from "firebase/firestore";
+
 
 /*
  * USER DB INTERACTIONS
@@ -84,7 +94,6 @@ export const getAllCourses = async (userId) => {
         id: doc.id,
         name: data.name || "",
         section: data.section || "",
-        instructor: data.instructor || "",
         days: data.days || [],
         startTime: data.startTime || "",
         endTime: data.endTime || "",
@@ -115,16 +124,16 @@ export const deleteCourse = async (userId, courseId) => {
  */
 
 /**
- * Update or create a user's profile in Firestore.
+ * Updates a specific user's profile in Firestore.
  * @param {string} uid - The user's unique identifier.
- * @param {Promise<Object>} profileData - The user's profile data.
+ * @param {Object} profileData - The user's profile data.
  */
 
 export const updateUserProfile = async (uid, profileData) => {
   try {
-    const userRef = doc(db, "users", uid)
-    await setDoc(userRef, profileData, { merge: true })
-    console.log("User profile updated successfully")
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, profileData, { merge: true });
+    console.log("User profile updated successfully");
   } catch (error) {
     console.error("Error updating user profile:", error)
     throw error
@@ -139,15 +148,15 @@ export const updateUserProfile = async (uid, profileData) => {
 
 export const getUserProfile = async (uid) => {
   try {
-    const userRef = doc(db, "users", uid)
-    const userDoc = await getDoc(userRef)
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDoc(userRef);
 
     if (userDoc.exists()) {
       // get current user data
-      return userDoc.data()
+      return userDoc.data();
     } else {
-      console.log("No such user!")
-      return null
+      console.log("No such user!");
+      return null;
     }
   } catch (error) {
     console.error("Error getting user profile:", error)
@@ -162,25 +171,25 @@ export const getUserProfile = async (uid) => {
  */
 export const updateUserSettings = async (uid, newSettings) => {
   try {
-    const userRef = doc(db, "users", uid)
-    const userDoc = await getDoc(userRef)
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDoc(userRef);
 
     if (userDoc.exists()) {
       // get current user data
-      const userData = userDoc.data()
+      const userData = userDoc.data();
 
       // get current settings OR initialize empty object if it doesnt exist
-      const currentSettings = userData.settings || {}
+      const currentSettings = userData.settings || {};
 
       // merge the current settings with new settings
-      const updatedSettings = { ...currentSettings, ...newSettings }
+      const updatedSettings = { ...currentSettings, ...newSettings };
 
       // update settings field
-      await updateDoc(userRef, { settings: updatedSettings })
-      console.log("User settings updated successfully")
+      await updateDoc(userRef, { settings: updatedSettings });
+      console.log("User settings updated successfully");
     } else {
-      console.log("No such user!")
-      throw new Error("User not found")
+      console.log("No such user!");
+      throw new Error("User not found");
     }
   } catch (error) {
     console.error("Error updating user settings:", error)
@@ -191,26 +200,26 @@ export const updateUserSettings = async (uid, newSettings) => {
 /**
  * Retrieves a specific user's settings from Firestore.
  * @param {string} uid - The user's unique identifier.
- * @returns {Promise<Object>} - The user's settings.
+ * @returns {Promise<Object|null>} - The user's settings object or null if no user found.
  */
 export const getUserSettings = async (uid) => {
   try {
-    const userRef = doc(db, "users", uid)
-    const userDoc = await getDoc(userRef)
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDoc(userRef);
 
     if (userDoc.exists()) {
       // return settings object or default
-      const userData = userDoc.data()
+      const userData = userDoc.data();
       return (
         userData.settings || {
           notificationsEnabled: false,
           darkModeEnabled: false,
           textSize: 16,
         }
-      )
+      );
     } else {
-      console.log("No such user!")
-      return null
+      console.log("No such user!");
+      return null;
     }
   } catch (error) {
     console.error("Error getting user settings:", error)
@@ -226,9 +235,9 @@ export const getUserSettings = async (uid) => {
  */
 export const updateProfilePicture = async (uid, pictureUrl) => {
   try {
-    const userRef = doc(db, "users", uid)
-    await updateDoc(userRef, { profilePicture: pictureUrl })
-    console.log("Profile picture updated successfully")
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, { profilePicture: pictureUrl });
+    console.log("Profile picture updated successfully");
   } catch (error) {
     console.error("Error updating profile picture:", error)
     throw error
@@ -246,7 +255,7 @@ export const getAllUsers = async () => {
     console.error("Error fetching users:", error)
     return []
   }
-}
+};
 
 /**
  * Send a friend request
@@ -327,7 +336,7 @@ export const removeFriend = async (currentUserId, targetUserId) => {
   } catch (error) {
     console.error("Error removing friend:", error)
   }
-}
+};
 
 /*
  * SCHEDULER DB INTERACTIONS
@@ -635,12 +644,11 @@ export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
       return {
         id: doc.id,
         title: data.title,
-        date: data.date,
-        friends: data.friends,
-        createdBy: data.createdBy,
-      }
-    })
-    setSessions(sessionsList)
-  })
-}
+        date: data.date, 
+        friends: data.friends
+      };
+    });
+    setSessions(sessionsList);
+  });
 
+};

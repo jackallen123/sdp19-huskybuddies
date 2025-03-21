@@ -6,7 +6,22 @@ export interface User {
   email: string;
   password: string;
   settings?: UserSettings;
+  profile?: UserProfile;
 }
+
+export interface UserProfile {
+  name: string;
+  isCommuter?: boolean;
+  profilePicture?: string;
+  studyPreferences?: string[];
+  additionalStudyPreferences?: string[];
+  interests?: string[];
+  additionalInterests?: string[];
+  major?: string;
+  clubs?: string[];
+  socialMediaLinks?: string[];
+}
+
 
 // user settings related types and data
 export interface UserSettings {

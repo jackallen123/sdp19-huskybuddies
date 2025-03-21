@@ -6,6 +6,8 @@ import { COLORS } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 
+import { useTheme } from 'react-native-paper';
+
 type EventCardProps = {
   name: string;
   date: string;
@@ -13,13 +15,16 @@ type EventCardProps = {
 }
 
 // Card for featured events
-const EventCard: React.FC<EventCardProps> = ({ name, date, location }) => (
-  <View style={styles.eventCard}>
-    <Text style={styles.eventName}>{name}</Text>
-    <Text style={styles.eventDetails}>{date}</Text>
-    <Text style={styles.eventDetails}>{location}</Text>
-  </View>
-);
+const EventCard: React.FC<EventCardProps> = ({ name, date, location }) => {
+  const theme = useTheme();
+  return (
+    <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{name}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{date}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{location}</Text>
+    </View>
+  );
+};
 
 type StudyBuddyCardProps = {
   name: string;
@@ -28,13 +33,16 @@ type StudyBuddyCardProps = {
 }
 
 // Card for study buddies
-const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, profilePicture }) => (
-  <View style={styles.studyBuddyCard}>
-    <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
-    <Text style={styles.buddyName}>{name}</Text>
-    <Text style={styles.buddyDetails}>{sharedClasses} Shared Classes</Text>
-  </View>
-);
+const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, profilePicture }) => {
+  const theme = useTheme();
+  return (
+    <View style={[styles.studyBuddyCard, { backgroundColor: theme.colors.surface }]}>
+      <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
+      <Text style={[styles.buddyName, { color: theme.colors.onBackground }]}>{name}</Text>
+      <Text style={[styles.buddyDetails, { color: theme.colors.onSurface }]}>{sharedClasses} Shared Classes</Text>
+    </View>
+  );
+};
 
 // Interface to store resource items
 interface ResourceItem {
@@ -43,6 +51,8 @@ interface ResourceItem {
 }
 
 export default function HomePage() {
+  const theme = useTheme();
+
   const [academicModalVisible, setAcademicModalVisible] = useState(false);
   const [campusServicesModalVisible, setCampusServicesModalVisible] = useState(false);
 
@@ -131,21 +141,21 @@ export default function HomePage() {
       onRequestClose={() => setIsVisible(false)}
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{title}</Text>
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.onBackground }]}>{title}</Text>
           <ScrollView contentContainerStyle={styles.scrollViewResources}>
             {data.map((item: ResourceItem, index: number) => (
               <TouchableOpacity 
                 key={index}
-                style={styles.resourceLink} 
+                style={[styles.resourceLink, { borderBottomColor: theme.colors.outline }]}
                 onPress={() => Linking.openURL(item.url)}
               >
-                <Text style={styles.resourceLinkText}>{item.name}</Text>
+                <Text style={[styles.resourceLinkText, { color: theme.colors.onBackground }]}>{item.name}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity onPress={() => setIsVisible(false)} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Close</Text>
+          <TouchableOpacity onPress={() => setIsVisible(false)} style={[styles.closeButton, { backgroundColor: theme.colors.onPrimaryContainer}]}>
+            <Text style={[styles.closeButtonText, { color: theme.colors.onPrimary }]}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -153,9 +163,9 @@ export default function HomePage() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
         {/* Campus Services icon */}
         <TouchableOpacity onPress={() => setCampusServicesModalVisible(true)} style={styles.iconContainer}>
           <Ionicons name="business-outline" size={24} color={COLORS.UCONN_WHITE} />
@@ -178,7 +188,7 @@ export default function HomePage() {
       <ScrollView contentContainerStyle={styles.content}>
 
         {/* Find a Study Buddy Section */}
-        <Text style={styles.sectionTitle}>Find a Study Buddy</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Find a Study Buddy</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -191,14 +201,14 @@ export default function HomePage() {
 
         <View style={styles.viewAllButtonWrapper}>
           <Link href="/screens/student-matching" style={styles.fullWidthLink} asChild>
-            <TouchableOpacity style={styles.viewAllButton}>
+            <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
               <Text style={styles.viewAllButtonText}>View All Matches</Text>
             </TouchableOpacity>
           </Link>
         </View>
         
         {/* Featured events section */}
-        <Text style={styles.sectionTitle}>Featured Events</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Featured Events</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -211,7 +221,7 @@ export default function HomePage() {
 
         <View style={styles.viewAllButtonWrapper}>
           <Link href="/screens/events" style={styles.fullWidthLink} asChild>
-            <TouchableOpacity style={styles.viewAllButton}>
+            <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
               <Text style={styles.viewAllButtonText}>View All Events</Text>
             </TouchableOpacity>
           </Link>
@@ -227,7 +237,6 @@ const styles = StyleSheet.create({
   // Container and general layout
   container: {
     flex: 1,
-    backgroundColor: COLORS.UCONN_WHITE,
   },
   content: {
     padding: 16,
@@ -235,7 +244,6 @@ const styles = StyleSheet.create({
 
   // Header styling
   header: {
-    backgroundColor: COLORS.UCONN_NAVY,
     padding: 20,
     paddingTop: 60,
     marginBottom: 20,
@@ -269,7 +277,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: COLORS.UCONN_WHITE,
     borderRadius: 8,
     padding: 20,
     width: '80%',
@@ -278,7 +285,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -293,7 +299,6 @@ const styles = StyleSheet.create({
   },
   resourceLinkText: {
     fontSize: 16,
-    color: COLORS.UCONN_NAVY,
     textAlign: 'center',
   },
 
@@ -301,7 +306,6 @@ const styles = StyleSheet.create({
   closeButton: {
     marginTop: 20,
     padding: 12,
-    backgroundColor: COLORS.UCONN_NAVY,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -315,7 +319,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewAllButton: {
-    backgroundColor: COLORS.UCONN_NAVY,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -331,7 +334,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
     marginBottom: 12,
   },
   fullWidthLink: {
@@ -343,7 +345,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   eventCard: {
-    backgroundColor: COLORS.UCONN_WHITE,
     borderRadius: 8,
     padding: 12,
     marginRight: 12,
@@ -362,12 +363,10 @@ const styles = StyleSheet.create({
   eventName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
     marginBottom: 4,
   },
   eventDetails: {
     fontSize: 14,
-    color: COLORS.UCONN_GREY,
   },
 
   // Study Buddy styling
@@ -375,7 +374,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   studyBuddyCard: {
-    backgroundColor: COLORS.UCONN_WHITE,
     borderRadius: 8,
     padding: 12,
     marginRight: 12,
@@ -396,11 +394,9 @@ const styles = StyleSheet.create({
   buddyName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
     marginBottom: 4,
   },
   buddyDetails: {
     fontSize: 14,
-    color: COLORS.UCONN_GREY,
   },
 });
