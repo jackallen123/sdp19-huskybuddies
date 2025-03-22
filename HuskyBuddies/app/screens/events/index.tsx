@@ -5,78 +5,200 @@ import CustomCalendar from '@/components/CustomCalendar';
 import AddEvent from '@/components/AddEvent';
 import AllEvents from '@/components/AllEvents';
 import StudyScheduler from '@/components/StudyScheduler';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc, collection, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import {  
   DeleteStudySessionFromDatabase,  
   DeleteEventFromDatabase, 
-  FetchEventsFromDatabase,
-  FetchStudySessionsFromDatabase
+  FetchAllEventsFromDatabase,
+  FetchStudySessionsFromDatabase,
+  AddEventToDatabase,
 } from '@/backend/firebase/firestoreService';
+import { auth } from '@/backend/firebase/firebaseConfig';
+import { db } from '@/backend/firebase/firebaseConfig';
 
-// Interface setup for database 
+// Event setup for database 
 interface Event {
-  id: string;  
-  title: string; 
-  date: Timestamp; 
-  description: string; 
-  isadded?: boolean; 
+  id: string;
+  title: string;
+  date: Timestamp;
+  description: string;
+  isadded?: boolean;
+  createdBy: string;
 }
 
+// Study session setup for database 
 interface StudySession {
   id: string;
   title: string;
   date: Timestamp;
   friends: string[];
+}
+
+// Get all isadded == true events from other users for display
+const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React.Dispatch<React.SetStateAction<Event[]>>) => {
+  try {
+    const usersRef = collection(db, "users");
+    const usersSnapshot = await getDocs(usersRef);
+
+    const allEvents: Event[] = [];
+
+    for (const userDoc of usersSnapshot.docs) {
+      const creatorId = userDoc.id;
+
+      const userEventsRef = collection(db, "users", creatorId, "events");
+      const eventsSnapshot = await getDocs(userEventsRef);
+
+      for (const eventDoc of eventsSnapshot.docs) {
+        const data = eventDoc.data();
+        const eventId = eventDoc.id;
+
+        if (!data.title || !data.date || !data.description) {
+          continue;
+        }
+
+        const event: Event = {
+          id: eventId,
+          title: data.title,
+          date: data.date,
+          description: data.description,
+          isadded: false, 
+          createdBy: creatorId,
+        };
+
+        // Skip the current user - we already have their events from the listener
+      if (creatorId === currentUserId) {
+        continue;
+        };
+
+        allEvents.push(event);
+      }
+    }
+
+    // Copy all events to the current user's allEvents subcollection
+    const currentUserAllEventsRef = collection(db, "users", currentUserId, "allEvents");
+    const currentUserAllEventsSnapshot = await getDocs(currentUserAllEventsRef);
+    
+    // Create a map of existing events with their isadded status
+    const existingEvents: Record<string, boolean> = {};
+    currentUserAllEventsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      existingEvents[doc.id] = data.isadded || false;
+    });
+
+    const batch = writeBatch(db);
+
+    // Update or add each event to the current user's allEvents
+    for (const event of allEvents) {
+      const isAdded = event.createdBy === currentUserId 
+        ? (event.isadded || false)
+        : (existingEvents[event.id] || false);
+      
+      const allEventsRef = doc(db, "users", currentUserId, "allEvents", event.id);
+      batch.set(allEventsRef, {
+        title: event.title,
+        date: event.date,
+        description: event.description,
+        isadded: isAdded,
+        createdBy: event.createdBy,
+      });
+    }
+
+    await batch.commit();
+    
+    // Update state with all events, preserving isadded status
+    if (setEvents) {
+      const eventsWithStatus = allEvents.map(event => ({
+        ...event,
+        isadded: event.createdBy === currentUserId 
+          ? (event.isadded || false)
+          : (existingEvents[event.id] || false),
+      }));
+      setEvents(eventsWithStatus);
+    }
+
+    return allEvents;
+  } catch (error) {
+    console.error("Error syncing all events:", error);
+    throw error;
+  }
 };
 
-// Allows navigation between pages
 export default function MainPage() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [showStudyScheduler, setShowStudyScheduler] = useState(false);
+  const currentUserId = auth.currentUser?.uid || '';
 
   // Manage events and study sessions
   const [events, setEvents] = useState<Event[]>([]);
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true); 
 
+  // Add a function to sync all events
+  const syncAllEvents = async () => {
+    try {
+      setLoading(true);
+      await SyncAllEventsFromDatabase(currentUserId, setEvents);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error syncing events:", error);
+      setLoading(false);
+    }
+  };
+
   // Load events and study sessions from Firestore
   useEffect(() => {
-    const unsubscribeEvents = FetchEventsFromDatabase(setEvents);
-    const unsubscribeSessions = FetchStudySessionsFromDatabase(setSessions);
-
-    // Loading is complete when data fetching is done
+    const unsubscribeEvents = FetchAllEventsFromDatabase(currentUserId, setEvents);
+    const unsubscribeSessions = FetchStudySessionsFromDatabase(currentUserId, setSessions);
+    
+    // Sync all events when the component mounts
+    syncAllEvents();
+    
     setLoading(false);
-
+    
     return () => {
       unsubscribeEvents();
       unsubscribeSessions();
     };
-  }, []); 
-
+  }, [currentUserId]); 
+  
   // Add a new event to Firestore
   const handleAddEvent = async (event: Event) => {
     if (!event.date) {
       console.error('Event date is missing for event:', event);
       return;
     }
+    
+    // Ensure createdBy is set
+    const eventWithCreator = {
+      ...event,
+      createdBy: event.createdBy || currentUserId
+    };
+    
+    await AddEventToDatabase(
+      currentUserId, 
+      eventWithCreator.id, 
+      eventWithCreator.title, 
+      eventWithCreator.date, 
+      eventWithCreator.description, 
+      eventWithCreator.isadded || false
+    );
   };
 
   // Delete event from Firestore
   const handleDeleteEvent = async (id: string) => {  
-    await DeleteEventFromDatabase(id); 
+    await DeleteEventFromDatabase(currentUserId, id);  
   };
-
-// Delete study session from Firestore
-const handleDeleteStudySession = async (id: string) => {  
-  try{
-    await DeleteStudySessionFromDatabase(id); 
-  } catch(error){
-    console.error('Error deleting study session:', error)
-  }
   
-};
+  // Delete study session from Firestore
+  const handleDeleteStudySession = async (sessionId: string) => {  
+    try {
+      await DeleteStudySessionFromDatabase(currentUserId, sessionId); 
+    } catch (error) {
+      console.error('Error deleting study session:', error);
+    }
+  };
 
   // Add a new study session to Firestore
   const ScheduleSession = async (session: { date: Date; friends: string[] }) => {
@@ -90,7 +212,7 @@ const handleDeleteStudySession = async (id: string) => {
       title: `Study Session with ${session.friends.join(', ')}`,
       date: Timestamp.fromDate(session.date), 
       friends: session.friends,
-    }
+    };
   };
 
   // Format event time for display
@@ -115,7 +237,7 @@ const handleDeleteStudySession = async (id: string) => {
   };
 
   const getEndOfWeek = (date: Date) => {
-    const startOfWeek = getStartOfWeek(date);
+    const startOfWeek = getStartOfWeek(new Date(date));
     startOfWeek.setDate(startOfWeek.getDate() + 6); 
     return startOfWeek;
   };
@@ -147,22 +269,23 @@ const handleDeleteStudySession = async (id: string) => {
     return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
   });
 
-  // Multipage event/study session handling
+  // Multipage event/study/calendar session handling
   if (showCalendar) {
-    return <CustomCalendar onBack={() => setShowCalendar(false)} />;
+    return <CustomCalendar userId={currentUserId} onBack={() => setShowCalendar(false)} />;
   }
 
   if (showStudyScheduler) {
     return (
       <StudyScheduler
-        onBack={() => setShowStudyScheduler(false)} 
-        onDeleteSession = {handleDeleteStudySession} 
+        onBack={() => setShowStudyScheduler(false)}
+        onDeleteSession={handleDeleteStudySession}
         onSchedule={(session) =>
           ScheduleSession({
-            date: new Date(session.date.toDate()), 
+            date: new Date(session.date.toDate()),
             friends: session.friends,
           })
         }
+        currentUserId={currentUserId} 
       />
     );
   }
@@ -183,7 +306,7 @@ const handleDeleteStudySession = async (id: string) => {
         onBack={() => setShowAddEvent(false)} 
         onAddEvent={handleAddEvent} 
         events={events}  
-        onDeleteEvent = {handleDeleteEvent} 
+        onDeleteEvent={handleDeleteEvent} 
       />
     );
   }
@@ -193,6 +316,7 @@ const handleDeleteStudySession = async (id: string) => {
     return <Text>Loading...</Text>;
   }
 
+  // Formatting for page consistency 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -309,21 +433,25 @@ const styles = StyleSheet.create({
   },
   eventItem: {
     backgroundColor: COLORS.UCONN_GREY,
+    padding: 10,
+    marginBottom: 10,
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
   },
   eventItemText: {
     fontSize: 16,
     color: COLORS.UCONN_NAVY,
   },
+  noEventsText: {
+    fontSize: 16,
+    color: COLORS.UCONN_GREY,
+    textAlign: 'center',
+  },
   buttonWrapper: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   button: {
     backgroundColor: COLORS.UCONN_NAVY,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -331,11 +459,5 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_WHITE,
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  noEventsText: {
-    fontSize: 16,
-    color: COLORS.UCONN_GREY,
-    textAlign: 'center',
-    marginTop: 10,
   },
 });
