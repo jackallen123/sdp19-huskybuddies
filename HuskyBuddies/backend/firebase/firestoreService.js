@@ -10,7 +10,15 @@ import {
   getDoc,
   onSnapshot,
   Timestamp,
+  query,
+  where,
+  orderBy,
+  addDoc,
+  onSnapshot,
+  limit,
+  Timestamp, 
 } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 
 /*
@@ -356,6 +364,10 @@ export const getUserId = async () => {
   }
 }
 
+/*
+  * EVENTS AND STUDY SESSIONS DB INTERACTIONS
+*/
+  
 /**
  * Fetches user's first and last name using their UID.
  * @param {string} uid - The user's UID.
@@ -651,9 +663,171 @@ export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
         date: data.date,
         friends: data.friends,
         createdBy: data.createdBy,
+      };
+    });
+    setSessions(sessionsList)
+  });
+};
+
+/*
+  * MESSAGES DB INTERACTIONS
+*/
+
+/**
+ * Retrieves currently logged-in user's UID.
+ * @returns {Promise<string | null>} - The user's UID, null if not logged in.
+ */
+export const getUserId = async () => {
+  try {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    return currentUser ? currentUser.uid : null;
+  } catch (error) {
+    console.error("Error fetching UID:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetches user's first and last name using their UID.
+ * @param {string} uid - The user's UID.
+ * @returns {Promise<string | null>} - The user's full name, null if not found.
+ */
+export const getFullName = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      console.log(`Full name fetched: ${userData.firstName} ${userData.lastName}`);
+      return `${userData.firstName} ${userData.lastName}`;
+    } else {
+      console.log("User does not exist.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching user name:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetch all users and their most recent message with the logged-in user
+ * @param {string} userId - The logged-in user's ID
+ * @returns {Promise<Array>} - List of users with existing latest message
+ */
+export const getUsersWithMessages = async (userId) => {
+  try {
+    const usersCollection = collection(db, "users");
+    const usersSnapshot = await getDocs(usersCollection);
+
+    const usersData = await Promise.all(
+      usersSnapshot.docs.map(async (doc) => {
+        const user = doc.data();
+        const chatPartnerId = doc.id;
+        
+        // HARDCODED FOR DEBUGGING
+        // if (doc.id !== "mNLxDdtqyxlGeWesqnxW") return null; 
+
+        if (userId === chatPartnerId) return null; //prevent fetching messages with logged-in user
+
+        //fetch the last message between the logged-in user and this user...
+        const messagesCollection = collection(db, "messages");
+        const q = query(
+          messagesCollection,
+          where("senderId", "in", [userId, chatPartnerId]),
+          where("receiverId", "in", [userId, chatPartnerId]),
+          orderBy("timestamp", "desc"),
+          limit(1) //get only most recent message
+        );
+
+        const messagesSnapshot = await getDocs(q);
+        const lastMessageData = messagesSnapshot.docs.length > 0 ? messagesSnapshot.docs[0].data() : null;
+
+        if (lastMessageData) { //if existing message, return user data
+          return {
+            id: chatPartnerId,
+            firstName: user.firstName|| "firstName",
+            lastName: user.lastName || "lastName",
+            profilePicture: user.profilePicture || "https://robohash.org/default",
+            lastMessage: lastMessageData ? lastMessageData.messageContent : "No messages yet",
+            time: lastMessageData ? new Date(lastMessageData.timestamp.toDate()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true} ): "",
+        };
+      } else {
+        return null; //no messages, skip user
       }
     })
-    setSessions(sessionsList)
-  })
-}
+  );
+    const filteredUsersData = usersData.filter((user) => user !== null); //filter out users with no messages
+    console.log("Fetched users with messages:", filteredUsersData);
+    return filteredUsersData;
+  } catch (error) {
+    console.error("Error fetching users", error);
+    return [];
+  }
+};
 
+/**
+ * Sends a message between users and stores it in Firestore.
+ * @param {string} senderId - The sender's UID.
+ * @param {string} receiverId - The receiver's UID.
+ * @param {string} messageContent - The message content.
+ */
+export const sendMessage = async (senderId, receiverId, messageContent) => {
+  try {
+    await addDoc(collection(db, "messages"), {
+      senderId,
+      receiverId,
+      messageContent,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("Error sending message:", error);
+  }
+};
+
+/**
+ * Retrieves direct messages between two users in real-time.
+ * @param {string} currentUserId - The logged-in user's UID.
+ * @param {string} chatPartnerId - The other user's UID.
+ * @param {function} callback - Updates the state with new messages.
+ * @returns {function} - Unsubscribe function for cleanup.
+ */
+export const getMessages = (currentUserId, chatPartnerId, callback) => {
+  try {
+    const messagesRef = collection(db, "messages");
+
+    const q = query(
+      messagesRef,
+      where("senderId", "in", [currentUserId, chatPartnerId]), //query messages sent by either user
+      where("receiverId", "in", [currentUserId, chatPartnerId]), //query messages received by either user
+      orderBy("timestamp", "asc") //sort messages so most recent are on top
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => { //cleans up listener once component unmounts (exits SingleChatView screen)
+      const messages = querySnapshot.docs.map((doc) => ({ //return array of firestone docs from previous query
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(messages);
+    });
+
+    return unsubscribe; // return the function to stop listening
+  } catch (error) {
+    console.error("Error setting up message listener:", error);
+    return () => {};
+  }
+};
+
+/**
+ * Deletes a message from Firestore.
+ * @param {string} messageId - The message ID.
+ */
+export const deleteMessage = async (messageId) => {
+  try {
+    await deleteDoc(doc(db, "messages", messageId));
+    console.log("Message deleted successfully");
+  } catch (error) {
+    console.error("Error deleting message:", error);
+  }
