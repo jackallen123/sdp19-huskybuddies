@@ -8,8 +8,6 @@ import {
   collection,
   updateDoc,
   getDoc,
-  onSnapshot,
-  Timestamp,
   query,
   where,
   orderBy,
@@ -257,11 +255,55 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
  */
 export const getAllUsers = async () => {
   try {
-    const usersSnapshot = await getDocs(collection(db, "users"))
-    return usersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error fetching users:", error)
-    return []
+    console.error("Error fetching users:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve the friend list of a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getFriends = async (uid) => {
+  try {
+    const friendsSnapshot = await getDocs(collection(db, "users", uid, "friends"));
+    return friendsSnapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve incoming friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getIncomingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("to", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().from);
+  } catch (error) {
+    console.error("Error fetching incoming friend requests:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve outgoing friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getOutgoingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("from", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().to);
+  } catch (error) {
+    console.error("Error fetching outgoing friend requests:", error);
+    return [];
   }
 };
 
@@ -272,12 +314,12 @@ export const getAllUsers = async () => {
  */
 export const sendFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`)
-    await setDoc(requestRef, { from: currentUserId, to: targetUserId, status: "pending" })
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await setDoc(requestRef, { from: currentUserId, to: targetUserId, status: "pending" });
   } catch (error) {
-    console.error("Error sending friend request:", error)
+    console.error("Error sending friend request:", error);
   }
-}
+};
 
 /**
  * Cancel a sent friend request
@@ -286,12 +328,12 @@ export const sendFriendRequest = async (currentUserId, targetUserId) => {
  */
 export const cancelFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`)
-    await deleteDoc(requestRef)
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
-    console.error("Error canceling friend request:", error)
+    console.error("Error canceling friend request:", error);
   }
-}
+};
 
 /**
  * Accept a friend request
@@ -301,19 +343,19 @@ export const cancelFriendRequest = async (currentUserId, targetUserId) => {
 export const acceptFriendRequest = async (currentUserId, targetUserId) => {
   try {
     // Add to friends list
-    const userFriendsRef = doc(db, "users", currentUserId, "friends", targetUserId)
-    await setDoc(userFriendsRef, { friendId: targetUserId })
+    const userFriendsRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await setDoc(userFriendsRef, { friendId: targetUserId });
 
-    const targetFriendsRef = doc(db, "users", targetUserId, "friends", currentUserId)
-    await setDoc(targetFriendsRef, { friendId: currentUserId })
+    const targetFriendsRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await setDoc(targetFriendsRef, { friendId: currentUserId });
 
     // Remove from requests
-    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`)
-    await deleteDoc(requestRef)
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
-    console.error("Error accepting friend request:", error)
+    console.error("Error accepting friend request:", error);
   }
-}
+};
 
 /**
  * Reject a friend request
@@ -322,12 +364,12 @@ export const acceptFriendRequest = async (currentUserId, targetUserId) => {
  */
 export const rejectFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`)
-    await deleteDoc(requestRef)
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
-    console.error("Error rejecting friend request:", error)
+    console.error("Error rejecting friend request:", error);
   }
-}
+};
 
 /**
  * Remove a friend
@@ -336,13 +378,40 @@ export const rejectFriendRequest = async (currentUserId, targetUserId) => {
  */
 export const removeFriend = async (currentUserId, targetUserId) => {
   try {
-    const userFriendRef = doc(db, "users", currentUserId, "friends", targetUserId)
-    await deleteDoc(userFriendRef)
+    const userFriendRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await deleteDoc(userFriendRef);
 
-    const targetFriendRef = doc(db, "users", targetUserId, "friends", currentUserId)
-    await deleteDoc(targetFriendRef)
+    const targetFriendRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await deleteDoc(targetFriendRef);
   } catch (error) {
-    console.error("Error removing friend:", error)
+    console.error("Error removing friend:", error);
+  }
+};
+
+/**
+ * Retrieves all courses for a specific user
+ * @param {string} userId - ID of the user
+ * @returns {Promise<Array>} - An array of course objects
+ */
+export const getUserCourses = async (userId) => {
+  try {
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    return coursesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || "",
+        section: data.section || "",
+        instructor: data.instructor || "",
+        days: data.days || [],
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        color: data.color || "#FFFFFF",
+      };
+    });
+  } catch (error) {
+    console.error("Error retrieving user courses:", error);
+    return [];
   }
 };
 
