@@ -8,7 +8,7 @@ export interface Course {
   name: string;
   // location: string;
   section: string;
-  instructor: string;
+  // instructor: string;
   days: string[];
   startTime: string;
   endTime: string;
@@ -18,5 +18,5 @@ export interface Course {
 export interface Section {
   sectionNumber: string;
   meets: string;
-  instructor: string;
+  // instructor: string;
 }

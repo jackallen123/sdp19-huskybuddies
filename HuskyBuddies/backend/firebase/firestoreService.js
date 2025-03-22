@@ -1,4 +1,4 @@
-import { getNextColor } from "@/utils/transform/courseTransform";
+import { getNextColor } from "../../utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
 import {
   doc,
@@ -14,10 +14,9 @@ import {
   addDoc,
   onSnapshot,
   limit,
+  Timestamp, // added from main branch
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-
-
 
 /*
   * USER DB INTERACTIONS
@@ -104,7 +103,6 @@ export const getAllCourses = async (userId) => {
         id: doc.id,
         name: data.name || "",
         section: data.section || "",
-        instructor: data.instructor || "",
         days: data.days || [],
         startTime: data.startTime || "",
         endTime: data.endTime || "",
@@ -135,16 +133,16 @@ export const deleteCourse = async (userId, courseId) => {
 */
 
 /**
- * Update or create a user's profile in Firestore.
+ * Updates a specific user's profile in Firestore.
  * @param {string} uid - The user's unique identifier.
- * @param {Promise<Object>} profileData - The user's profile data.
+ * @param {Object} profileData - The user's profile data.
  */
 
 export const updateUserProfile = async (uid, profileData) => {
   try {
-    const userRef = doc(db, "users", uid);
-    await setDoc(userRef, profileData, { merge: true });
-    console.log("User profile updated successfully");
+    // create or overwrite the profile document in the "userProfile" subcollection
+    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
+    await setDoc(userProfileRef, profileData);
   } catch (error) {
     console.error("Error updating user profile:", error);
     throw error;
@@ -159,14 +157,12 @@ export const updateUserProfile = async (uid, profileData) => {
 
 export const getUserProfile = async (uid) => {
   try {
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
+    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
+    const userProfileDoc = await getDoc(userProfileRef);
 
-    if (userDoc.exists()) {
-      // get current user data
-      return userDoc.data();
+    if (userProfileDoc.exists()) {
+      return userProfileDoc.data();
     } else {
-      console.log("No such user!");
       return null;
     }
   } catch (error) {
@@ -182,26 +178,9 @@ export const getUserProfile = async (uid) => {
  */
 export const updateUserSettings = async (uid, newSettings) => {
   try {
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
-
-    if (userDoc.exists()) {
-      // get current user data
-      const userData = userDoc.data();
-
-      // get current settings OR initialize empty object if it doesnt exist
-      const currentSettings = userData.settings || {};
-
-      // merge the current settings with new settings
-      const updatedSettings = { ...currentSettings, ...newSettings };
-
-      // update settings field
-      await updateDoc(userRef, { settings: updatedSettings });
-      console.log("User settings updated successfully");
-    } else {
-      console.log("No such user!");
-      throw new Error("User not found");
-    }
+    // create or overwrite the settings document in the "settings" subcollection
+    const settingsRef = doc(db, "users", uid, "settings", "settings");
+    await setDoc(settingsRef, newSettings, { merge: true });
   } catch (error) {
     console.error("Error updating user settings:", error);
     throw error;
@@ -211,26 +190,21 @@ export const updateUserSettings = async (uid, newSettings) => {
 /**
  * Retrieves a specific user's settings from Firestore.
  * @param {string} uid - The user's unique identifier.
- * @returns {Promise<Object>} - The user's settings.
+ * @returns {Promise<Object|null>} - The user's settings object or null if no user found.
  */
 export const getUserSettings = async (uid) => {
   try {
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
-
-    if (userDoc.exists()) {
-      // return settings object or default
-      const userData = userDoc.data();
-      return (
-        userData.settings || {
-          notificationsEnabled: false,
-          darkModeEnabled: false,
-          textSize: 16,
-        }
-      );
+    const settingsRef = doc(db, "users", uid, "settings", "settings");
+    const settingsDoc = await getDoc(settingsRef);
+    if (settingsDoc.exists()) {
+      return settingsDoc.data();
     } else {
-      console.log("No such user!");
-      return null;
+      // return to defaults if no data found
+      return {
+        notificationsEnabled: false,
+        darkModeEnabled: false,
+        textSize: 16,
+      };
     }
   } catch (error) {
     console.error("Error getting user settings:", error);
@@ -246,8 +220,8 @@ export const getUserSettings = async (uid) => {
  */
 export const updateProfilePicture = async (uid, pictureUrl) => {
   try {
-    const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, { profilePicture: pictureUrl });
+    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
+    await setDoc(userProfileRef, { profilePicture: pictureUrl }, { merge: true });
     console.log("Profile picture updated successfully");
   } catch (error) {
     console.error("Error updating profile picture:", error);
@@ -255,44 +229,206 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
   }
 };
 
-/*
-  * EVENTS DB INTERACTIONS
-*/
+/**
+ * Fetch all users from Firestore
+ */
+export const getAllUsers = async () => {
+  try {
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+};
 
 /**
+ * Retrieve the friend list of a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getFriends = async (uid) => {
+  try {
+    const friendsSnapshot = await getDocs(collection(db, "users", uid, "friends"));
+    return friendsSnapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve incoming friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getIncomingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("to", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().from);
+  } catch (error) {
+    console.error("Error fetching incoming friend requests:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve outgoing friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getOutgoingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("from", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().to);
+  } catch (error) {
+    console.error("Error fetching outgoing friend requests:", error);
+    return [];
+  }
+};
+
+/**
+ * Send a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const sendFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await setDoc(requestRef, { from: currentUserId, to: targetUserId, status: "pending" });
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+  }
+};
+
+/**
+ * Cancel a sent friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const cancelFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error canceling friend request:", error);
+  }
+};
+
+/**
+ * Accept a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const acceptFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    // Add to friends list
+    const userFriendsRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await setDoc(userFriendsRef, { friendId: targetUserId });
+
+    const targetFriendsRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await setDoc(targetFriendsRef, { friendId: currentUserId });
+
+    // Remove from requests
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error accepting friend request:", error);
+  }
+};
+
+/**
+ * Reject a friend request
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const rejectFriendRequest = async (currentUserId, targetUserId) => {
+  try {
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error rejecting friend request:", error);
+  }
+};
+
+/**
+ * Remove a friend
+ * @param {string} currentUserId - The user's and request sender's unique identifier.
+ * @param {string} targetUserId - The request recipient's unique identifier.
+ */
+export const removeFriend = async (currentUserId, targetUserId) => {
+  try {
+    const userFriendRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await deleteDoc(userFriendRef);
+
+    const targetFriendRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await deleteDoc(targetFriendRef);
+  } catch (error) {
+    console.error("Error removing friend:", error);
+  }
+};
+
+/**
+ * Retrieves all courses for a specific user
+ * @param {string} userId - ID of the user
+ * @returns {Promise<Array>} - An array of course objects
+ */
+export const getUserCourses = async (userId) => {
+  try {
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    return coursesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || "",
+        section: data.section || "",
+        instructor: data.instructor || "",
+        days: data.days || [],
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        color: data.color || "#FFFFFF",
+      };
+    });
+  } catch (error) {
+    console.error("Error retrieving user courses:", error);
+    return [];
+  }
+};
+
+/*
+  * EVENTS AND STUDY SESSIONS DB INTERACTIONS
+*/
+/**
  * Adds a new event to the Firestore database.
- * @param {number} Eventid
+ * @param {string} Eventid
  * @param {string} Eventtitle
- * @param {string} Eventdate
- * @param {string} Eventlocation
+ * @param {Time} Eventdate
  * @param {string} Eventdescription
- * @param {boolean} Eventoncalendar
+ * @param {boolean} Eventocalendar
  */
 export const AddEventToDatabase = async (
   Eventid,
   Eventtitle,
   Eventdate,
-  Eventlocation,
   Eventdescription,
-  Eventoncalendar
+  Eventocalendar
 ) => {
   try {
     const userRef = doc(db, "Events", Eventid);
     await setDoc(userRef, {
-      Eventtitle,
-      Eventdate,
-      Eventlocation,
-      Eventdescription,
-      Eventoncalendar,
+      title: Eventtitle,
+      date: Eventdate,
+      description: Eventdescription,
+      isadded: Eventocalendar,
     });
   } catch (error) {
     console.error("Error adding event to database:", error);
   }
 };
 
+
 /**
  * Deletes an event from the Firestore database.
- @param {string} Eventid
+ * @param {string} Eventid
  */
 export const DeleteEventFromDatabase = async (Eventid) => {
   try {
@@ -305,23 +441,24 @@ export const DeleteEventFromDatabase = async (Eventid) => {
 
 /**
  * Adds a new study session to the Firestore database.
- * @param {number} Studysessionid
+ * @param {string} Studysessionid
  * @param {string} Studysessiontitle
- * @param {string} Studysessiondate
- * @param {string[]} StudySessionfriends //need to pull from users matching page
+ * @param {Time} Studysessiondate
+ * @param {string[]} Studysessionfriends
  */
+
 export const AddStudySessionToDatabase = async (
   Studysessionid,
-  Studysessiontitle,
-  Studysessiondate,
-  StudySessionfriends
+  title,
+  date,
+  friends
 ) => {
   try {
     const userRef = doc(db, "StudySession", Studysessionid);
     await setDoc(userRef, {
-      Studysessiontitle,
-      Studysessiondate,
-      StudySessionfriends,
+      title: title,         
+      date: date,                                   
+      friends: friends,     
     });
   } catch (error) {
     console.error("Error adding study session to database:", error);
@@ -334,11 +471,54 @@ export const AddStudySessionToDatabase = async (
  */
 export const DeleteStudySessionFromDatabase = async (Studysessionid) => {
   try {
-    const userRef = doc(db, "StudySessions", Studysessionid);
+    const userRef = doc(db, "StudySession", Studysessionid);
     await deleteDoc(userRef);
   } catch (error) {
     console.error("Error deleting study session from database:", error);
   }
+};
+
+/**
+ * Fetches events from Firestore (Real-time listener).
+ * @param {function} setEvents 
+ */
+export const FetchEventsFromDatabase = (setEvents) => {
+  const eventsRef = collection(db, "Events");
+
+  return onSnapshot(eventsRef, (snapshot) => {
+    const eventsList = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title,
+        date: data.date,
+        description: data.description,
+        isadded: data.isadded,
+      };
+    });
+    setEvents(eventsList);
+  });
+};
+
+/**
+ * Fetches study sessions from Firestore (Real-time listener).
+ * @param {function} setSessions 
+ */
+export const FetchStudySessionsFromDatabase = (setSessions) => {
+  const sessionsRef = collection(db, "StudySession");
+
+  return onSnapshot(sessionsRef, (snapshot) => {
+    const sessionsList = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title,
+        date: data.date, 
+        friends: data.friends
+      };
+    });
+    setSessions(sessionsList);
+  });
 };
 
 /*
@@ -503,4 +683,4 @@ export const deleteMessage = async (messageId) => {
   } catch (error) {
     console.error("Error deleting message:", error);
   }
-};
+  

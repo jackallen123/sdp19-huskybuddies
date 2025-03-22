@@ -1,95 +1,103 @@
-//Imports
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '@/constants/Colors';
+import { Timestamp } from 'firebase/firestore';
+import { 
+  FetchStudySessionsFromDatabase,  
+  AddStudySessionToDatabase,   
+  DeleteStudySessionFromDatabase 
+} from '@/backend/firebase/firestoreService';
 
-//Dummy data for friends list until database is set up
-const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana'];
-
-//Interface setup for database 
 interface StudySession {
-  id: number; 
+  id: string;
   title: string;
-  date: string; 
-  friends: string[]; 
+  date: Timestamp;
+  friends: string[];
 }
 
-export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => void; onSchedule: (session: StudySession) => void }) {
-  //Allows selection of friends, date, and time
+const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana'];
+
+type StudySchedulerProps = {
+  onBack: () => void;
+  onSchedule: (session: StudySession) => void;
+  onDeleteSession: (id: string) => void;
+};
+
+export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: StudySchedulerProps) {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [date, setDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [scheduledSessions, setScheduledSessions] = useState<StudySession[]>([]);
 
-  //Load previously scheduled sessions from AsyncStorage
   useEffect(() => {
-    const loadScheduledSessions = async () => {
-      try {
-        const savedSessions = await AsyncStorage.getItem('scheduledSessions');
-        if (savedSessions) {
-          setScheduledSessions(JSON.parse(savedSessions)); 
-        }
-      } catch (error) {
-        console.error('Failed to load scheduled sessions', error);
-      }
-    };
-    loadScheduledSessions();
-  }, []);
-
-  //Save updates to sessions to AsyncStorage
-  const saveScheduledSessions = async (sessions: StudySession[]) => {
-    try {
-      await AsyncStorage.setItem('scheduledSessions', JSON.stringify(sessions));
-    } catch (error) {
-      console.error('Failed to save scheduled sessions', error);
-    }
-  };
-
-  //Allows toggle feature for friend selection 
+    const unsubscribe = FetchStudySessionsFromDatabase((sessions: StudySession[]) => {
+      const formattedSessions = sessions.map((session: StudySession) => ({
+        id: session.id,
+        title: session.title,
+        date: session.date,
+        friends: session.friends,
+      }));
+      setScheduledSessions(formattedSessions);
+    });
+  
+    return () => unsubscribe();
+  }, []); 
+  
   const toggleFriendSelection = (friend: string) => {
-    if (selectedFriends.includes(friend)) {
-      setSelectedFriends(selectedFriends.filter(f => f !== friend));
-    } else {
-      setSelectedFriends([...selectedFriends, friend]); 
-    }
+    setSelectedFriends((prev) =>
+      prev.includes(friend) ? prev.filter(f => f !== friend) : [...prev, friend]
+    );
   };
 
-  //Schedule a new study session with error handling
-  const scheduleSession = () => {
+  const scheduleSession = async () => {
     if (date && selectedFriends.length > 0) {
       const newSession: StudySession = {
-        id: scheduledSessions.length + 1, 
-        title: `Study session with ${selectedFriends.join(', ')}`, 
-        date: date.toISOString(), 
-        friends: selectedFriends, 
+        id: new Date().toISOString(),
+        title: `Study session with ${selectedFriends.join(', ')}`,
+        date: Timestamp.fromDate(date),
+        friends: selectedFriends,
       };
-      const updatedSessions = [...scheduledSessions, newSession]; 
-      setScheduledSessions(updatedSessions); 
-      saveScheduledSessions(updatedSessions); 
-      onSchedule(newSession); 
-      setSelectedFriends([]); 
-      setDate(null); 
+      await AddStudySessionToDatabase(newSession.id, newSession.title, newSession.date, newSession.friends);
+      onSchedule(newSession);
+      setSelectedFriends([]);
+      setDate(null);
       alert('Study session scheduled!');
     } else {
       alert('Please select at least one friend and set a date and time.');
     }
   };
 
-  //Delete a study session
-  const deleteSession = (id: number) => {
-    const updatedSessions = scheduledSessions.filter((session) => session.id !== id); 
-    setScheduledSessions(updatedSessions); 
-    saveScheduledSessions(updatedSessions); 
+  const handleDeleteStudySession = async (id: string) => {
+    try {
+      await DeleteStudySessionFromDatabase(id);
+      alert('Study session deleted!');
+    } catch (error) {
+      alert('Error deleting study session');
+    }
   };
+  
 
+  const formatDate = (timestamp: Timestamp) => {
+    if (timestamp && timestamp.toDate) {
+      return timestamp.toDate().toLocaleString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
+      });
+    }
+    return 'Invalid Date';
+  };
+  
+  
+  
   return (
     <SafeAreaView style={styles.container}>
-
-      {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
@@ -99,91 +107,64 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
         </View>
       </View>
 
-      {/* Section to select friends */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Friends</Text>
         {friendsList.map((friend) => (
-          <TouchableOpacity
-            key={friend}
-            style={[styles.friendItem, selectedFriends.includes(friend) && styles.selectedFriend]}
-            onPress={() => toggleFriendSelection(friend)} 
-          >
+          <TouchableOpacity key={friend} style={[styles.friendItem, selectedFriends.includes(friend) && styles.selectedFriend]} onPress={() => toggleFriendSelection(friend)}>
             <Text style={styles.friendText}>{friend}</Text>
             {selectedFriends.includes(friend) && <Ionicons name="checkmark" size={20} color={COLORS.UCONN_WHITE} />}
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Date and Time Selection */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.inputText}>{date ? date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Date & Time'}</Text>
+          <Text style={styles.inputText}>{date ? date.toLocaleString() : 'Select Date & Time'}</Text>
         </TouchableOpacity>
-
-        {/* Date */}
         {showDatePicker && (
-          <DateTimePicker
-            value={date || new Date()}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
-              if (selectedDate) {
-                setDate(selectedDate); 
-                setShowTimePicker(true); 
-              }
-            }}
-          />
+          <DateTimePicker value={date || new Date()} mode="date" display="default" onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              setDate(selectedDate);
+              setShowTimePicker(true);
+            }
+          }} />
         )}
-
-        {/* Time */}
         {showTimePicker && (
-          <DateTimePicker
-            value={date || new Date()}
-            mode="time"
-            display="default"
-            onChange={(event, selectedTime) => {
-              setShowTimePicker(false);
-              if (selectedTime) {
-                setDate(new Date(date!.setHours(selectedTime.getHours(), selectedTime.getMinutes()))); // Set the time for the selected date
-              }
-            }}
-          />
+          <DateTimePicker value={date || new Date()} mode="time" display="default" onChange={(event, selectedTime) => {
+            setShowTimePicker(false);
+            if (selectedTime && date) {
+              setDate(new Date(date.setHours(selectedTime.getHours(), selectedTime.getMinutes())));
+            }
+          }} />
         )}
       </View>
 
-      {/* Schedule button */}
       <View style={styles.buttonWrapper}>
         <TouchableOpacity style={styles.scheduleButton} onPress={scheduleSession}>
           <Text style={styles.scheduleButtonText}>Schedule Study Session</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Section to display scheduled sessions */}
-      <View style={styles.section}>
+      <View style={[styles.section, { flex: 1 }]}>
         <Text style={styles.sectionTitle}>Scheduled Study Sessions:</Text>
-
         <ScrollView style={styles.scrollContainer}>
           {scheduledSessions.length > 0 ? (
             scheduledSessions.map((session) => (
               <View key={session.id} style={styles.sessionBox}>
                 <View style={styles.sessionDetails}>
-                  <Text style={styles.sessionText}>
-                    {session.title} {/* Display session title */}
-                  </Text>
+                  <Text style={styles.sessionText}>{session.title}</Text>
                   <Text style={styles.sessionDate}>
-                    {new Date(session.date).toLocaleDateString()}, {new Date(session.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {session.date ? formatDate(session.date) : 'Invalid Date'}
                   </Text>
                 </View>
-
-                {/* Delete button for each session */}
-                <TouchableOpacity onPress={() => deleteSession(session.id)} style={styles.deleteButton}>
+                <TouchableOpacity onPress={() => handleDeleteStudySession(session.id)} style={styles.deleteButton}>
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               </View>
             ))
           ) : (
-            <Text> No sessions scheduled yet.</Text> // Intial message
+            <Text>No sessions scheduled yet.</Text>
           )}
         </ScrollView>
       </View>
@@ -191,7 +172,6 @@ export default function StudyScheduler({ onBack, onSchedule }: { onBack: () => v
   );
 }
 
-//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -270,7 +250,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   scrollContainer: {
-    maxHeight: 300
+    paddingBottom: 20
   },
   sessionBox: {
     backgroundColor: COLORS.UCONN_WHITE,
@@ -286,20 +266,18 @@ const styles = StyleSheet.create({
   sessionText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
   },
   sessionDate: {
     fontSize: 16,
-    color: COLORS.UCONN_NAVY,
   },
   deleteButton: {
-    backgroundColor: 'red',
+    marginTop: 8,
+    backgroundColor: '#FF4C4C',
     padding: 8,
     borderRadius: 5,
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: COLORS.UCONN_WHITE,
-    fontWeight: 'bold',
+    color: '#FFFFFF'
   },
 });

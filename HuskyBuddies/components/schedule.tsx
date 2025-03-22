@@ -17,6 +17,7 @@ import {
   deleteCourse,
 } from "@/backend/firebase/firestoreService";
 import { auth } from "@/backend/firebase/firebaseConfig";
+import { ActivityIndicator } from "react-native-paper";
 
 const weekdays = ["MON", "TUE", "WED", "THU", "FRI"];
 
@@ -27,7 +28,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
       <Text numberOfLines={1} style={styles.courseName}>
         {course.name}
       </Text>
-      <Text style={styles.courseInstructor}>{course.instructor}</Text>
+      {/* <Text style={styles.courseInstructor}>{course.instructor}</Text> */}
       {/* <Text style={styles.courseLocation}>{course.location}</Text> */}
       <Text style={styles.courseSection}>{course.section}</Text>
     </View>
@@ -83,23 +84,27 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
   const [isAddingCourse, setIsAddingCourse] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // load courses when component mounts
-  useEffect(() => {
-    const loadCourses = async () => {
-      try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) {
-          Alert.alert("Error", "User not authenticated.");
-          return;
-        }
-
-        const storedCourses = await getAllCourses(userId);
-        setCourses(storedCourses);
-      } catch (error) {
-        Alert.alert("Error", "Failed to load courses.");
+  const loadCourses = async () => {
+    try {
+      setLoading(true);
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert("Error", "User not authenticated.");
+        return;
       }
-    };
+      const storedCourses = await getAllCourses(userId);
+      setCourses(storedCourses);
+    } catch (error) {
+      Alert.alert("Error", "Failed to load courses.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadCourses();
   }, []);
 
@@ -112,8 +117,7 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
       }
 
       await deleteCourse(userId, courseId);
-      const updatedCourses = await getAllCourses(userId);
-      setCourses(updatedCourses);
+      await loadCourses();
       Alert.alert("Success", "Course deleted successfully");
     } catch (error) {
       Alert.alert("Error", "Failed to delete course");
@@ -130,7 +134,10 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
   }, [courses]);
 
   if (isAddingCourse) {
-    return <AddCourseScreen onBack={() => setIsAddingCourse(false)} />;
+    return <AddCourseScreen onBack={() => { 
+      loadCourses();
+      setIsAddingCourse(false);
+    }} />;
   }
 
   return (
@@ -185,26 +192,31 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
         onDelete={handleDeleteCourse}
       />
 
-      <View style={styles.scheduleWrapper}>
-        <View style={styles.weekdaysHeader}>
-          {weekdays.map((day) => (
-            <View key={day} style={styles.dayHeaderColumn}>
-              <Text style={styles.weekday}>{day}</Text>
-            </View>
-          ))}
+      {loading ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
         </View>
+      ) : (
+        <View style={styles.scheduleWrapper}>
+          <View style={styles.weekdaysHeader}>
+            {weekdays.map((day) => (
+              <View key={day} style={styles.dayHeaderColumn}>
+                <Text style={styles.weekday}>{day}</Text>
+              </View>
+            ))}
+          </View>
 
-        <View style={styles.scheduleContainer}>
-          {sortedCoursesByDay.map(({ day, courses }) => (
-            <View key={day} style={styles.dayColumn}>
-              {courses.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </View>
-          ))}
-        </View>
+          <View style={styles.scheduleContainer}>
+            {sortedCoursesByDay.map(({ day, courses }) => (
+              <View key={day} style={styles.dayColumn}>
+                {courses.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </View>
+            ))}
+          </View>
+        </View>)}
       </View>
-    </View>
   );
 }
 
@@ -212,6 +224,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f0f0f0",
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   safeArea: {
     backgroundColor: COLORS.UCONN_NAVY,

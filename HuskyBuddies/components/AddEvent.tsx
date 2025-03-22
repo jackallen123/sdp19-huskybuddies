@@ -1,92 +1,118 @@
-//Imports
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors'; 
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { AddEventToDatabase, FetchEventsFromDatabase, DeleteEventFromDatabase } from '@/backend/firebase/firestoreService'; 
+import { Timestamp } from 'firebase/firestore';
 
-//Interface setup for database 
 interface Event {
-  id: number;
+  id: string;
   title: string;
-  date: string;
+  date: Timestamp;
   description: string;
-  isadded?: boolean; 
+  isadded?: boolean;
 }
+
 const AddEvent: React.FC<{ 
   onBack: () => void; 
   onAddEvent: (event: Event) => void; 
-  events: Event[]; 
-  onDeleteEvent: (id: number) => void; 
-}> = ({ onBack, onAddEvent, events, onDeleteEvent }) => {
-  const [title, setTitle] = useState(''); 
-  const [date, setDate] = useState<Date | null>(null); 
-  const [description, setDescription] = useState(''); 
-  const [showDatePicker, setShowDatePicker] = useState(false); 
-  const [showTimePicker, setShowTimePicker] = useState(false); 
+  onDeleteEvent: (id: string) => void;
+  events?: Event[];
 
-  //Error handling for empty friends
-  const handleSubmit = () => {
+}> = ({ onBack, onAddEvent }) => {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
+  const [description, setDescription] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = FetchEventsFromDatabase(setEvents);
+    return () => unsubscribe();
+  }, []);
+
+  const handleSubmit = () => {  
     if (!title || !description || !date) {
-      alert('Please fill out all fields!'); 
+      alert('Please fill out all fields!');
       return;
     }
 
-    //Error handling for duplicate events
-    const duplicateEvent = events.find((event) => event.title === title && event.date === date.toISOString());
-
-    if (duplicateEvent) {
-      alert('Event already exists, not adding duplicate!');
-      return;
-    }
-
-    //Creating a new event
     const newEvent: Event = {
-      id: Date.now(), 
+      id: new Date().toISOString(),
       title,
-      date: date.toISOString(), 
+      date: Timestamp.fromDate(date),  
       description,
-      isadded: false, 
+      isadded: false,  
     };
 
+    // Add event to the database
+    AddEventToDatabase(newEvent.id, newEvent.title, newEvent.date, newEvent.description, false);
+
+    // Add event to local state
     onAddEvent(newEvent);
+
+    // Clear form inputs
     setTitle('');
     setDate(null);
     setDescription('');
-    alert('Event posted successfully!'); 
+
+    alert('Event posted successfully!');
   };
 
-  //Handle date selection from the DateTimePicker
   const handleDateChange = (event: any, selectedDate: Date | undefined) => {
-    setShowDatePicker(false); 
+    setShowDatePicker(false);
     if (selectedDate) {
-      setDate(selectedDate); 
-      setShowTimePicker(true); 
+      setDate(new Date(selectedDate));  
+      setShowTimePicker(true);
     }
   };
 
-  //Handle time selection from the DateTimePicker
   const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
-    if (selectedTime) {
-      setDate(new Date(date!.setHours(selectedTime.getHours(), selectedTime.getMinutes())));
+    if (selectedTime && date) {
+      const updatedDate = new Date(date);
+      updatedDate.setHours(selectedTime.getHours());
+      updatedDate.setMinutes(selectedTime.getMinutes());
+      setDate(updatedDate);
     }
     setShowTimePicker(false);
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await DeleteEventFromDatabase(id);
+      alert('Event deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+    }
   };
 
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
       <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text>{new Date(item.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</Text>
-      <Text>{item.description}</Text>
-      <TouchableOpacity onPress={() => onDeleteEvent(item.id)} style={styles.deleteButton}>
+      <Text style={styles.eventText}>
+        {item.date 
+          ? new Date(item.date.toDate()).toLocaleString('en-US', { 
+              month: '2-digit', 
+              day: '2-digit', 
+              year: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              hour12: true 
+            }) 
+          : 'No date available'}
+      </Text>
+      <Text style={styles.eventText}>{item.description}</Text>
+      <TouchableOpacity onPress={() => handleDeleteEvent(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
     </View>
   );
+  
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header section with back button and title */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
@@ -96,11 +122,9 @@ const AddEvent: React.FC<{
         </View>
       </View>
 
-      {/* Form section for adding a new event */}
       <View style={styles.formContainer}>
         <Text style={styles.title}>Post a New Event</Text>
 
-        {/* Input for event title */}
         <TextInput
           value={title}
           onChangeText={setTitle}
@@ -109,18 +133,16 @@ const AddEvent: React.FC<{
           style={styles.input}
         />
 
-        {/* Date and time selection */}
-        <View style={styles.dateContainer}>
-          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
             <Text style={styles.inputText}>
-              {date ? date.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Select Date & Time'}
+              {date ? date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Date & Time'}
             </Text>
           </TouchableOpacity>
 
-          {/* Date */}
           {showDatePicker && (
             <DateTimePicker
-              value={date || new Date()}
+              value={date ? date : new Date()}  
               mode="date"
               display="default"
               onChange={handleDateChange}
@@ -128,10 +150,9 @@ const AddEvent: React.FC<{
             />
           )}
 
-          {/* Time */}
           {showTimePicker && (
             <DateTimePicker
-              value={date || new Date()}
+              value={date ? date : new Date()}  
               mode="time"
               display="default"
               onChange={handleTimeChange}
@@ -140,7 +161,6 @@ const AddEvent: React.FC<{
           )}
         </View>
 
-        {/* Input for event description */}
         <TextInput
           value={description}
           onChangeText={setDescription}
@@ -151,24 +171,16 @@ const AddEvent: React.FC<{
           numberOfLines={4}
         />
 
-        {/* Submit button */}
         <TouchableOpacity onPress={handleSubmit} style={styles.button}>
           <Text style={styles.buttonText}>Post Event</Text>
         </TouchableOpacity>
       </View>
 
-      {/* List of posted events */}
-      <FlatList
-        style={styles.eventsContainer}
-        data={events}
-        renderItem={renderEventItem}
-        keyExtractor={(item) => item.id.toString()}
-      />
+      <FlatList style={styles.eventsContainer} data={events} renderItem={renderEventItem} keyExtractor={(item) => item.id} />
     </SafeAreaView>
   );
 };
 
-//Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -212,9 +224,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  dateContainer: {
-    position: 'relative',
-    marginBottom: 12,
+  section: {
+    padding: 10,
   },
   datePicker: {
     position: 'absolute',
@@ -272,6 +283,10 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: '#FFFFFF',
   },
+  eventText: {
+    fontSize: 16, 
+    color: '#000',
+  }
 });
 
 export default AddEvent;
