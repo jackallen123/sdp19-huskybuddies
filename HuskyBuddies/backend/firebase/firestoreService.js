@@ -416,6 +416,46 @@ export const getUserCourses = async (userId) => {
   }
 };
 
+/**
+ * Retrieves a user's study preferences from the userProfile subcollection
+ * @param {string} userId - ID of the user
+ * @returns {Promise<string[]|null>} - Array of study preferences or null if not found
+ */
+export const getUserStudyPreferences = async (userId) => {
+  try {
+    const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
+    const profileDoc = await getDoc(profileDocRef);
+    
+    if (profileDoc.exists() && profileDoc.data().studyPreferences) {
+      return profileDoc.data().studyPreferences;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching study preferences:", error);
+    return null;
+  }
+};
+
+/**
+ * Retrieves a user's profile picture from the userProfile subcollection
+ * @param {string} userId - ID of the user
+ * @returns {Promise<string|null>} - The profile picture URL or null if not found
+ */
+export const getUserProfilePicture = async (userId) => {
+  try {
+    const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
+    const profileDoc = await getDoc(profileDocRef);
+    
+    if (profileDoc.exists() && profileDoc.data().profilePicture) {
+      return profileDoc.data().profilePicture;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching profile picture:", error);
+    return null;
+  }
+};
+
 /*
   * EVENTS DB INTERACTIONS
 */

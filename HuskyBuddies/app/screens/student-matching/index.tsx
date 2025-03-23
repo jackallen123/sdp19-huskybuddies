@@ -18,6 +18,8 @@ import {
   getIncomingFriendRequests,
   getOutgoingFriendRequests,
   getUserCourses,
+  getUserProfilePicture,
+  getUserStudyPreferences,
   sendFriendRequest, 
   cancelFriendRequest, 
   acceptFriendRequest, 
@@ -33,9 +35,11 @@ const IndexScreen = () => {
   const [matchedStudents, setMatchedStudents] = useState([]);
   const [studentCourses, setStudentCourses] = useState({});
   const [sharedCourses, setSharedCourses] = useState({});
+  const [studyPreferences, setStudyPreferences] = useState({});
   const [friendRequests, setFriendRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [profilePictures, setProfilePictures] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [matchingEnabled, setMatchingEnabled] = useState(true);
@@ -59,9 +63,12 @@ const IndexScreen = () => {
           // Get courses for all students
           const coursesMap = {};
           const sharedCoursesMap = {};
+          const picturesMap = {};
+          const preferencesMap = {};
           
           for (const student of users) {
             if (student.id !== user.uid) {
+              // Get student courses
               const courses = await getUserCourses(student.id);
               coursesMap[student.id] = courses;
               
@@ -70,11 +77,36 @@ const IndexScreen = () => {
               if (shared.length > 0) {
                 sharedCoursesMap[student.id] = shared;
               }
+              
+              // Get profile picture
+              const profilePic = await getUserProfilePicture(student.id);
+              if (profilePic) {
+                picturesMap[student.id] = profilePic;
+              }
+              
+              // Get study preferences
+              const preferences = await getUserStudyPreferences(student.id);
+              if (preferences) {
+                preferencesMap[student.id] = preferences;
+              }
             }
+          }
+          
+          // Get current user's profile picture and preferences
+          const currentUserPic = await getUserProfilePicture(user.uid);
+          if (currentUserPic) {
+            picturesMap[user.uid] = currentUserPic;
+          }
+          
+          const currentUserPrefs = await getUserStudyPreferences(user.uid);
+          if (currentUserPrefs) {
+            preferencesMap[user.uid] = currentUserPrefs;
           }
           
           setStudentCourses(coursesMap);
           setSharedCourses(sharedCoursesMap);
+          setProfilePictures(picturesMap);
+          setStudyPreferences(preferencesMap);
           
           // Filter for matched students by default
           const filteredMatches = users.filter(student => 
@@ -194,6 +226,12 @@ const IndexScreen = () => {
   };
 
   const getStudentImage = (id) => {
+    // First check if we have the profile picture in our cache
+    if (profilePictures[id]) {
+      return profilePictures[id];
+    }
+    
+    // Fall back to any image in the user document
     const student = allStudents.find(s => s.id === id);
     return student?.profilePicture || student?.image || 'https://via.placeholder.com/50';
   };
@@ -243,7 +281,7 @@ const IndexScreen = () => {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Image 
-              source={{ uri: item.profilePicture || item.image || 'https://via.placeholder.com/50' }} 
+              source={{ uri: getStudentImage(item.id) }} 
               style={styles.avatar} 
             />
             <View style={styles.cardContent}>
@@ -252,15 +290,31 @@ const IndexScreen = () => {
               {/* Display shared courses */}
               {sharedCourses[item.id] && sharedCourses[item.id].length > 0 ? (
                 <View style={styles.sharedCoursesContainer}>
-                  <Text style={styles.sharedCoursesLabel}>Shared Classes:</Text>
-                  {sharedCourses[item.id].map((course, index) => (
-                    <View key={index} style={styles.courseTag}>
-                      <Text style={styles.courseTagText}>{course}</Text>
-                    </View>
-                  ))}
+                  <Text style={styles.sectionLabel}>Shared Classes:</Text>
+                  <View style={styles.tagsContainer}>
+                    {sharedCourses[item.id].map((course, index) => (
+                      <View key={`course-${index}`} style={styles.courseTag}>
+                        <Text style={styles.courseTagText}>{course}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               ) : (
                 <Text style={styles.noSharedClasses}>No shared classes</Text>
+              )}
+              
+              {/* Display study preferences */}
+              {studyPreferences[item.id] && studyPreferences[item.id].length > 0 && (
+                <View style={styles.studyPreferencesContainer}>
+                  <Text style={styles.sectionLabel}>Study Preferences:</Text>
+                  <View style={styles.tagsContainer}>
+                    {studyPreferences[item.id].map((preference, index) => (
+                      <View key={`pref-${index}`} style={styles.preferenceTag}>
+                        <Text style={styles.preferenceTagText}>{preference}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               )}
             </View>
             {friends.includes(item.id) ? (
@@ -398,8 +452,8 @@ const styles = StyleSheet.create({
   },
   header: { 
     backgroundColor: COLORS.UCONN_NAVY,
-    padding: 20,
-    paddingTop: 60,
+    padding: 15,
+    paddingTop: 54,
     marginBottom: 20,
     borderRadius: 1,
     justifyContent: 'space-between',
@@ -408,7 +462,7 @@ const styles = StyleSheet.create({
   },
   headerText: { 
     color: '#fff', 
-    fontSize: 22, 
+    fontSize: 20, 
     fontWeight: 'bold',
     textAlign: 'center'
   },
@@ -471,14 +525,22 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: 'bold'
   },
+  sectionLabel: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginBottom: 2
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap'
+  },
   sharedCoursesContainer: {
     marginTop: 4,
     flexDirection: 'column',
   },
-  sharedCoursesLabel: {
-    fontSize: 12,
-    color: '#4B5563',
-    marginBottom: 2
+  studyPreferencesContainer: {
+    marginTop: 8,
+    flexDirection: 'column',
   },
   courseTag: {
     backgroundColor: '#E5E7EB',
@@ -492,6 +554,19 @@ const styles = StyleSheet.create({
   courseTagText: {
     fontSize: 12,
     color: '#1F2937'
+  },
+  preferenceTag: {
+    backgroundColor: '#DBEAFE', // Light blue background
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 4,
+    alignSelf: 'flex-start'
+  },
+  preferenceTagText: {
+    fontSize: 12,
+    color: '#1E40AF' // Darker blue text
   },
   noSharedClasses: {
     fontSize: 12,
