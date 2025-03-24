@@ -8,8 +8,6 @@ import {
   collection,
   updateDoc,
   getDoc,
-  onSnapshot,
-  Timestamp,
   query,
   where,
   orderBy,
@@ -257,11 +255,55 @@ export const updateProfilePicture = async (uid, pictureUrl) => {
  */
 export const getAllUsers = async () => {
   try {
-    const usersSnapshot = await getDocs(collection(db, "users"))
-    return usersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error fetching users:", error)
-    return []
+    console.error("Error fetching users:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve the friend list of a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getFriends = async (uid) => {
+  try {
+    const friendsSnapshot = await getDocs(collection(db, "users", uid, "friends"));
+    return friendsSnapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve incoming friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getIncomingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("to", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().from);
+  } catch (error) {
+    console.error("Error fetching incoming friend requests:", error);
+    return [];
+  }
+};
+
+/**
+ * Retrieve outgoing friend requests for a user
+ * @param {string} uid - The user's unique identifier.
+ */
+export const getOutgoingFriendRequests = async (uid) => {
+  try {
+    const requestsQuery = query(collection(db, "friendRequests"), where("from", "==", uid));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    return requestsSnapshot.docs.map(doc => doc.data().to);
+  } catch (error) {
+    console.error("Error fetching outgoing friend requests:", error);
+    return [];
   }
 };
 
@@ -272,12 +314,12 @@ export const getAllUsers = async () => {
  */
 export const sendFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`)
-    await setDoc(requestRef, { from: currentUserId, to: targetUserId, status: "pending" })
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await setDoc(requestRef, { from: currentUserId, to: targetUserId, status: "pending" });
   } catch (error) {
-    console.error("Error sending friend request:", error)
+    console.error("Error sending friend request:", error);
   }
-}
+};
 
 /**
  * Cancel a sent friend request
@@ -286,12 +328,12 @@ export const sendFriendRequest = async (currentUserId, targetUserId) => {
  */
 export const cancelFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`)
-    await deleteDoc(requestRef)
+    const requestRef = doc(db, "friendRequests", `${currentUserId}_${targetUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
-    console.error("Error canceling friend request:", error)
+    console.error("Error canceling friend request:", error);
   }
-}
+};
 
 /**
  * Accept a friend request
@@ -301,19 +343,19 @@ export const cancelFriendRequest = async (currentUserId, targetUserId) => {
 export const acceptFriendRequest = async (currentUserId, targetUserId) => {
   try {
     // Add to friends list
-    const userFriendsRef = doc(db, "users", currentUserId, "friends", targetUserId)
-    await setDoc(userFriendsRef, { friendId: targetUserId })
+    const userFriendsRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await setDoc(userFriendsRef, { friendId: targetUserId });
 
-    const targetFriendsRef = doc(db, "users", targetUserId, "friends", currentUserId)
-    await setDoc(targetFriendsRef, { friendId: currentUserId })
+    const targetFriendsRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await setDoc(targetFriendsRef, { friendId: currentUserId });
 
     // Remove from requests
-    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`)
-    await deleteDoc(requestRef)
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
-    console.error("Error accepting friend request:", error)
+    console.error("Error accepting friend request:", error);
   }
-}
+};
 
 /**
  * Reject a friend request
@@ -322,12 +364,12 @@ export const acceptFriendRequest = async (currentUserId, targetUserId) => {
  */
 export const rejectFriendRequest = async (currentUserId, targetUserId) => {
   try {
-    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`)
-    await deleteDoc(requestRef)
+    const requestRef = doc(db, "friendRequests", `${targetUserId}_${currentUserId}`);
+    await deleteDoc(requestRef);
   } catch (error) {
-    console.error("Error rejecting friend request:", error)
+    console.error("Error rejecting friend request:", error);
   }
-}
+};
 
 /**
  * Remove a friend
@@ -336,29 +378,58 @@ export const rejectFriendRequest = async (currentUserId, targetUserId) => {
  */
 export const removeFriend = async (currentUserId, targetUserId) => {
   try {
-    const userFriendRef = doc(db, "users", currentUserId, "friends", targetUserId)
-    await deleteDoc(userFriendRef)
+    const userFriendRef = doc(db, "users", currentUserId, "friends", targetUserId);
+    await deleteDoc(userFriendRef);
 
-    const targetFriendRef = doc(db, "users", targetUserId, "friends", currentUserId)
-    await deleteDoc(targetFriendRef)
+    const targetFriendRef = doc(db, "users", targetUserId, "friends", currentUserId);
+    await deleteDoc(targetFriendRef);
   } catch (error) {
-    console.error("Error removing friend:", error)
+    console.error("Error removing friend:", error);
   }
 };
 
-/*
- * SCHEDULER DB INTERACTIONS
- */
 /**
- * Retrieves currently logged-in user's UID.
- * @returns {Promise<string | null>} - The user's UID, null if not logged in.
+ * Retrieves all courses for a specific user
+ * @param {string} userId - ID of the user
+ * @returns {Promise<Array>} - An array of course objects
  */
+export const getUserId = async () => {
+  try {
+    const auth = getAuth()
+    const currentUser = auth.currentUser
+    return currentUser ? currentUser.uid : null
+  } catch (error) {
+    console.error("Error fetching UID:", error)
+    return null
+  }
+}
+
+/*
+  * EVENTS AND STUDY SESSIONS DB INTERACTIONS
+*/
   
 /**
  * Fetches user's first and last name using their UID.
  * @param {string} uid - The user's UID.
  * @returns {Promise<string | null>} - The user's full name, null if not found.
  */
+export const getFullName = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid)
+    const userSnap = await getDoc(userRef)
+
+    if (userSnap.exists()) {
+      const userData = userSnap.data()
+      return `${userData.firstName} ${userData.lastName}`
+    } else {
+      console.log("User does not exist.")
+      return null
+    }
+  } catch (error) {
+    console.error("Error fetching user name:", error)
+    return null
+  }
+}
 
 /**
  * Adds a new event to a specific user's Firestore database.
@@ -696,10 +767,9 @@ export const getUsersWithMessages = async (userId) => {
         const user = doc.data();
         const chatPartnerId = doc.id;
         
-        // HARDCODED FOR DEBUGGING
-        // if (doc.id !== "mNLxDdtqyxlGeWesqnxW") return null; 
+        // if (doc.id !== "mNLxDdtqyxlGeWesqnxW") return null;  //DEBUGGING
 
-        if (userId === chatPartnerId) return null; //prevent fetching messages with logged-in user
+        if (userId === chatPartnerId) return null; //prevent fetching messages from own account
 
         //fetch the last message between the logged-in user and this user...
         const messagesCollection = collection(db, "messages");
@@ -714,7 +784,7 @@ export const getUsersWithMessages = async (userId) => {
         const messagesSnapshot = await getDocs(q);
         const lastMessageData = messagesSnapshot.docs.length > 0 ? messagesSnapshot.docs[0].data() : null;
 
-        if (lastMessageData) { //if existing message, return user data
+        if (lastMessageData) {//if last message exists, return chat + user info displayed in chat log
           return {
             id: chatPartnerId,
             firstName: user.firstName|| "firstName",
@@ -765,6 +835,8 @@ export const sendMessage = async (senderId, receiverId, messageContent) => {
  */
 export const getMessages = (currentUserId, chatPartnerId, callback) => {
   try {
+    console.log(`Fetching messages between ${currentUserId} and ${chatPartnerId}...`);
+
     const messagesRef = collection(db, "messages");
 
     const q = query(
@@ -774,15 +846,17 @@ export const getMessages = (currentUserId, chatPartnerId, callback) => {
       orderBy("timestamp", "asc") //sort messages so most recent are on top
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => { //cleans up listener once component unmounts (exits SingleChatView screen)
-      const messages = querySnapshot.docs.map((doc) => ({ //return array of firestone docs from previous query
+    //Cleans up listener once component unmounts (exits SingleChatView screen)...
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const messages = querySnapshot.docs.map((doc) => ({ //retrieve array of firestone docs from previous query
         id: doc.id,
         ...doc.data(),
       }));
+      console.log("Messages fetched:", messages);
       callback(messages);
     });
 
-    return unsubscribe; // return the function to stop listening
+    return unsubscribe; // stop listening
   } catch (error) {
     console.error("Error setting up message listener:", error);
     return () => {};
@@ -800,4 +874,3 @@ export const deleteMessage = async (messageId) => {
   } catch (error) {
     console.error("Error deleting message:", error);
   }
-}
