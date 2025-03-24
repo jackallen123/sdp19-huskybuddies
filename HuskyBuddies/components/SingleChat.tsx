@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import { COLORS } from '@/constants/Colors';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard,Platform, Image, ScrollView} from 'react-native';
 import { sendMessage, getMessages, getUserId, getFullName } from '@/backend/firebase/firestoreService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,7 +20,7 @@ export default function SingleChatView({ onBack, firstName, lastName, profilePic
 {/* Retrieve logged in user's ID */}
 
 const [userId, setUserId] = useState<string | null>(null);
-const [userFullName, setUserFullName] = useState<string>(""); //store first + last name
+const [userFullName, setUserFullName] = useState<string>(""); //store first  last name
 const scrollViewRef = useRef<ScrollView>(null);
 const senderNameCache = useRef<{ [key: string]: string }>({});
 
@@ -49,9 +49,9 @@ useEffect(() => {
   fetchUserInfo();
 }, []);
 
-//Fetch full name of sender using cache...
+//Fetch full name of sender using cache if stored in cache. Else, add to cache...
 const fetchSenderName = async (senderId: string) => {
-  if (senderNameCache.current[senderId]) { //if senderId is already stored in cache, return it
+  if (senderNameCache.current[senderId]) {
     return senderNameCache.current[senderId]; 
   }
   const name = await getFullName(senderId);
@@ -64,6 +64,7 @@ const fetchSenderName = async (senderId: string) => {
 
 //Fetch messages between logged-in user and other user (of the selected chat) upon press/when component mounts...
 useEffect(() => {
+  console.log("\n \n Chat Messages:", chatMessages)
   console.log("Checking userId and otherUserId before fetching messages...");
   console.log("userId:", userId);
   console.log("otherUserId:", otherUserId);
@@ -77,6 +78,17 @@ useEffect(() => {
 
   const unsubscribe = getMessages(userId, otherUserId, async (messages: any[]) => {
     console.log("Messages from Firestore:", messages);
+
+    //Handles conditional rendering of placeholder message in chat log if no messages exist between users...
+    if (messages.length === 0) {
+      setChatMessages([{ 
+        sender: "System", 
+        receiver: userId,
+        message: "Send a message to begin chatting.",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }]);
+      return;
+    }
 
     const formattedMessages = await Promise.all( //promise handles asynch fetchSenderName calls
       messages.map(async (msg) => {
@@ -100,10 +112,10 @@ useEffect(() => {
       const senderName = await fetchSenderName(msg.senderId);
 
       return {
-        sender: senderName,
-        receiver: msg.receiverId,
-        message: msg.messageContent,
-        time: displayTime,
+        sender: senderName || "",
+        receiver: msg.receiverId || "",
+        message: msg.messageContent || "",
+        time: displayTime || "",
       };
     })
   );
@@ -111,8 +123,8 @@ useEffect(() => {
     setChatMessages(formattedMessages);
   });
 
-  return () => { //stop message listener when unmounting
-    unsubscribe();
+  return () => { 
+    unsubscribe(); //stop message listener when unmounting
   };
 
 }, [userId, otherUserId]);
@@ -121,22 +133,33 @@ const [messageInput, setMessageInput] = useState('');
 const [chatMessages, setChatMessages] = useState<Array<{ sender: string; receiver: string; message: string; time: string }>>([]); //assert expected object types for variables in array and initiliaze empty array
 
 useEffect(() => {
+  console.log("\n \n Chat Messages:", chatMessages)
   scrollViewRef.current?.scrollToEnd({ animated: true }); //handle scroll view in chat log
 }, [chatMessages]);
 
 const handleSendMessage = async () => {
   if (!userId || messageInput.trim() === '') return; //prevent empty messages, check for userId
 
+  const senderName = await fetchSenderName(userId);
+
   const newMessage = {
-    sender: userId,
+    senderName: senderName,
+    sender: userId, 
     receiver: otherUserId, 
     message: messageInput,
     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   };
 
-  await sendMessage(newMessage.sender, newMessage.receiver, newMessage.message);
+  await sendMessage(newMessage.sender, newMessage.receiver, newMessage.message); //send message to Firestore
+
+  const displayNewMessage = { //Format to be displayed. NOTE: accounts for uid being sent with new message bug
+    sender: senderName, 
+    receiver: otherUserId, 
+    message: messageInput,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  };
   
-  const updatedMessages = [...chatMessages, newMessage];
+  const updatedMessages = [...chatMessages, displayNewMessage];
   setChatMessages(updatedMessages); //update chat with new messages
   setMessageInput(''); //reset message input
 
@@ -149,7 +172,6 @@ const handleSendMessage = async () => {
   }
 };
 
-
   return (
     <KeyboardAvoidingView 
       style={styles.pageContainer} 
@@ -160,21 +182,21 @@ const handleSendMessage = async () => {
     <View style={styles.chatContainer}>
         <Banner onBack={onBack} />
         <Text style={styles.sendButtonText}>Send</Text>
-        <UserBanner firstName={firstName} lastName={lastName} profilePicture={profilePicture}/>
+        <UserBanner firstName={firstName || ""} lastName={lastName || ""} profilePicture={profilePicture || ""}/>
         <HorizontalLine 
       />
   
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={{ flexGrow: 1 }}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-          keyboardShouldPersistTaps="handled"
-        >
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={{ flexGrow: 1 }}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="never" //dismisses keyboard when user taps putside of text input area
+      >
         {chatMessages.map((msg, index) => (
-          <Message key={index} sender={msg.sender} message={msg.message} time={msg.time}/>
+          <Message key={index || ""} sender={msg.sender || ""} message={msg.message || ""} time={msg.time || ""}/>
         ))}
-        </ScrollView>
+      </ScrollView>
     </TouchableWithoutFeedback>
 
   {/* Message input area with keyboard handling */}
@@ -199,7 +221,6 @@ const handleSendMessage = async () => {
   const Banner = ({ onBack }: { onBack: () => void }) => {
       return (
           <View style={styles.banner}>
-              {/* Back button */}
               <TouchableOpacity style={styles.BackButton} onPress={onBack}>
                   <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
               </TouchableOpacity>
@@ -228,19 +249,26 @@ const handleSendMessage = async () => {
   };
 
   interface MessageProps {
-      sender: string;
       message: string;
+      sender: string;
       time: string;
     }
   
-  const Message: React.FC<MessageProps> = ({ sender, message, time }) => {
+  const Message: React.FC<MessageProps> = ({ message, sender, time }) => {
     console.log("➤ Loading message from:", sender);
+    console.log("➤ Rendering message:", { message, sender, time });
   
-    return (
+    return ( //Conditional rendering of placeholder message in chat log where sender is "System"
       <View style={styles.messageContainer}>
-        <Text style={styles.sender}>{sender}</Text> 
-        <Text style={styles.message}>{message}</Text>
-        <Text style={styles.time}>{time}</Text>
+        {sender === "System" ? ( 
+          <Text style={styles.systemMessage}>{message}</Text> 
+        ) : (
+          <>
+            <Text style={styles.sender}>{sender}</Text>
+            <Text style={styles.message}>{message}</Text>
+            <Text style={styles.time}>{time}</Text>
+          </>
+        )}
       </View>
     );
   };
@@ -353,6 +381,12 @@ const styles = StyleSheet.create({
       height: 50,
       borderRadius: 25,
       marginRight: 10,
+    },
+    systemMessage: {
+      fontStyle: 'italic',
+      color: COLORS.UCONN_GREY,
+      textAlign: 'center',
+      marginVertical: 20,
+      fontSize: 15,
     }
 });
-

@@ -393,43 +393,12 @@ export const removeFriend = async (currentUserId, targetUserId) => {
  * @param {string} userId - ID of the user
  * @returns {Promise<Array>} - An array of course objects
  */
-export const getUserId = async () => {
-  try {
-    const auth = getAuth()
-    const currentUser = auth.currentUser
-    return currentUser ? currentUser.uid : null
-  } catch (error) {
-    console.error("Error fetching UID:", error)
-    return null
-  }
-}
 
-/*
-  * EVENTS AND STUDY SESSIONS DB INTERACTIONS
-*/
-  
 /**
  * Fetches user's first and last name using their UID.
  * @param {string} uid - The user's UID.
  * @returns {Promise<string | null>} - The user's full name, null if not found.
  */
-export const getFullName = async (uid) => {
-  try {
-    const userRef = doc(db, "users", uid)
-    const userSnap = await getDoc(userRef)
-
-    if (userSnap.exists()) {
-      const userData = userSnap.data()
-      return `${userData.firstName} ${userData.lastName}`
-    } else {
-      console.log("User does not exist.")
-      return null
-    }
-  } catch (error) {
-    console.error("Error fetching user name:", error)
-    return null
-  }
-}
 
 /**
  * Adds a new event to a specific user's Firestore database.
@@ -874,3 +843,4 @@ export const deleteMessage = async (messageId) => {
   } catch (error) {
     console.error("Error deleting message:", error);
   }
+}
