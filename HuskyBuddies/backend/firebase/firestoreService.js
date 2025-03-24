@@ -393,12 +393,31 @@ export const removeFriend = async (currentUserId, targetUserId) => {
  * @param {string} userId - ID of the user
  * @returns {Promise<Array>} - An array of course objects
  */
+export const getUserCourses = async (userId) => {
+  try {
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"));
+    return coursesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || "",
+        section: data.section || "",
+        instructor: data.instructor || "",
+        days: data.days || [],
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        color: data.color || "#FFFFFF",
+      };
+    });
+  } catch (error) {
+    console.error("Error retrieving user courses:", error);
+    return [];
+  }
+};
 
-/**
- * Fetches user's first and last name using their UID.
- * @param {string} uid - The user's UID.
- * @returns {Promise<string | null>} - The user's full name, null if not found.
- */
+/*
+  * EVENTS AND STUDY SESSIONS DB INTERACTIONS
+*/
 
 /**
  * Adds a new event to a specific user's Firestore database.
@@ -843,4 +862,72 @@ export const deleteMessage = async (messageId) => {
   } catch (error) {
     console.error("Error deleting message:", error);
   }
-}
+};
+
+/**
+ * Fetches all user IDs from the "users" collection.
+ * @returns {Promise<string[]>} - Array of user IDs.
+ */
+export const getAllUserIds = async () => {
+  try {
+    const usersRef = collection(db, "users");
+    const querySnapshot = await getDocs(usersRef);
+
+    const userIds = querySnapshot.docs.map((doc) => doc.id); //query for uid
+    console.log("Fetched user IDs:", userIds);
+    return userIds;
+  } catch (error) {
+    console.error("Error fetching user IDs:", error);
+    return [];
+  }
+};
+
+/**
+ * Fetches all users with their full names.
+ * @returns {Promise<Array<{ id: string, fullName: string }>>} - Array of users with IDs and full names.
+ */
+export const getAlluidWithNames = async () => {
+  try {
+    const userIds = await getAllUserIds(); //fetch all uid
+    const usersWithNames = [];
+
+    for (const userId of userIds) {
+      const fullName = await getFullName(userId); //fetch full name for each uid
+      if (fullName) {
+        usersWithNames.push({ id: userId, fullName }); //add user to list
+      }
+    }
+
+    console.log("Fetched users with names:", usersWithNames);
+    return usersWithNames;
+  } catch (error) {
+    console.error("Error fetching users with names:", error);
+    return [];
+  }
+};
+
+/**
+ * Fetches all user IDs from the "users" collection.
+ * @param {string} userId - Logged-in uid.
+ * @param {string} friendId - Friend uid.
+ * @returns {Promise<boolean>} - true if messages exist, otherwise false.
+ */
+export const hasMessagesWithFriend = async (userId, friendId) => {
+  try {
+    const messagesRef = collection(db, "messages");
+
+    const q = query( //query to find messages between logged-in user and friend
+      messagesRef,
+      where("senderId", "in", [userId, friendId]),
+      where("receiverId", "in", [userId, friendId])
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    //return true if there are messages, false otherwise...
+    return querySnapshot.size > 0;
+  } catch (error) {
+    console.error("Error checking messages with friend:", error);
+    return false;
+  }
+};
