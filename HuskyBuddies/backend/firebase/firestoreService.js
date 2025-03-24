@@ -931,4 +931,3 @@ export const hasMessagesWithFriend = async (userId, friendId) => {
     return false;
   }
 };
-}
