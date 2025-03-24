@@ -1,134 +1,89 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { db } from "@/backend/firebase/firebaseConfig"; 
-import { collection, getDocs, doc, updateDoc, query, Timestamp } from 'firebase/firestore';
-import { COLORS } from '@/constants/Colors';
-import { FetchStudySessionsFromDatabase } from '@/backend/firebase/firestoreService';
+import { useState, useEffect } from "react"
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { Timestamp } from "firebase/firestore"
+import { COLORS } from "@/constants/Colors"
+import { FetchAllEventsFromDatabase, FetchStudySessionsFromDatabase } from "@/backend/firebase/firestoreService"
 
-// Event interface 
+// event setup for database 
 interface Event {
-  id: string;
-  title: string;
-  date: Timestamp;
-  description: string;
-  isadded?: boolean;
+  id: string
+  title: string
+  date: Timestamp
+  description: string
+  isadded?: boolean
+  createdBy?: string
 }
 
-// Study session interface
+// study session setup for database 
 interface StudySession {
-  id: string;
-  title: string;
-  date: Timestamp;
-  description: string;
+  id: string
+  title: string
+  date: Timestamp
+  description: string
 }
 
-const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-export default function CustomCalendar({ onBack }: { onBack: () => void }) {
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [events, setEvents] = useState<Event[]>([]);
-  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+export default function CustomCalendar({ userId, onBack }: { userId: string; onBack: () => void }) {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date())
+  const [events, setEvents] = useState<Event[]>([])
+  const [studySessions, setStudySessions] = useState<StudySession[]>([])
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
-  // Fetch events and study sessions from Firestore
+  // Fetch all events and study sessions
   useEffect(() => {
-    const loadItems = async () => {
-      try {
-        // Fetch events
-        const eventsQuery = query(collection(db, "Events"));
-        const eventSnapshot = await getDocs(eventsQuery);
-        const fetchedEvents: Event[] = [];
-        
-        eventSnapshot.forEach((docSnapshot) => {
-          const eventData = docSnapshot.data();
-          const event: Event = {
-            id: docSnapshot.id,
-            title: eventData.title,
-            description: eventData.description,
-            date: eventData.date, // Keep it as a Timestamp
-            isadded: eventData.isadded ?? false,
-          };
-          fetchedEvents.push(event);
-        });
+    const unsubscribeEvents = FetchAllEventsFromDatabase(userId, setEvents)
+    const unsubscribeSessions = FetchStudySessionsFromDatabase(userId, setStudySessions)
 
-        setEvents(fetchedEvents);
-      } catch (error) {
-        console.error("Error fetching events: ", error);
-      }
-    };
-
-    loadItems();
-
-    // Fetch study sessions in real-time
-    const unsubscribe = FetchStudySessionsFromDatabase(setStudySessions);
-
-    // Cleanup the listener when the component is unmounted
-    return () => unsubscribe();
-  }, []);
-
-  // Update event to Firestore
-  const handleToggleEvent = async (event: Event) => {
-    try {
-      const eventRef = doc(db, "Events", event.id);
-      await updateDoc(eventRef, {
-        isadded: !event.isadded, // Toggle the isadded field
-      });
-
-      setEvents((prevEvents) =>
-        prevEvents.map((e) =>
-          e.id === event.id ? { ...e, isadded: !e.isadded } : e
-        )
-      );
-    } catch (error) {
-      console.error("Error updating event: ", error);
+    return () => {
+      unsubscribeEvents()
+      unsubscribeSessions()
     }
-  };
+  }, [userId])
 
-  // Function to get events and study sessions for the selected date
+  // only show items where isadded is true
   const getItemsForDate = (date: Date): (Event | StudySession)[] => {
-    const filteredEvents = events.filter(
-      (event) => event.date.toDate().toDateString() === date.toDateString()
-    );
+    const filteredEvents = events
+      .filter((event) => event.isadded) 
+      .filter((event) => event.date.toDate().toDateString() === date.toDateString())
+  
     const filteredStudySessions = studySessions.filter(
-      (studySession) => studySession.date.toDate().toDateString() === date.toDateString()
-    );
-    return [...filteredEvents, ...filteredStudySessions];
-  };
-
+      (studySession) => studySession.date.toDate().toDateString() === date.toDateString(),
+    )
+  
+    return [...filteredEvents, ...filteredStudySessions]
+  }
+  
   // Check if a date is today
   const isToday = (date: Date): boolean => {
-    const today = new Date();
+    const today = new Date()
     return (
       date.getDate() === today.getDate() &&
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
-    );
-  };
+    )
+  }
 
   // Function to get days in a month
   const getDaysInMonth = (date: Date): (Date | null)[] => {
-    const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  
-    const daysArray: (Date | null)[] = Array(firstDay).fill(null);
-  
+    const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+
+    const daysArray: (Date | null)[] = Array(firstDay).fill(null)
+
     for (let i = 1; i <= daysInMonth; i++) {
-      daysArray.push(new Date(date.getFullYear(), date.getMonth(), i));
+      daysArray.push(new Date(date.getFullYear(), date.getMonth(), i))
     }
 
     while (daysArray.length % 7 !== 0) {
-      daysArray.push(null);
+      daysArray.push(null)
     }
-  
-    return daysArray;
-  };
 
-  // Function to format the date
-  const formatDate = (date: Date) => {
-    return `${date.toLocaleString('default', { weekday: 'long' })}, ${date.toLocaleDateString()}`;
-  };
+    return daysArray
+  }
 
+ // Formatting for page consistency 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -144,26 +99,32 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
       {/* Calendar Navigation */}
       <View style={styles.calendarContainer}>
         <View style={styles.monthContainer}>
-          <TouchableOpacity onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>
+          <TouchableOpacity
+            onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+          >
             <Ionicons name="chevron-back-outline" size={24} color={COLORS.UCONN_NAVY} />
           </TouchableOpacity>
           <Text style={styles.monthText}>
-            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
           </Text>
-          <TouchableOpacity onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}>
+          <TouchableOpacity
+            onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+          >
             <Ionicons name="chevron-forward-outline" size={24} color={COLORS.UCONN_NAVY} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.daysContainer}>
           {daysOfWeek.map((day, index) => (
-            <Text key={index} style={styles.day}>{day}</Text>
+            <Text key={index} style={styles.day}>
+              {day}
+            </Text>
           ))}
         </View>
 
         {/* Dates */}
         <View style={styles.datesContainer}>
-          {getDaysInMonth(currentDate).map((date: Date | null, index: number) => (
+          {getDaysInMonth(currentDate).map((date: Date | null, index: number) =>
             date ? (
               <TouchableOpacity
                 key={index}
@@ -171,14 +132,12 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
                 onPress={() => setSelectedDate(date)}
               >
                 <Text style={styles.dateText}>{date.getDate()}</Text>
-                {getItemsForDate(date).length > 0 && (
-                  <View style={styles.eventIndicator} />
-                )}
+                {getItemsForDate(date).length > 0 && <View style={styles.eventIndicator} />}
               </TouchableOpacity>
             ) : (
               <View key={index} style={styles.dateContainer} />
-            )
-          ))}
+            ),
+          )}
         </View>
       </View>
 
@@ -187,32 +146,37 @@ export default function CustomCalendar({ onBack }: { onBack: () => void }) {
         <Text style={styles.eventListTitle}>Your Items:</Text>
         {selectedDate ? (
           <ScrollView contentContainerStyle={styles.eventListContent}>
-            {getItemsForDate(selectedDate).map((item) => (
-              <View key={item.id} style={styles.eventItem}>
-                <Text style={styles.eventItemText}>
-                  {item.title} on {new Date(item.date.toDate()).toLocaleDateString()} at{" "}
-                  {new Date(item.date.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </View>
-            ))}
+            {getItemsForDate(selectedDate).length > 0 ? (
+              getItemsForDate(selectedDate).map((item) => (
+                <View key={item.id} style={styles.eventItem}>
+                  <Text style={styles.eventItemText}>
+                    {item.title} on {new Date(item.date.toDate()).toLocaleDateString()} at{" "}
+                    {new Date(item.date.toDate()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noEventsText}>No items for this date.</Text>
+            )}
           </ScrollView>
         ) : (
           <Text style={styles.noEventsText}>Select a date to view items.</Text>
         )}
       </View>
     </SafeAreaView>
-  );
+  )
 }
 
+// Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: COLORS.UCONN_NAVY,
   },
   backButton: {
@@ -220,11 +184,11 @@ const styles = StyleSheet.create({
   },
   headerTextContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   headerText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.UCONN_WHITE,
   },
   calendarContainer: {
@@ -232,35 +196,35 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   monthContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   monthText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   daysContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   day: {
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   datesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   dateContainer: {
-    width: '13%',
+    width: "13%",
     padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   date: {
     backgroundColor: COLORS.UCONN_WHITE,
@@ -270,7 +234,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   eventIndicator: {
     width: 6,
@@ -289,16 +253,16 @@ const styles = StyleSheet.create({
   },
   eventListTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   eventItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: "#ccc",
   },
   eventItemText: {
     fontSize: 16,
@@ -307,4 +271,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.UCONN_GREY,
   },
-});
+})

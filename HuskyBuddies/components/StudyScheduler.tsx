@@ -3,55 +3,78 @@ import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView } fr
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS } from '@/constants/Colors';
-import { Timestamp } from 'firebase/firestore';
-import { 
-  FetchStudySessionsFromDatabase,  
-  AddStudySessionToDatabase,   
-  DeleteStudySessionFromDatabase 
-} from '@/backend/firebase/firestoreService';
+import { db } from '@/backend/firebase/firebaseConfig';
+import { Timestamp, doc, collection, onSnapshot, setDoc } from 'firebase/firestore';
+import { FetchStudySessionsFromDatabase, AddStudySessionToDatabase, DeleteStudySessionFromDatabase } from '@/backend/firebase/firestoreService';
 
+// Study session setup for database 
 interface StudySession {
   id: string;
   title: string;
   date: Timestamp;
   friends: string[];
+  createdBy: string;
 }
-
-const friendsList = ['Alice', 'Bob', 'Charlie', 'Diana'];
 
 type StudySchedulerProps = {
   onBack: () => void;
   onSchedule: (session: StudySession) => void;
   onDeleteSession: (id: string) => void;
+  currentUserId: string;
 };
 
-export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: StudySchedulerProps) {
+export default function StudyScheduler({
+  onBack,
+  onSchedule,
+  currentUserId
+}: StudySchedulerProps) {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [date, setDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [scheduledSessions, setScheduledSessions] = useState<StudySession[]>([]);
+  const [friendsList, setFriendsList] = useState<string[]>([]);
 
+  // Fetch friends list from Firebase
   useEffect(() => {
-    const unsubscribe = FetchStudySessionsFromDatabase((sessions: StudySession[]) => {
+    if (!currentUserId) return;
+
+    const friendsRef = collection(db, "users", currentUserId, "friends");
+
+    const unsubscribe = onSnapshot(friendsRef, (snapshot) => {
+      const friends = snapshot.docs.map((doc) => doc.data().friendId);
+      // Hardcode friend for testing
+      const testFriend = "Test Friend";
+      setFriendsList([...friends, testFriend]);
+    });
+
+    return () => unsubscribe();
+  }, [currentUserId]);
+
+  // Fetch study sessions from database
+  useEffect(() => {
+    const unsubscribe = FetchStudySessionsFromDatabase(currentUserId, (sessions: StudySession[]) => {
       const formattedSessions = sessions.map((session: StudySession) => ({
         id: session.id,
         title: session.title,
         date: session.date,
         friends: session.friends,
+        createdBy: session.createdBy,
       }));
       setScheduledSessions(formattedSessions);
     });
-  
+
     return () => unsubscribe();
-  }, []); 
-  
+  }, [currentUserId]);
+
+  // Allow friends selection
   const toggleFriendSelection = (friend: string) => {
     setSelectedFriends((prev) =>
       prev.includes(friend) ? prev.filter(f => f !== friend) : [...prev, friend]
     );
   };
 
+  // Create an a study session
   const scheduleSession = async () => {
     if (date && selectedFriends.length > 0) {
       const newSession: StudySession = {
@@ -59,8 +82,9 @@ export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: 
         title: `Study session with ${selectedFriends.join(', ')}`,
         date: Timestamp.fromDate(date),
         friends: selectedFriends,
+        createdBy: currentUserId,
       };
-      await AddStudySessionToDatabase(newSession.id, newSession.title, newSession.date, newSession.friends);
+      await AddStudySessionToDatabase(currentUserId, newSession.id, newSession.title, newSession.date, newSession.friends);
       onSchedule(newSession);
       setSelectedFriends([]);
       setDate(null);
@@ -70,32 +94,32 @@ export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: 
     }
   };
 
+  // Deleting a study session
   const handleDeleteStudySession = async (id: string) => {
     try {
-      await DeleteStudySessionFromDatabase(id);
+      await DeleteStudySessionFromDatabase(currentUserId, id); 
       alert('Study session deleted!');
     } catch (error) {
       alert('Error deleting study session');
     }
   };
-  
 
+  // Allow for user friendly date/time format
   const formatDate = (timestamp: Timestamp) => {
     if (timestamp && timestamp.toDate) {
-      return timestamp.toDate().toLocaleString('en-US', { 
-        month: '2-digit', 
-        day: '2-digit', 
-        year: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
+      return timestamp.toDate().toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
       });
     }
     return 'Invalid Date';
   };
-  
-  
-  
+
+  // Formatting for page consistency 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -108,13 +132,17 @@ export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: 
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Select Friends</Text>
-        {friendsList.map((friend) => (
-          <TouchableOpacity key={friend} style={[styles.friendItem, selectedFriends.includes(friend) && styles.selectedFriend]} onPress={() => toggleFriendSelection(friend)}>
-            <Text style={styles.friendText}>{friend}</Text>
-            {selectedFriends.includes(friend) && <Ionicons name="checkmark" size={20} color={COLORS.UCONN_WHITE} />}
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.sectionTitle}>Schedule a Study Session</Text>
+        {friendsList.length > 0 ? (
+          friendsList.map((friend) => (
+            <TouchableOpacity key={friend} style={[styles.friendItem, selectedFriends.includes(friend) && styles.selectedFriend]} onPress={() => toggleFriendSelection(friend)}>
+              <Text style={styles.friendText}>{friend}</Text>
+              {selectedFriends.includes(friend) && <Ionicons name="checkmark" size={20} color={COLORS.UCONN_WHITE} />}
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text style={styles.friendText}>No friends found.</Text>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -164,7 +192,7 @@ export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: 
               </View>
             ))
           ) : (
-            <Text>No sessions scheduled yet.</Text>
+            <Text style={styles.friendText}> No sessions scheduled yet.</Text>
           )}
         </ScrollView>
       </View>
@@ -172,6 +200,7 @@ export default function StudyScheduler({ onBack, onDeleteSession, onSchedule }: 
   );
 }
 
+// Styles to keep pages consistent 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -183,6 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    
   },
   headerTextContainer: {
     flex: 1,
@@ -196,8 +226,17 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
-  section: {
+  formContainer: {
     padding: 10,
+  },
+  formTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.UCONN_NAVY,
+    marginBottom: 20,
+  },
+  section: {
+    padding: 15,
   },
   sectionTitle: {
     fontSize: 20,
@@ -239,18 +278,30 @@ const styles = StyleSheet.create({
   },
   scheduleButton: {
     backgroundColor: COLORS.UCONN_NAVY,
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 100,
     borderRadius: 8,
     alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 10,
   },
   scheduleButtonText: {
     color: COLORS.UCONN_WHITE,
     fontSize: 16,
     paddingBottom: 10,
   },
+  scheduledSessionsContainer: {
+    padding: 10,
+    marginTop: 20,
+  },
+  scheduledSessionsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.UCONN_NAVY,
+    marginBottom: 10,
+  },
   scrollContainer: {
-    paddingBottom: 20
+    paddingBottom: 20,
   },
   sessionBox: {
     backgroundColor: COLORS.UCONN_WHITE,
@@ -278,6 +329,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: '#FFFFFF'
+    color: '#FFFFFF',
   },
 });

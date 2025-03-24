@@ -1,4 +1,4 @@
-import { getNextColor } from "../../utils/transform/courseTransform";
+import { getNextColor } from "@/utils/transform/courseTransform";
 import { db } from "./firebaseConfig";
 import {
   doc,
@@ -14,13 +14,14 @@ import {
   addDoc,
   onSnapshot,
   limit,
-  Timestamp, // added from main branch
+  Timestamp, 
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+
 /*
-  * USER DB INTERACTIONS
-*/
+ * USER DB INTERACTIONS
+ */
 
 /**
  * Adds a new user to the Firestore database.
@@ -31,17 +32,17 @@ import { getAuth } from "firebase/auth";
  */
 export const addUserToDatabase = async (uid, firstName, lastName, email) => {
   try {
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(db, "users", uid)
     await setDoc(userRef, {
       firstName,
       lastName,
       email,
       createdAt: new Date(),
-    });
+    })
   } catch (error) {
-    console.error("Error adding user to database:", error);
+    console.error("Error adding user to database:", error)
   }
-};
+}
 
 /**
  * Deletes a user from the Firestore database.
@@ -49,16 +50,16 @@ export const addUserToDatabase = async (uid, firstName, lastName, email) => {
  */
 export const deleteUserFromDatabase = async (uid) => {
   try {
-    const userRef = doc(db, "users", uid);
-    await deleteDoc(userRef);
+    const userRef = doc(db, "users", uid)
+    await deleteDoc(userRef)
   } catch (error) {
-    console.error("Error deleting user from database:", error);
+    console.error("Error deleting user from database:", error)
   }
-};
+}
 
 /*
-  * COURSE DB INTERACTIONS
-*/
+ * COURSE DB INTERACTIONS
+ */
 
 /**
  * Stores a new course in Firestore under the user's document
@@ -67,23 +68,21 @@ export const deleteUserFromDatabase = async (uid) => {
  */
 export const storeCourse = async (userId, course) => {
   try {
-    const userCoursesRef = doc(db, "users", userId, "courses", course.id);
+    const userCoursesRef = doc(db, "users", userId, "courses", course.id)
 
     // fetch existing courses to help determine unique color
-    const coursesSnapshot = await getDocs(
-      collection(db, "users", userId, "courses")
-    );
-    const existingCourses = coursesSnapshot.docs.map((doc) => doc.data());
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"))
+    const existingCourses = coursesSnapshot.docs.map((doc) => doc.data())
 
     // assign a unique color
-    const usedColors = existingCourses.map((course) => course.color);
-    course.color = getNextColor(usedColors);
+    const usedColors = existingCourses.map((course) => course.color)
+    course.color = getNextColor(usedColors)
 
-    await setDoc(userCoursesRef, course);
+    await setDoc(userCoursesRef, course)
   } catch (error) {
-    console.error("Error storing course:", error);
+    console.error("Error storing course:", error)
   }
-};
+}
 
 /**
  * Retrieves all stored courses for a specific user
@@ -92,12 +91,10 @@ export const storeCourse = async (userId, course) => {
  */
 export const getAllCourses = async (userId) => {
   try {
-    const coursesSnapshot = await getDocs(
-      collection(db, "users", userId, "courses")
-    );
+    const coursesSnapshot = await getDocs(collection(db, "users", userId, "courses"))
 
     return coursesSnapshot.docs.map((doc) => {
-      const data = doc.data();
+      const data = doc.data()
 
       return {
         id: doc.id,
@@ -107,13 +104,13 @@ export const getAllCourses = async (userId) => {
         startTime: data.startTime || "",
         endTime: data.endTime || "",
         color: data.color || "#FFFFFF",
-      };
-    });
+      }
+    })
   } catch (error) {
-    console.error("Error retrieving courses:", error);
-    return [];
+    console.error("Error retrieving courses:", error)
+    return []
   }
-};
+}
 
 /**
  * Deletes a course from Firestore by its ID
@@ -122,15 +119,15 @@ export const getAllCourses = async (userId) => {
  */
 export const deleteCourse = async (userId, courseId) => {
   try {
-    await deleteDoc(doc(db, "users", userId, "courses", courseId));
+    await deleteDoc(doc(db, "users", userId, "courses", courseId))
   } catch (error) {
-    console.error("Error deleting course:", error);
+    console.error("Error deleting course:", error)
   }
-};
+}
 
 /*
-  * SETTINGS DB INTERACTIONS
-*/
+ * SETTINGS DB INTERACTIONS
+ */
 
 /**
  * Updates a specific user's profile in Firestore.
@@ -140,14 +137,14 @@ export const deleteCourse = async (userId, courseId) => {
 
 export const updateUserProfile = async (uid, profileData) => {
   try {
-    // create or overwrite the profile document in the "userProfile" subcollection
-    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
-    await setDoc(userProfileRef, profileData);
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, profileData, { merge: true });
+    console.log("User profile updated successfully");
   } catch (error) {
-    console.error("Error updating user profile:", error);
-    throw error;
+    console.error("Error updating user profile:", error)
+    throw error
   }
-};
+}
 
 /**
  * Retrieves a specific user's profile from Firestore.
@@ -157,19 +154,21 @@ export const updateUserProfile = async (uid, profileData) => {
 
 export const getUserProfile = async (uid) => {
   try {
-    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
-    const userProfileDoc = await getDoc(userProfileRef);
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDoc(userRef);
 
-    if (userProfileDoc.exists()) {
-      return userProfileDoc.data();
+    if (userDoc.exists()) {
+      // get current user data
+      return userDoc.data();
     } else {
+      console.log("No such user!");
       return null;
     }
   } catch (error) {
-    console.error("Error getting user profile:", error);
-    throw error;
+    console.error("Error getting user profile:", error)
+    throw error
   }
-};
+}
 
 /**
  * Updates a specific user's settings in Firestore.
@@ -178,14 +177,31 @@ export const getUserProfile = async (uid) => {
  */
 export const updateUserSettings = async (uid, newSettings) => {
   try {
-    // create or overwrite the settings document in the "settings" subcollection
-    const settingsRef = doc(db, "users", uid, "settings", "settings");
-    await setDoc(settingsRef, newSettings, { merge: true });
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      // get current user data
+      const userData = userDoc.data();
+
+      // get current settings OR initialize empty object if it doesnt exist
+      const currentSettings = userData.settings || {};
+
+      // merge the current settings with new settings
+      const updatedSettings = { ...currentSettings, ...newSettings };
+
+      // update settings field
+      await updateDoc(userRef, { settings: updatedSettings });
+      console.log("User settings updated successfully");
+    } else {
+      console.log("No such user!");
+      throw new Error("User not found");
+    }
   } catch (error) {
-    console.error("Error updating user settings:", error);
-    throw error;
+    console.error("Error updating user settings:", error)
+    throw error
   }
-};
+}
 
 /**
  * Retrieves a specific user's settings from Firestore.
@@ -194,23 +210,28 @@ export const updateUserSettings = async (uid, newSettings) => {
  */
 export const getUserSettings = async (uid) => {
   try {
-    const settingsRef = doc(db, "users", uid, "settings", "settings");
-    const settingsDoc = await getDoc(settingsRef);
-    if (settingsDoc.exists()) {
-      return settingsDoc.data();
+    const userRef = doc(db, "users", uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      // return settings object or default
+      const userData = userDoc.data();
+      return (
+        userData.settings || {
+          notificationsEnabled: false,
+          darkModeEnabled: false,
+          textSize: 16,
+        }
+      );
     } else {
-      // return to defaults if no data found
-      return {
-        notificationsEnabled: false,
-        darkModeEnabled: false,
-        textSize: 16,
-      };
+      console.log("No such user!");
+      return null;
     }
   } catch (error) {
-    console.error("Error getting user settings:", error);
-    throw error;
+    console.error("Error getting user settings:", error)
+    throw error
   }
-};
+}
 
 /**
  * Updates a specific user's profile picture URL in Firestore.
@@ -220,14 +241,14 @@ export const getUserSettings = async (uid) => {
  */
 export const updateProfilePicture = async (uid, pictureUrl) => {
   try {
-    const userProfileRef = doc(db, "users", uid, "userProfile", "profile");
-    await setDoc(userProfileRef, { profilePicture: pictureUrl }, { merge: true });
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, { profilePicture: pictureUrl });
     console.log("Profile picture updated successfully");
   } catch (error) {
-    console.error("Error updating profile picture:", error);
-    throw error;
+    console.error("Error updating profile picture:", error)
+    throw error
   }
-};
+}
 
 /**
  * Fetch all users from Firestore
@@ -397,127 +418,282 @@ export const getUserCourses = async (userId) => {
 /*
   * EVENTS AND STUDY SESSIONS DB INTERACTIONS
 */
-/**
- * Adds a new event to the Firestore database.
- * @param {string} Eventid
- * @param {string} Eventtitle
- * @param {Time} Eventdate
- * @param {string} Eventdescription
- * @param {boolean} Eventocalendar
- */
-export const AddEventToDatabase = async (
-  Eventid,
-  Eventtitle,
-  Eventdate,
-  Eventdescription,
-  Eventocalendar
-) => {
-  try {
-    const userRef = doc(db, "Events", Eventid);
-    await setDoc(userRef, {
-      title: Eventtitle,
-      date: Eventdate,
-      description: Eventdescription,
-      isadded: Eventocalendar,
-    });
-  } catch (error) {
-    console.error("Error adding event to database:", error);
-  }
-};
-
 
 /**
- * Deletes an event from the Firestore database.
- * @param {string} Eventid
+ * Adds a new event to a specific user's Firestore database.
+ * @param {string} userId - The ID of the current user.
+ * @param {string} eventId - The event ID.
+ * @param {string} title - The title of the event.
+ * @param {Timestamp} date - The date and time of the event.
+ * @param {string} description - The description of the event.
+ * @param {boolean} isadded - Whether the event is added to the calendar.
  */
-export const DeleteEventFromDatabase = async (Eventid) => {
+export const AddEventToDatabase = async (userId, eventId, title, date, description, isadded) => {
   try {
-    const userRef = doc(db, "Events", Eventid);
-    await deleteDoc(userRef);
+    // Generate a unique ID if one is not provided
+    const finalEventId = eventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Add to user's events collection
+    const userEventRef = doc(db, "users", userId, "events", finalEventId)
+    await setDoc(userEventRef, {
+      title: title,
+      date: date,
+      description: description,
+      isadded: isadded,
+      createdBy: userId,
+    })
+
+    // Also add to allEvents collection for global visibility
+    const allEventsRef = doc(db, "users", userId, "allEvents", finalEventId)
+    await setDoc(allEventsRef, {
+      title: title,
+      date: date,
+      description: description,
+      isadded: isadded,
+      createdBy: userId,
+    })
+
+    console.log(`Event added successfully: ${title} with ID: ${finalEventId}`)
+    return finalEventId // Return the ID for reference
   } catch (error) {
-    console.error("Error deleting event from database:", error);
+    console.error("Error adding event to database:", error)
+    throw error
   }
-};
+}
+
+/**
+ * Deletes an event from a specific user's Firestore database.
+ * @param {string} userId - The ID of the current user.
+ * @param {string} eventId - The ID of the event.
+ */
+export const DeleteEventFromDatabase = async (userId, eventId) => {
+  try {
+    // Delete from user's events collection
+    const userEventRef = doc(db, "users", userId, "events", eventId)
+    await deleteDoc(userEventRef)
+
+    // Also delete from allEvents collection
+    const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
+    await deleteDoc(allEventsRef)
+
+    console.log(`Event deleted successfully: ${eventId}`)
+  } catch (error) {
+    console.error("Error deleting event from database:", error)
+    throw error
+  }
+}
+
+/**
+ * Fetches events for a specific user from Firestore (Real-time listener).
+ * @param {string} userId - The ID of the current user.
+ * @param {function} setEvents - A function to update the state with the fetched events.
+ */
+export const FetchEventsFromDatabase = (userId, setEvents) => {
+  if (!userId) {
+    console.error("Cannot fetch events: No user ID provided")
+    return () => {} // Return empty unsubscribe function
+  }
+
+  const userEventsRef = collection(db, "users", userId, "events")
+
+  return onSnapshot(
+    userEventsRef,
+    (snapshot) => {
+      const eventsList = snapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          title: data.title,
+          date: data.date,
+          description: data.description,
+          isadded: data.isadded,
+          createdBy: data.createdBy || userId, // Ensure createdBy is set
+        }
+      })
+      console.log(`Fetched ${eventsList.length} events for user ${userId}`)
+      setEvents(eventsList)
+    },
+    (error) => {
+      console.error("Error fetching events:", error)
+    },
+  )
+}
+
+/**
+ * Fetches events for all users and stores them in the 'allEvents' collection under each user.
+ * @param {string} userId - The ID of the current user (for logging purposes).
+ * @param {function} setEvents - A function to update the state with the fetched events.
+ */
+export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
+  try {
+    console.log(`User ${userId} is syncing all events`)
+
+    const usersRef = collection(db, "users")
+    const usersSnapshot = await getDocs(usersRef)
+
+    const allEvents = []
+
+    // Process each user
+    for (const userDoc of usersSnapshot.docs) {
+      const creatorId = userDoc.id
+
+      // Skip the current user - we already have their events from the listener
+      if (creatorId === userId) {
+        console.log(`Skipping current user ${userId} during sync`)
+        continue
+      }
+
+      // Get user's events
+      const userEventsRef = collection(db, "users", creatorId, "events")
+      const eventsSnapshot = await getDocs(userEventsRef)
+
+      console.log(`Found ${eventsSnapshot.docs.length} events for user ${creatorId}`)
+
+      // Process each event
+      for (const eventDoc of eventsSnapshot.docs) {
+        const data = eventDoc.data()
+        const eventId = eventDoc.id
+
+        // Validate event data
+        if (!data.title || !data.date || !data.description) {
+          console.warn(`Skipping event with missing data: ${eventId}`)
+          continue
+        }
+
+        // Create event object
+        const event = {
+          id: eventId,
+          title: data.title,
+          date: data.date,
+          description: data.description,
+          isadded: false, // Default to false for other users
+          createdBy: creatorId,
+        }
+
+        // Add to our collection array
+        allEvents.push(event)
+
+        // Store in allEvents collection with the SAME ID as the original event
+        const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
+        await setDoc(allEventsRef, {
+          title: data.title,
+          date: data.date,
+          description: data.description,
+          isadded: false,
+          createdBy: creatorId,
+        })
+      }
+    }
+
+    console.log(`Total events synced: ${allEvents.length}`)
+
+    // Update state with all events
+    if (setEvents) {
+      setEvents(allEvents)
+    }
+
+    return allEvents
+  } catch (error) {
+    console.error("Error syncing all events:", error)
+    throw error
+  }
+}
+
+export const FetchAllEventsFromDatabase = (userId, setEvents) => {
+  if (!userId) {
+    console.error("Cannot fetch all events: No user ID provided")
+    return () => {} // Return empty unsubscribe function
+  }
+
+  // This should fetch from the user's own allEvents subcollection
+  const allEventsRef = collection(db, "users", userId, "allEvents")
+
+  return onSnapshot(
+    allEventsRef,
+    (snapshot) => {
+      const eventsList = snapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          title: data.title,
+          date: data.date,
+          description: data.description,
+          isadded: data.isadded,
+          createdBy: data.createdBy,
+        }
+      })
+      console.log(`Fetched ${eventsList.length} events for user ${userId}`)
+      setEvents(eventsList)
+    },
+    (error) => {
+      console.error("Error fetching all events:", error)
+    },
+  )
+}
 
 /**
  * Adds a new study session to the Firestore database.
- * @param {string} Studysessionid
- * @param {string} Studysessiontitle
- * @param {Time} Studysessiondate
- * @param {string[]} Studysessionfriends
+ * @param {string} userId
+ * @param {string} studySessionId
+ * @param {string} studySessionTitle
+ * @param {Time} studySessionDate
+ * @param {string[]} studySessionFriends
  */
-
 export const AddStudySessionToDatabase = async (
-  Studysessionid,
-  title,
-  date,
-  friends
+  userId,
+  studySessionId,
+  studySessionTitle,
+  studySessionDate,
+  studySessionFriends,
 ) => {
-  try {
-    const userRef = doc(db, "StudySession", Studysessionid);
-    await setDoc(userRef, {
-      title: title,         
-      date: date,                                   
-      friends: friends,     
-    });
-  } catch (error) {
-    console.error("Error adding study session to database:", error);
-  }
-};
+  // Generate a unique ID if one is not provided
+  const sessionId = studySessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+  const userStudySessionsRef = doc(db, "users", userId, "studySessions", sessionId)
+  await setDoc(userStudySessionsRef, {
+    title: studySessionTitle,
+    date: studySessionDate,
+    friends: studySessionFriends,
+    createdBy: userId,
+  })
+
+  return sessionId // Return the ID for reference
+}
 
 /**
- * Deletes a study session from the Firestore database.
- * @param {string} Studysessionid
+ * Deletes a study session from the Firestore database under the user's sub-collection.
+ * @param {string} userId - The ID of the current user.
+ * @param {string} studySessionId - The ID of the study session.
  */
-export const DeleteStudySessionFromDatabase = async (Studysessionid) => {
+export const DeleteStudySessionFromDatabase = async (userId, studySessionId) => {
   try {
-    const userRef = doc(db, "StudySession", Studysessionid);
-    await deleteDoc(userRef);
+    const userStudySessionsRef = doc(db, "users", userId, "studySessions", studySessionId)
+    await deleteDoc(userStudySessionsRef)
   } catch (error) {
-    console.error("Error deleting study session from database:", error);
+    console.error("Error deleting study session from database:", error)
   }
-};
+}
 
 /**
- * Fetches events from Firestore (Real-time listener).
- * @param {function} setEvents 
+ * Fetches study sessions from Firestore for the current user (Real-time listener).
+ * @param {string} userId
+ * @param {function} setSessions
  */
-export const FetchEventsFromDatabase = (setEvents) => {
-  const eventsRef = collection(db, "Events");
+export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
+  const userStudySessionsRef = collection(db, "users", userId, "studySessions")
 
-  return onSnapshot(eventsRef, (snapshot) => {
-    const eventsList = snapshot.docs.map((doc) => {
-      const data = doc.data();
+  return onSnapshot(userStudySessionsRef, (snapshot) => {
+    const sessionsList = snapshot.docs.map((doc) => {
+      const data = doc.data()
       return {
         id: doc.id,
         title: data.title,
         date: data.date,
-        description: data.description,
-        isadded: data.isadded,
+        friends: data.friends,
+        createdBy: data.createdBy,
       };
     });
-    setEvents(eventsList);
-  });
-};
-
-/**
- * Fetches study sessions from Firestore (Real-time listener).
- * @param {function} setSessions 
- */
-export const FetchStudySessionsFromDatabase = (setSessions) => {
-  const sessionsRef = collection(db, "StudySession");
-
-  return onSnapshot(sessionsRef, (snapshot) => {
-    const sessionsList = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        date: data.date, 
-        friends: data.friends
-      };
-    });
-    setSessions(sessionsList);
+    setSessions(sessionsList)
   });
 };
 
@@ -755,3 +931,4 @@ export const hasMessagesWithFriend = async (userId, friendId) => {
     return false;
   }
 };
+}
