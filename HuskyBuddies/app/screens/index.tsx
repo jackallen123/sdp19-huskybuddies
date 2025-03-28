@@ -9,6 +9,23 @@ import { ActivityIndicator, useTheme } from 'react-native-paper';
 import { auth } from '../../backend/firebase/firebaseConfig';
 import { getAllUsers, getUserCourses, getUserProfile } from '../../backend/firebase/firestoreService';
 
+interface UserData {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface ProfileData {
+  profilePicture?: string;
+}
+
+interface Match {
+  id: string;
+  name: string;
+  profilePicture: string;
+  sharedClasses: number;
+}
+
 type EventCardProps = {
   name: string;
   date: string;
@@ -78,17 +95,16 @@ export default function HomePage() {
   // useEffect to fetch top matching study buddies based on shared courses
   useEffect(() => {
     const fetchTopMatches = async () => {
-      setLoading(true);
       try {
         const currentUser = auth.currentUser;
         if (!currentUser) return;
 
         // fetch all users and the current user's courses
-        const users = await getAllUsers();
+        const users: UserData[] = await getAllUsers();
         const currentUserCourses = await getUserCourses(currentUser.uid);
 
         // build an array for all matches with the number of shared courses
-        const matches: Array<{ id: string; name: string; profilePicture: string; sharedClasses: number }> = [];
+        const matches: Match[] = [];
 
         for (const student of users) {
           // skip the current user
@@ -99,9 +115,10 @@ export default function HomePage() {
           const shared = findSharedCourses(currentUserCourses, studentCourses);
 
           if (shared.length > 0) {
-            // fetch additional profile details
-            const profileData = await getUserProfile(student.id);
+            // fetch additional profile details from the "userProfile/profile" document
+            const profileData: ProfileData | null = await getUserProfile(student.id);
             const profilePicture: string = profileData?.profilePicture || 'https://via.placeholder.com/100';
+
             // combine firstName and lastName from the student document
             const displayName: string = `${student.firstName || ''} ${student.lastName || ''}`.trim();
 
@@ -117,7 +134,7 @@ export default function HomePage() {
         // sort descending by the number of shared classes
         matches.sort((a, b) => b.sharedClasses - a.sharedClasses);
 
-        // select the top 3 matches and set the matches
+        // select the top 3 matches and set
         const top3 = matches.slice(0, 3);
         setTopMatches(top3);
       } catch (error) {
