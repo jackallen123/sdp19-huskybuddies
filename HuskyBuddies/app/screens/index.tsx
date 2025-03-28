@@ -1,12 +1,30 @@
 /* Home Screen */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal, Linking, StatusBar } from 'react-native';
 import { COLORS } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { ActivityIndicator, useTheme } from 'react-native-paper';
+import { auth } from '../../backend/firebase/firebaseConfig';
+import { getAllUsers, getUserCourses, getUserProfile } from '../../backend/firebase/firestoreService';
 
-import { useTheme } from 'react-native-paper';
+interface UserData {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface ProfileData {
+  profilePicture?: string;
+}
+
+interface Match {
+  id: string;
+  name: string;
+  profilePicture: string;
+  sharedClasses: number;
+}
 
 type EventCardProps = {
   name: string;
@@ -55,6 +73,80 @@ export default function HomePage() {
 
   const [academicModalVisible, setAcademicModalVisible] = useState(false);
   const [campusServicesModalVisible, setCampusServicesModalVisible] = useState(false);
+
+  // states for top matching study buddies & loading icon
+  const [topMatches, setTopMatches] = useState<Array<{ id: string; name: string; profilePicture: string; sharedClasses: number }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  // function to find shared courses between two users
+  const findSharedCourses = (userCourses: Array<any>, otherCourses: Array<any>): string[] => {
+    const shared: string[] = [];
+    for (const userCourse of userCourses) {
+      for (const otherCourse of otherCourses) {
+        if (userCourse.name === otherCourse.name) {
+          shared.push(userCourse.name);
+          break;
+        }
+      }
+    }
+    return shared;
+  };
+
+  // useEffect to fetch top matching study buddies based on shared courses
+  useEffect(() => {
+    setLoading(true);
+    const fetchTopMatches = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        // fetch all users and the current user's courses
+        const users: UserData[] = await getAllUsers();
+        const currentUserCourses = await getUserCourses(currentUser.uid);
+
+        // build an array for all matches with the number of shared courses
+        const matches: Match[] = [];
+
+        for (const student of users) {
+          // skip the current user
+          if (student.id === currentUser.uid) continue;
+
+          // fetch courses for the student
+          const studentCourses = await getUserCourses(student.id);
+          const shared = findSharedCourses(currentUserCourses, studentCourses);
+
+          if (shared.length > 0) {
+            // fetch additional profile details from the "userProfile/profile" document
+            const profileData: ProfileData | null = await getUserProfile(student.id);
+            const profilePicture: string = profileData?.profilePicture || 'https://via.placeholder.com/100';
+
+            // combine firstName and lastName from the student document
+            const displayName: string = `${student.firstName || ''} ${student.lastName || ''}`.trim();
+
+            matches.push({
+              id: student.id,
+              name: displayName,
+              profilePicture,
+              sharedClasses: shared.length,
+            });
+          }
+        }
+
+        // sort descending by the number of shared classes
+        matches.sort((a, b) => b.sharedClasses - a.sharedClasses);
+
+        // select the top 3 matches and set
+        const top3 = matches.slice(0, 3);
+        setTopMatches(top3);
+      } catch (error) {
+        console.error("Error fetching top matches:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopMatches();
+  }, []);
 
   // Mock data for featured events
   const featuredEvents = [
@@ -166,14 +258,12 @@ export default function HomePage() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-        {/* Campus Services icon */}
         <TouchableOpacity onPress={() => setCampusServicesModalVisible(true)} style={styles.iconContainer}>
           <Ionicons name="business-outline" size={24} color={COLORS.UCONN_WHITE} />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerText}>Husky Buddies</Text>
         </View>
-        {/* Academic Resources icon */}
         <TouchableOpacity onPress={() => setAcademicModalVisible(true)} style={styles.iconContainer}>
           <Ionicons name="book-outline" size={24} color={COLORS.UCONN_WHITE} />
         </TouchableOpacity>
@@ -181,52 +271,59 @@ export default function HomePage() {
 
       {/* Campus Services Modal */}
       {renderModal("Campus Services", campusServices, campusServicesModalVisible, setCampusServicesModalVisible)}
-
       {/* Academic Resources Modal */}
       {renderModal("Academic Resources", academicResources, academicModalVisible, setAcademicModalVisible)}
 
+      {/* Content */}
       <ScrollView contentContainerStyle={styles.content}>
+        {loading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : (
+          <>
+            {/* Find a Study Buddy Section */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Find a Study Buddy</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.buddyScroll}>
+              {topMatches.length > 0 ? (
+                topMatches.map((buddy) => (
+                  <StudyBuddyCard
+                    key={buddy.id}
+                    name={buddy.name}
+                    sharedClasses={buddy.sharedClasses}
+                    profilePicture={buddy.profilePicture}
+                  />
+                ))
+              ) : (
+                <Text style={{ color: theme.colors.onBackground }}>No matches found.</Text>
+              )}
+            </ScrollView>
 
-        {/* Find a Study Buddy Section */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Find a Study Buddy</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.buddyScroll}
-        >
-          {studyBuddies.map((buddy) => (
-            <StudyBuddyCard key={buddy.id} {...buddy} />
-          ))}
-        </ScrollView>
+            <View style={styles.viewAllButtonWrapper}>
+              <Link href="/screens/student-matching" style={styles.fullWidthLink} asChild>
+                <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
+                  <Text style={styles.viewAllButtonText}>View All Matches</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
 
-        <View style={styles.viewAllButtonWrapper}>
-          <Link href="/screens/student-matching" style={styles.fullWidthLink} asChild>
-            <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
-              <Text style={styles.viewAllButtonText}>View All Matches</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-        
-        {/* Featured events section */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Featured Events</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.eventScroll}
-        >
-          {featuredEvents.map((event) => (
-            <EventCard key={event.id} {...event} />
-          ))}
-        </ScrollView>
+            {/* Featured events section */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Featured Events</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventScroll}>
+              {featuredEvents.map((event) => (
+                <EventCard key={event.id} {...event} />
+              ))}
+            </ScrollView>
 
-        <View style={styles.viewAllButtonWrapper}>
-          <Link href="/screens/events" style={styles.fullWidthLink} asChild>
-            <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
-              <Text style={styles.viewAllButtonText}>View All Events</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-
+            <View style={styles.viewAllButtonWrapper}>
+              <Link href="/screens/events" style={styles.fullWidthLink} asChild>
+                <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
+                  <Text style={styles.viewAllButtonText}>View All Events</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -234,26 +331,25 @@ export default function HomePage() {
 
 // Styles
 const styles = StyleSheet.create({
-  // Container and general layout
   container: {
     flex: 1,
   },
   content: {
     padding: 16,
   },
-
-  // Header styling
+  centerContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 500 ,
+  },
   header: {
     padding: 20,
     paddingTop: 60,
     marginBottom: 20,
-    borderRadius: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  headerLeftPlaceholder: {
-    width: 40,
   },
   headerTextContainer: {
     flex: 1,
@@ -268,8 +364,6 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'center',
   },
-
-  // Modal styling
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -301,8 +395,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-
-  // Button styling
   closeButton: {
     marginTop: 20,
     padding: 12,
@@ -329,8 +421,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-
-  // Section styling
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -339,8 +429,6 @@ const styles = StyleSheet.create({
   fullWidthLink: {
     width: '100%',
   },
-
-  // Event styling
   eventScroll: {
     marginBottom: 16,
   },
@@ -354,12 +442,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  eventImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
   eventName: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -368,8 +450,6 @@ const styles = StyleSheet.create({
   eventDetails: {
     fontSize: 14,
   },
-
-  // Study Buddy styling
   buddyScroll: {
     marginBottom: 16,
   },

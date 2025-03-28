@@ -142,7 +142,7 @@ export default function LoginSignup() {
     try {
       // call signIn() from authService.js with inputted email password
       const user = await signIn(email, password);
-      Alert.alert("Success", "Logged in successfully!");
+      // Alert.alert("Success", "Logged in successfully!");
       // navigate to home page after login
       router.replace("/screens");
     } catch (error) {
