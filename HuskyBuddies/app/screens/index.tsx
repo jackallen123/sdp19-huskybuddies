@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    minHeight: 500,
+    minHeight: 500 ,
   },
   header: {
     padding: 20,
