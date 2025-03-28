@@ -1,12 +1,13 @@
 /* Home Screen */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, SafeAreaView, Modal, Linking, StatusBar } from 'react-native';
 import { COLORS } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-
-import { useTheme } from 'react-native-paper';
+import { ActivityIndicator, useTheme } from 'react-native-paper';
+import { auth } from '../../backend/firebase/firebaseConfig';
+import { getAllUsers, getUserCourses, getUserProfile } from '../../backend/firebase/firestoreService';
 
 type EventCardProps = {
   name: string;
@@ -55,6 +56,79 @@ export default function HomePage() {
 
   const [academicModalVisible, setAcademicModalVisible] = useState(false);
   const [campusServicesModalVisible, setCampusServicesModalVisible] = useState(false);
+
+  // states for top matching study buddies & loading icon
+  const [topMatches, setTopMatches] = useState<Array<{ id: string; name: string; profilePicture: string; sharedClasses: number }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  // function to find shared courses between two users
+  const findSharedCourses = (userCourses: Array<any>, otherCourses: Array<any>): string[] => {
+    const shared: string[] = [];
+    for (const userCourse of userCourses) {
+      for (const otherCourse of otherCourses) {
+        if (userCourse.name === otherCourse.name) {
+          shared.push(userCourse.name);
+          break;
+        }
+      }
+    }
+    return shared;
+  };
+
+  // useEffect to fetch top matching study buddies based on shared courses
+  useEffect(() => {
+    const fetchTopMatches = async () => {
+      setLoading(true);
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        // fetch all users and the current user's courses
+        const users = await getAllUsers();
+        const currentUserCourses = await getUserCourses(currentUser.uid);
+
+        // build an array for all matches with the number of shared courses
+        const matches: Array<{ id: string; name: string; profilePicture: string; sharedClasses: number }> = [];
+
+        for (const student of users) {
+          // skip the current user
+          if (student.id === currentUser.uid) continue;
+
+          // fetch courses for the student
+          const studentCourses = await getUserCourses(student.id);
+          const shared = findSharedCourses(currentUserCourses, studentCourses);
+
+          if (shared.length > 0) {
+            // fetch additional profile details
+            const profileData = await getUserProfile(student.id);
+            const profilePicture: string = profileData?.profilePicture || 'https://via.placeholder.com/100';
+            // combine firstName and lastName from the student document
+            const displayName: string = `${student.firstName || ''} ${student.lastName || ''}`.trim();
+
+            matches.push({
+              id: student.id,
+              name: displayName,
+              profilePicture,
+              sharedClasses: shared.length,
+            });
+          }
+        }
+
+        // sort descending by the number of shared classes
+        matches.sort((a, b) => b.sharedClasses - a.sharedClasses);
+
+        // select the top 3 matches and set the matches
+        const top3 = matches.slice(0, 3);
+        setTopMatches(top3);
+      } catch (error) {
+        console.error("Error fetching top matches:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopMatches();
+  }, []);
 
   // Mock data for featured events
   const featuredEvents = [
@@ -166,14 +240,12 @@ export default function HomePage() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-        {/* Campus Services icon */}
         <TouchableOpacity onPress={() => setCampusServicesModalVisible(true)} style={styles.iconContainer}>
           <Ionicons name="business-outline" size={24} color={COLORS.UCONN_WHITE} />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerText}>Husky Buddies</Text>
         </View>
-        {/* Academic Resources icon */}
         <TouchableOpacity onPress={() => setAcademicModalVisible(true)} style={styles.iconContainer}>
           <Ionicons name="book-outline" size={24} color={COLORS.UCONN_WHITE} />
         </TouchableOpacity>
@@ -181,23 +253,30 @@ export default function HomePage() {
 
       {/* Campus Services Modal */}
       {renderModal("Campus Services", campusServices, campusServicesModalVisible, setCampusServicesModalVisible)}
-
       {/* Academic Resources Modal */}
       {renderModal("Academic Resources", academicResources, academicModalVisible, setAcademicModalVisible)}
 
       <ScrollView contentContainerStyle={styles.content}>
-
         {/* Find a Study Buddy Section */}
         <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Find a Study Buddy</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.buddyScroll}
-        >
-          {studyBuddies.map((buddy) => (
-            <StudyBuddyCard key={buddy.id} {...buddy} />
-          ))}
-        </ScrollView>
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.buddyScroll}>
+            {topMatches.length > 0 ? (
+              topMatches.map((buddy) => (
+                <StudyBuddyCard
+                  key={buddy.id}
+                  name={buddy.name}
+                  sharedClasses={buddy.sharedClasses}
+                  profilePicture={buddy.profilePicture}
+                />
+              ))
+            ) : (
+              <Text style={{ color: theme.colors.onBackground }}>No matches found.</Text>
+            )}
+          </ScrollView>
+        )}
 
         <View style={styles.viewAllButtonWrapper}>
           <Link href="/screens/student-matching" style={styles.fullWidthLink} asChild>
@@ -206,14 +285,10 @@ export default function HomePage() {
             </TouchableOpacity>
           </Link>
         </View>
-        
+
         {/* Featured events section */}
         <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Featured Events</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.eventScroll}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventScroll}>
           {featuredEvents.map((event) => (
             <EventCard key={event.id} {...event} />
           ))}
@@ -226,7 +301,6 @@ export default function HomePage() {
             </TouchableOpacity>
           </Link>
         </View>
-
       </ScrollView>
     </View>
   );
