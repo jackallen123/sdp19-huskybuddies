@@ -105,7 +105,7 @@ const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React
 
     await batch.commit();
     
-    // Update state with all events, preserving isadded status
+    // Update state with all events isadded status
     if (setEvents) {
       const eventsWithStatus = allEvents.map(event => ({
         ...event,
@@ -266,7 +266,10 @@ export default function MainPage() {
       console.error('Invalid session date:', session);
       return false;
     }
-    return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+    const today = new Date();
+    return (
+      sessionDate >= startOfWeek && sessionDate <= endOfWeek) ||
+      sessionDate.toDateString() === today.toDateString()
   });
 
   // Multipage event/study/calendar session handling
@@ -327,7 +330,7 @@ export default function MainPage() {
         <View style={styles.eventsWrapper}>
           <Text style={styles.sectionTitle}>Your Upcoming Items:</Text>
           <ScrollView style={styles.eventsList}>
-            {filteredEvents.length > 0 || filteredSessions.length > 0 ? (
+          {(filteredEvents.some(event => event.isadded) || filteredSessions.length > 0) ? (
               <>
                 {filteredEvents
                   .filter((event) => event.isadded)  

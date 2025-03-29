@@ -48,11 +48,14 @@ const AddEvent: React.FC<{
   // Fetch events only current user has made
   useEffect(() => {
     if (currentUserId) {
-      const unsubscribe = FetchEventsFromDatabase(currentUserId, setEvents)
-      return () => unsubscribe()
+      const unsubscribe = FetchEventsFromDatabase(currentUserId, (fetchedEvents: Event[]) => {
+        setEvents(fetchedEvents); 
+      });
+  
+      return () => unsubscribe();
     }
-  }, [currentUserId])
-
+  }, [currentUserId]);
+  
   // Make sure all fields
   const handleSubmit = async () => {
     if (!title || !description || !date || !currentUserId) {
