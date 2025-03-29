@@ -15,6 +15,7 @@ import {
   onSnapshot,
   limit,
   Timestamp, 
+  writeBatch
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -392,288 +393,6 @@ export const getUserCourses = async (userId) => {
 };
 
 /*
-  * EVENTS AND STUDY SESSIONS DB INTERACTIONS
-*/
-
-/**
- * Adds a new event to a specific user's Firestore database.
- * @param {string} userId - The ID of the current user.
- * @param {string} eventId - The event ID.
- * @param {string} title - The title of the event.
- * @param {Timestamp} date - The date and time of the event.
- * @param {string} description - The description of the event.
- * @param {boolean} isadded - Whether the event is added to the calendar.
- */
-export const AddEventToDatabase = async (userId, eventId, title, date, description, isadded) => {
-  try {
-    // Generate a unique ID if one is not provided
-    const finalEventId = eventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-    // Add to user's events collection
-    const userEventRef = doc(db, "users", userId, "events", finalEventId)
-    await setDoc(userEventRef, {
-      title: title,
-      date: date,
-      description: description,
-      isadded: isadded,
-      createdBy: userId,
-    })
-
-    // Also add to allEvents collection for global visibility
-    const allEventsRef = doc(db, "users", userId, "allEvents", finalEventId)
-    await setDoc(allEventsRef, {
-      title: title,
-      date: date,
-      description: description,
-      isadded: isadded,
-      createdBy: userId,
-    })
-
-    console.log(`Event added successfully: ${title} with ID: ${finalEventId}`)
-    return finalEventId // Return the ID for reference
-  } catch (error) {
-    console.error("Error adding event to database:", error)
-    throw error
-  }
-}
-
-/**
- * Deletes an event from a specific user's Firestore database.
- * @param {string} userId - The ID of the current user.
- * @param {string} eventId - The ID of the event.
- */
-export const DeleteEventFromDatabase = async (userId, eventId) => {
-  try {
-    // Delete from user's events collection
-    const userEventRef = doc(db, "users", userId, "events", eventId)
-    await deleteDoc(userEventRef)
-
-    // Also delete from allEvents collection
-    const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
-    await deleteDoc(allEventsRef)
-
-    console.log(`Event deleted successfully: ${eventId}`)
-  } catch (error) {
-    console.error("Error deleting event from database:", error)
-    throw error
-  }
-}
-
-/**
- * Fetches events for a specific user from Firestore (Real-time listener).
- * @param {string} userId - The ID of the current user.
- * @param {function} setEvents - A function to update the state with the fetched events.
- */
-export const FetchEventsFromDatabase = (userId, setEvents) => {
-  if (!userId) {
-    console.error("Cannot fetch events: No user ID provided")
-    return () => {} // Return empty unsubscribe function
-  }
-
-  const userEventsRef = collection(db, "users", userId, "events")
-
-  return onSnapshot(
-    userEventsRef,
-    (snapshot) => {
-      const eventsList = snapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          title: data.title,
-          date: data.date,
-          description: data.description,
-          isadded: data.isadded,
-          createdBy: data.createdBy || userId, // Ensure createdBy is set
-        }
-      })
-      console.log(`Fetched ${eventsList.length} events for user ${userId}`)
-      setEvents(eventsList)
-    },
-    (error) => {
-      console.error("Error fetching events:", error)
-    },
-  )
-}
-
-/**
- * Fetches events for all users and stores them in the 'allEvents' collection under each user.
- * @param {string} userId - The ID of the current user (for logging purposes).
- * @param {function} setEvents - A function to update the state with the fetched events.
- */
-export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
-  try {
-    console.log(`User ${userId} is syncing all events`)
-
-    const usersRef = collection(db, "users")
-    const usersSnapshot = await getDocs(usersRef)
-
-    const allEvents = []
-
-    // Process each user
-    for (const userDoc of usersSnapshot.docs) {
-      const creatorId = userDoc.id
-
-      // Skip the current user - we already have their events from the listener
-      if (creatorId === userId) {
-        console.log(`Skipping current user ${userId} during sync`)
-        continue
-      }
-
-      // Get user's events
-      const userEventsRef = collection(db, "users", creatorId, "events")
-      const eventsSnapshot = await getDocs(userEventsRef)
-
-      console.log(`Found ${eventsSnapshot.docs.length} events for user ${creatorId}`)
-
-      // Process each event
-      for (const eventDoc of eventsSnapshot.docs) {
-        const data = eventDoc.data()
-        const eventId = eventDoc.id
-
-        // Validate event data
-        if (!data.title || !data.date || !data.description) {
-          console.warn(`Skipping event with missing data: ${eventId}`)
-          continue
-        }
-
-        // Create event object
-        const event = {
-          id: eventId,
-          title: data.title,
-          date: data.date,
-          description: data.description,
-          isadded: false, // Default to false for other users
-          createdBy: creatorId,
-        }
-
-        // Add to our collection array
-        allEvents.push(event)
-
-        // Store in allEvents collection with the SAME ID as the original event
-        const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
-        await setDoc(allEventsRef, {
-          title: data.title,
-          date: data.date,
-          description: data.description,
-          isadded: false,
-          createdBy: creatorId,
-        })
-      }
-    }
-
-    console.log(`Total events synced: ${allEvents.length}`)
-
-    // Update state with all events
-    if (setEvents) {
-      setEvents(allEvents)
-    }
-
-    return allEvents
-  } catch (error) {
-    console.error("Error syncing all events:", error)
-    throw error
-  }
-}
-
-export const FetchAllEventsFromDatabase = (userId, setEvents) => {
-  if (!userId) {
-    console.error("Cannot fetch all events: No user ID provided")
-    return () => {} // Return empty unsubscribe function
-  }
-
-  // This should fetch from the user's own allEvents subcollection
-  const allEventsRef = collection(db, "users", userId, "allEvents")
-
-  return onSnapshot(
-    allEventsRef,
-    (snapshot) => {
-      const eventsList = snapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          title: data.title,
-          date: data.date,
-          description: data.description,
-          isadded: data.isadded,
-          createdBy: data.createdBy,
-        }
-      })
-      console.log(`Fetched ${eventsList.length} events for user ${userId}`)
-      setEvents(eventsList)
-    },
-    (error) => {
-      console.error("Error fetching all events:", error)
-    },
-  )
-}
-
-/**
- * Adds a new study session to the Firestore database.
- * @param {string} userId
- * @param {string} studySessionId
- * @param {string} studySessionTitle
- * @param {Time} studySessionDate
- * @param {string[]} studySessionFriends
- */
-export const AddStudySessionToDatabase = async (
-  userId,
-  studySessionId,
-  studySessionTitle,
-  studySessionDate,
-  studySessionFriends,
-) => {
-  // Generate a unique ID if one is not provided
-  const sessionId = studySessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-  const userStudySessionsRef = doc(db, "users", userId, "studySessions", sessionId)
-  await setDoc(userStudySessionsRef, {
-    title: studySessionTitle,
-    date: studySessionDate,
-    friends: studySessionFriends,
-    createdBy: userId,
-  })
-
-  return sessionId // Return the ID for reference
-}
-
-/**
- * Deletes a study session from the Firestore database under the user's sub-collection.
- * @param {string} userId - The ID of the current user.
- * @param {string} studySessionId - The ID of the study session.
- */
-export const DeleteStudySessionFromDatabase = async (userId, studySessionId) => {
-  try {
-    const userStudySessionsRef = doc(db, "users", userId, "studySessions", studySessionId)
-    await deleteDoc(userStudySessionsRef)
-  } catch (error) {
-    console.error("Error deleting study session from database:", error)
-  }
-}
-
-/**
- * Fetches study sessions from Firestore for the current user (Real-time listener).
- * @param {string} userId
- * @param {function} setSessions
- */
-export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
-  const userStudySessionsRef = collection(db, "users", userId, "studySessions")
-
-  return onSnapshot(userStudySessionsRef, (snapshot) => {
-    const sessionsList = snapshot.docs.map((doc) => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        title: data.title,
-        date: data.date,
-        friends: data.friends,
-        createdBy: data.createdBy,
-      };
-    });
-    setSessions(sessionsList)
-  });
-};
-
-/*
   * MESSAGES DB INTERACTIONS
 */
 
@@ -907,3 +626,461 @@ export const hasMessagesWithFriend = async (userId, friendId) => {
     return false;
   }
 };
+
+
+/*
+ * SCHEDULER DB INTERACTIONS
+ */
+
+/**
+ * Adds a new event to a specific user's Firestore database.
+ * @param {string} userId
+ * @param {string} eventId 
+ * @param {string} title
+ * @param {Timestamp} date 
+ * @param {string} description 
+ * @param {boolean} isadded 
+ */
+export const AddEventToDatabase = async (userId, eventId, title, date, description, isadded) => {
+  try {
+    // Generate a unique ID if one is not provided
+    const finalEventId = eventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Get user's name for display
+    const userName = await getFullName(userId)
+
+    // Add to user's events collection
+    const userEventRef = doc(db, "users", userId, "events", finalEventId)
+    await setDoc(userEventRef, {
+      title: title,
+      date: date,
+      description: description,
+      isadded: isadded,
+      createdBy: userId,
+      creatorName: userName || "Unknown User",
+    })
+
+    // Add to allEvents collection for global visibility
+    const allEventsRef = doc(db, "users", userId, "allEvents", finalEventId)
+    await setDoc(allEventsRef, {
+      title: title,
+      date: date,
+      description: description,
+      isadded: isadded,
+      createdBy: userId,
+      creatorName: userName || "Unknown User",
+    })
+    return finalEventId 
+  } catch (error) {
+    console.error("Error adding event to database:", error)
+    throw error
+  }
+}
+
+/**
+ * Deletes an event from a specific user's Firestore database and syncs the deletion to all users.
+ * @param {string} userId 
+ * @param {string} eventId
+ */
+export const DeleteEventFromDatabase = async (userId, eventId) => {
+  try {
+    // First, check if the event exists in the user's events collection
+    const userEventRef = doc(db, "users", userId, "events", eventId)
+    const eventDoc = await getDoc(userEventRef)
+
+    // Delete from user's events collection
+    await deleteDoc(userEventRef)
+    
+    // Delete from current user's allEvents collection
+    const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
+    await deleteDoc(allEventsRef)
+    
+    // Sync deletion to all other users' allEvents collections
+    const usersRef = collection(db, "users")
+    const usersSnapshot = await getDocs(usersRef)
+
+    const deletionPromises = []
+
+    // Process each user to delete the event from their allEvents collection
+    for (const userDoc of usersSnapshot.docs) {
+      const otherUserId = userDoc.id
+
+      // Skip the current user as we've already deleted from their collections
+      if (otherUserId === userId) {
+        continue
+      }
+
+      // Delete the event from this user's allEvents collection
+      const otherUserAllEventsRef = doc(db, "users", otherUserId, "allEvents", eventId)
+      deletionPromises.push(deleteDoc(otherUserAllEventsRef))
+    }
+
+    // Wait for all deletion operations to complete
+    await Promise.all(deletionPromises)
+
+  } catch (error) {
+    console.error("Error deleting event from database:", error)
+    throw error
+  }
+}
+
+/**
+ * Fetches events for a specific user from Firestore (Real-time listener).
+ * @param {string} userId 
+ * @param {function} setEvents
+ */
+export const FetchEventsFromDatabase = (userId, setEvents) => {
+  if (!userId) {
+    return () => {};
+  }
+
+  const userEventsRef = collection(db, "users", userId, "events");
+  return onSnapshot(
+    userEventsRef,
+    (snapshot) => {
+      if (!snapshot.empty) {
+        const eventsList = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.title,
+            date: data.date,
+            description: data.description,
+            isadded: data.isadded,
+            createdBy: data.createdBy || userId,
+            creatorName: data.creatorName || "Unknown User",
+          };
+        });
+
+        setEvents(eventsList);
+      }
+    },
+    (error) => {
+      console.error("Error fetching events:", error);
+    }
+  );
+};
+
+
+/**
+ * Fetches events for all users and stores them in the 'allEvents' collection under each user.
+ * @param {string} userId 
+ * @param {function} setEvents
+ */
+export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
+  try {
+    // Get all existing events from the user's own events collection
+    const userEventsRef = collection(db, "users", userId, "events")
+    const userEventsSnapshot = await getDocs(userEventsRef)
+
+    // Create a map of existing event IDs to preserve them during sync
+    const existingEventIds = new Map()
+    userEventsSnapshot.docs.forEach((doc) => {
+      existingEventIds.set(doc.id, true)
+    })
+
+    // Get all users
+    const usersRef = collection(db, "users")
+    const usersSnapshot = await getDocs(usersRef)
+
+    const allEvents = []
+    const batchOperations = []
+
+    // Process each user
+    for (const userDoc of usersSnapshot.docs) {
+      const creatorId = userDoc.id
+
+      // Skip the current user - we already have their events from the listener
+      if (creatorId === userId) {
+        continue
+      }
+
+      // Get creator's name
+      const creatorName = await getFullName(creatorId)
+
+      // Get user's events
+      const userEventsRef = collection(db, "users", creatorId, "events")
+      const eventsSnapshot = await getDocs(userEventsRef)
+
+      // Process each event
+      for (const eventDoc of eventsSnapshot.docs) {
+        const data = eventDoc.data()
+        const eventId = eventDoc.id
+
+        // Validate event data
+        if (!data.title || !data.date || !data.description) {
+          continue
+        }
+
+        // Create event object
+        const event = {
+          id: eventId,
+          title: data.title,
+          date: data.date,
+          description: data.description,
+          isadded: false, // Default to false for other users
+          createdBy: creatorId,
+          creatorName: data.creatorName || creatorName || "Unknown User",
+        }
+
+        // Add to our collection array
+        allEvents.push(event)
+
+        // Store in allEvents collection with the SAME ID as the original event
+        const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
+        batchOperations.push({
+          ref: allEventsRef,
+          data: {
+            title: data.title,
+            date: data.date,
+            description: data.description,
+            isadded: false,
+            createdBy: creatorId,
+            creatorName: data.creatorName || creatorName || "Unknown User",
+          },
+        })
+      }
+    }
+
+    // Now process all the batch operations in chunks to avoid Firestore limits
+    const BATCH_SIZE = 500 
+    let operationCount = 0
+    let batch = writeBatch(db)
+
+    for (const op of batchOperations) {
+      batch.set(op.ref, op.data)
+      operationCount++
+
+      if (operationCount >= BATCH_SIZE) {
+        await batch.commit()
+        batch = writeBatch(db)
+        operationCount = 0
+      }
+    }
+
+    // Commit any remaining operations
+    if (operationCount > 0) {
+      await batch.commit()
+    }
+
+    // Update state with all events
+    if (setEvents) {
+      setEvents(allEvents)
+    }
+
+    return allEvents
+  } catch (error) {
+    console.error("Error syncing all events:", error)
+    throw error
+  }
+}
+
+/**
+ * Safely removes specific events from allEvents collection without clearing everything
+ * @param {string} userId 
+ * @param {string[]} eventIdsToRemove
+ */
+export const removeEventsFromAllEvents = async (userId, eventIdsToRemove) => {
+  try {
+    if (!eventIdsToRemove || eventIdsToRemove.length === 0) {
+      return
+    }
+
+    const batch = writeBatch(db)
+    let operationCount = 0
+    const BATCH_SIZE = 500
+
+    for (const eventId of eventIdsToRemove) {
+      const eventRef = doc(db, "users", userId, "allEvents", eventId)
+      batch.delete(eventRef)
+      operationCount++
+
+      if (operationCount >= BATCH_SIZE) {
+        await batch.commit()
+        operationCount = 0
+      }
+    }
+
+    if (operationCount > 0) {
+      await batch.commit()
+    }
+
+  } catch (error) {
+    console.error("Error removing specific events:", error)
+  }
+}
+
+export const FetchAllEventsFromDatabase = (userId, setEvents) => {
+  if (!userId) {
+    console.error("Cannot fetch all events: No user ID provided")
+    return () => {} 
+  }
+
+  const allEventsRef = collection(db, "users", userId, "allEvents")
+
+  return onSnapshot(
+    allEventsRef,
+    (snapshot) => {
+      const eventsList = snapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          title: data.title,
+          date: data.date,
+          description: data.description,
+          isadded: data.isadded || false,
+          createdBy: data.createdBy,
+          creatorName: data.creatorName || "Unknown User",
+        }
+      })
+      setEvents(eventsList)
+    },
+    (error) => {
+      console.error("Error fetching all events:", error)
+    },
+  )
+}
+
+/**
+ * Force refresh all events by syncing without clearing first
+ * @param {string} userId 
+ * @param {function} setEvents
+ */
+export const ForceRefreshAllEvents = async (userId, setEvents) => {
+  try {
+    // Just sync all events without clearing first
+    return await SyncAllEventsFromDatabase(userId, setEvents)
+  } catch (error) {
+    console.error("Error force refreshing events:", error)
+  }
+}
+
+/**
+ * Adds a new study session to the Firestore database for the creator and all participants.
+ * @param {string} userId 
+ * @param {string} studySessionId 
+ * @param {string} studySessionTitle 
+ * @param {Time} studySessionDate 
+ * @param {string[]} studySessionFriends
+ */
+export const AddStudySessionToDatabase = async (
+  userId,
+  studySessionId,
+  studySessionTitle,
+  studySessionDate,
+  studySessionFriends,
+) => {
+  try {
+    // Generate a unique ID if one is not provided
+    const sessionId = studySessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Get creator's name for friend's view
+    const creatorName = await getFullName(userId)
+
+    // Create a map of all participant names
+    const participantNames = new Map()
+    participantNames.set(userId, creatorName || "Creator")
+
+    // Get names for all friends
+    for (const friendId of studySessionFriends) {
+      const friendName = await getFullName(friendId)
+      participantNames.set(friendId, friendName || friendId)
+    }
+
+    // Add to creator's study sessions collection with original title
+    const userStudySessionsRef = doc(db, "users", userId, "studySessions", sessionId)
+    await setDoc(userStudySessionsRef, {
+      title: studySessionTitle, 
+      date: studySessionDate,
+      friends: studySessionFriends,
+      createdBy: userId,
+      creatorName: creatorName || "Creator",
+    })
+
+    // Add to each friend's study sessions collection with personalized title
+    for (const friendId of studySessionFriends) {
+      // Create a personalized title for this friend that includes the creator and other participants
+      const otherParticipants = studySessionFriends
+        .filter((id) => id !== friendId) // Exclude the current friend
+        .map((id) => participantNames.get(id)) // Get names of other friends
+
+      // Add creator's name at the beginning if they're not already in the list
+      const allParticipants = [creatorName || "Creator", ...otherParticipants]
+
+      const personalizedTitle = `Study session with ${allParticipants.join(", ")}`
+
+      const friendStudySessionsRef = doc(db, "users", friendId, "studySessions", sessionId)
+      await setDoc(friendStudySessionsRef, {
+        title: personalizedTitle,
+        date: studySessionDate,
+        friends: studySessionFriends,
+        createdBy: userId, 
+        creatorName: creatorName || "Creator",
+      })
+    }
+    return sessionId 
+  } catch (error) {
+    console.error("Error adding study session:", error)
+    throw error
+  }
+}
+
+/**
+ * Deletes a study session from the Firestore database for the creator and all participants.
+ * @param {string} userId 
+ * @param {string} studySessionId 
+ * @param {string[]} [participants] 
+ */
+export const DeleteStudySessionFromDatabase = async (userId, studySessionId, participants = []) => {
+  try {
+    // First, get the study session to find all participants if not provided
+    if (participants.length === 0) {
+      const sessionRef = doc(db, "users", userId, "studySessions", studySessionId)
+      const sessionSnap = await getDoc(sessionRef)
+
+      if (sessionSnap.exists()) {
+        const sessionData = sessionSnap.data()
+        participants = sessionData.friends || []
+      }
+    }
+
+    // Delete from creator's collection
+    const userStudySessionsRef = doc(db, "users", userId, "studySessions", studySessionId)
+    await deleteDoc(userStudySessionsRef)
+
+    // Delete from each participant's collection
+    for (const participantId of participants) {
+      const participantSessionRef = doc(db, "users", participantId, "studySessions", studySessionId)
+      await deleteDoc(participantSessionRef)
+    }
+
+  } catch (error) {
+    console.error("Error deleting study session from database:", error)
+    throw error
+  }
+}
+
+/**
+ * Fetches study sessions from Firestore for the current user (Real-time listener).
+ * @param {string} userId
+ * @param {function} setSessions
+ */
+export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
+  const userStudySessionsRef = collection(db, "users", userId, "studySessions")
+
+  return onSnapshot(userStudySessionsRef, (snapshot) => {
+    const sessionsList = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        title: data.title,
+        date: data.date,
+        friends: data.friends,
+        createdBy: data.createdBy,
+        creatorName: data.creatorName || "Unknown User",
+      }
+    })
+    setSessions(sessionsList)
+  })
+}
+
