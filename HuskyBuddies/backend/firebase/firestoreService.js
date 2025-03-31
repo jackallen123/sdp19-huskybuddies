@@ -437,6 +437,26 @@ export const getUserStudyPreferences = async (userId) => {
 };
 
 /**
+ * Retrieves a user's interests from the userProfile subcollection
+ * @param {string} userId - ID of the user
+ * @returns {Promise<string[]|null>} - Array of interests or null if not found
+ */
+export const getUserInterests = async (userId) => {
+  try {
+    const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
+    const profileDoc = await getDoc(profileDocRef);
+    
+    if (profileDoc.exists() && profileDoc.data().interests) {
+      return profileDoc.data().interests;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching interests:", error);
+    return null;
+  }
+};
+
+/**
  * Retrieves a user's profile picture from the userProfile subcollection
  * @param {string} userId - ID of the user
  * @returns {Promise<string|null>} - The profile picture URL or null if not found

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
-  ActivityIndicator
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/Colors';
@@ -20,6 +20,7 @@ import {
   getUserCourses,
   getUserProfilePicture,
   getUserStudyPreferences,
+  getUserInterests,
   sendFriendRequest, 
   cancelFriendRequest, 
   acceptFriendRequest, 
@@ -27,125 +28,75 @@ import {
   removeFriend 
 } from '../../../backend/firebase/firestoreService';
 import { auth } from '../../../backend/firebase/firebaseConfig';
+import { ActivityIndicator } from "react-native-paper";
+import { useFocusEffect } from '@react-navigation/native';
 
 const IndexScreen = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentUserCourses, setCurrentUserCourses] = useState([]);
+  const [currentUserPreferences, setCurrentUserPreferences] = useState([]);
+  const [currentUserInterests, setCurrentUserInterests] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
-  const [matchedStudents, setMatchedStudents] = useState([]);
+  const [displayedStudents, setDisplayedStudents] = useState([]);
   const [studentCourses, setStudentCourses] = useState({});
   const [sharedCourses, setSharedCourses] = useState({});
   const [studyPreferences, setStudyPreferences] = useState({});
+  const [interests, setInterests] = useState({});
+  const [sharedPreferences, setSharedPreferences] = useState({});
+  const [sharedInterests, setSharedInterests] = useState({});
+  const [profilePictures, setProfilePictures] = useState({});
   const [friendRequests, setFriendRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [friends, setFriends] = useState([]);
-  const [profilePictures, setProfilePictures] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [matchingEnabled, setMatchingEnabled] = useState(true);
+  const [refreshingFriends, setRefreshingFriends] = useState(false);
+  const [refreshingData, setRefreshingData] = useState(false);
+  
+  // Filter states
+  const [classesFilterEnabled, setClassesFilterEnabled] = useState(false);
+  const [preferencesFilterEnabled, setPreferencesFilterEnabled] = useState(false);
+  const [interestsFilterEnabled, setInterestsFilterEnabled] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      setLoading(true);
-      try {
-        const user = auth.currentUser;
-        if (user) {
-          setCurrentUser(user);
-          
-          // Get all users
-          const users = await getAllUsers();
-          setAllStudents(users);
-          
-          // Get current user's courses
-          const userCourses = await getUserCourses(user.uid);
-          setCurrentUserCourses(userCourses);
-          
-          // Get courses for all students
-          const coursesMap = {};
-          const sharedCoursesMap = {};
-          const picturesMap = {};
-          const preferencesMap = {};
-          
-          for (const student of users) {
-            if (student.id !== user.uid) {
-              // Get student courses
-              const courses = await getUserCourses(student.id);
-              coursesMap[student.id] = courses;
-              
-              // Find shared courses
-              const shared = findSharedCourses(userCourses, courses);
-              if (shared.length > 0) {
-                sharedCoursesMap[student.id] = shared;
-              }
-              
-              // Get profile picture
-              const profilePic = await getUserProfilePicture(student.id);
-              if (profilePic) {
-                picturesMap[student.id] = profilePic;
-              }
-              
-              // Get study preferences
-              const preferences = await getUserStudyPreferences(student.id);
-              if (preferences) {
-                preferencesMap[student.id] = preferences;
-              }
-            }
-          }
-          
-          // Get current user's profile picture and preferences
-          const currentUserPic = await getUserProfilePicture(user.uid);
-          if (currentUserPic) {
-            picturesMap[user.uid] = currentUserPic;
-          }
-          
-          const currentUserPrefs = await getUserStudyPreferences(user.uid);
-          if (currentUserPrefs) {
-            preferencesMap[user.uid] = currentUserPrefs;
-          }
-          
-          setStudentCourses(coursesMap);
-          setSharedCourses(sharedCoursesMap);
-          setProfilePictures(picturesMap);
-          setStudyPreferences(preferencesMap);
-          
-          // Filter for matched students by default
-          const filteredMatches = users.filter(student => 
-            student.id !== user.uid && 
-            sharedCoursesMap[student.id] && 
-            sharedCoursesMap[student.id].length > 0
-          );
-          setMatchedStudents(filteredMatches);
-          
-          // Get friends list
-          const friendsList = await getFriends(user.uid);
-          setFriends(friendsList);
-          
-          // Get incoming friend requests
-          const incomingRequests = await getIncomingFriendRequests(user.uid);
-          setFriendRequests(incomingRequests);
-          
-          // Get outgoing friend requests
-          const outgoing = await getOutgoingFriendRequests(user.uid);
-          setOutgoingRequests(outgoing);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Function to fetch friends and friend requests
+  const fetchFriendsAndRequests = async () => {
+    if (!currentUser) return;
     
-    fetchUserData();
-  }, []);
+    setRefreshingFriends(true);
+    try {
+      // Get friends list
+      const friendsList = await getFriends(currentUser.uid);
+      setFriends(friendsList);
+      
+      // Get incoming friend requests
+      const incomingRequests = await getIncomingFriendRequests(currentUser.uid);
+      setFriendRequests(incomingRequests);
+      
+      // Get outgoing friend requests
+      const outgoing = await getOutgoingFriendRequests(currentUser.uid);
+      setOutgoingRequests(outgoing);
+    } catch (error) {
+      console.error("Error fetching friends data:", error);
+    } finally {
+      setRefreshingFriends(false);
+    }
+  };
 
-  // Find courses with matching names
-  const findSharedCourses = (userCourses, otherCourses) => {
+  // Function to find shared items (courses, preferences, interests)
+  const findSharedItems = (userItems, otherItems, nameField = null) => {
     const shared = [];
     
-    for (const userCourse of userCourses) {
-      for (const otherCourse of otherCourses) {
-        if (userCourse.name === otherCourse.name) {
-          shared.push(userCourse.name);
+    if (!userItems || !otherItems) return shared;
+    
+    for (const userItem of userItems) {
+      for (const otherItem of otherItems) {
+        // If nameField is provided, compare that field (for courses)
+        // Otherwise compare the items directly (for preferences and interests)
+        const userValue = nameField ? userItem[nameField] : userItem;
+        const otherValue = nameField ? otherItem[nameField] : otherItem;
+        
+        if (userValue === otherValue) {
+          shared.push(userValue);
           break;
         }
       }
@@ -154,22 +105,188 @@ const IndexScreen = () => {
     return shared;
   };
 
-  const toggleMatchingFilter = () => {
-    setMatchingEnabled(!matchingEnabled);
+  // Function to fetch all student data
+  const fetchAllStudentData = async (showLoadingIndicator = true) => {
+    if (!auth.currentUser) return;
     
-    if (!matchingEnabled) {
-      // Filter for students with matching classes
-      const filteredMatches = allStudents.filter(student => 
-        student.id !== currentUser.uid && 
-        sharedCourses[student.id] && 
-        sharedCourses[student.id].length > 0
-      );
-      setMatchedStudents(filteredMatches);
+    if (showLoadingIndicator) {
+      setLoading(true);
     } else {
-      // Show all students except current user
-      const allOtherStudents = allStudents.filter(student => student.id !== currentUser.uid);
-      setMatchedStudents(allOtherStudents);
+      setRefreshingData(true);
     }
+    
+    try {
+      const user = auth.currentUser;
+      setCurrentUser(user);
+      
+      // Get all users
+      const users = await getAllUsers();
+      setAllStudents(users);
+      
+      // Get current user's data
+      const userCourses = await getUserCourses(user.uid);
+      const userPreferences = await getUserStudyPreferences(user.uid);
+      const userInterests = await getUserInterests(user.uid);
+      
+      setCurrentUserCourses(userCourses || []);
+      setCurrentUserPreferences(userPreferences || []);
+      setCurrentUserInterests(userInterests || []);
+      
+      // Get data for all students
+      const coursesMap = {};
+      const sharedCoursesMap = {};
+      const preferencesMap = {};
+      const interestsMap = {};
+      const sharedPreferencesMap = {};
+      const sharedInterestsMap = {};
+      const picturesMap = {};
+      
+      for (const student of users) {
+        if (student.id !== user.uid) {
+          // Get student courses
+          const courses = await getUserCourses(student.id);
+          if (courses) {
+            coursesMap[student.id] = courses;
+            
+            // Find shared courses
+            const shared = findSharedItems(userCourses || [], courses, 'name');
+            if (shared.length > 0) {
+              sharedCoursesMap[student.id] = shared;
+            }
+          }
+          
+          // Get student study preferences
+          const preferences = await getUserStudyPreferences(student.id);
+          if (preferences) {
+            preferencesMap[student.id] = preferences;
+            
+            // Find shared preferences
+            const sharedPrefs = findSharedItems(userPreferences || [], preferences);
+            if (sharedPrefs.length > 0) {
+              sharedPreferencesMap[student.id] = sharedPrefs;
+            }
+          }
+          
+          // Get student interests
+          const studentInterests = await getUserInterests(student.id);
+          if (studentInterests) {
+            interestsMap[student.id] = studentInterests;
+            
+            // Find shared interests
+            const sharedInts = findSharedItems(userInterests || [], studentInterests);
+            if (sharedInts.length > 0) {
+              sharedInterestsMap[student.id] = sharedInts;
+            }
+          }
+          
+          // Get profile picture
+          const profilePic = await getUserProfilePicture(student.id);
+          if (profilePic) {
+            picturesMap[student.id] = profilePic;
+          }
+        }
+      }
+      
+      // Get current user's profile picture
+      const currentUserPic = await getUserProfilePicture(user.uid);
+      if (currentUserPic) {
+        picturesMap[user.uid] = currentUserPic;
+      }
+      
+      setStudentCourses(coursesMap);
+      setSharedCourses(sharedCoursesMap);
+      setStudyPreferences(preferencesMap);
+      setInterests(interestsMap);
+      setSharedPreferences(sharedPreferencesMap);
+      setSharedInterests(sharedInterestsMap);
+      setProfilePictures(picturesMap);
+      
+      // Show all students by default (no filters)
+      const allOtherStudents = users.filter(student => student.id !== user.uid);
+      setDisplayedStudents(allOtherStudents);
+      
+      // Fetch friends and requests
+      await fetchFriendsAndRequests();
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      if (showLoadingIndicator) {
+        setLoading(false);
+      } else {
+        setRefreshingData(false);
+      }
+    }
+  };
+
+  // Initial data loading
+  useEffect(() => {
+    fetchAllStudentData(true);
+  }, []);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Only refresh if we already have data loaded (not first load)
+      if (currentUser) {
+        console.log("Screen focused, refreshing data...");
+        fetchAllStudentData(false);
+      }
+      
+      return () => {
+        // This runs when the screen loses focus
+        console.log("Screen unfocused");
+      };
+    }, [currentUser])
+  );
+
+  // Refresh friends and requests when modal is opened
+  useEffect(() => {
+    if (modalVisible && currentUser) {
+      fetchFriendsAndRequests();
+    }
+  }, [modalVisible]);
+
+  // Apply filters based on current filter states
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    // Start with all students except current user
+    let filteredStudents = allStudents.filter(student => student.id !== currentUser.uid);
+    
+    // Apply class filter if enabled
+    if (classesFilterEnabled) {
+      filteredStudents = filteredStudents.filter(student => 
+        sharedCourses[student.id] && sharedCourses[student.id].length > 0
+      );
+    }
+    
+    // Apply preferences filter if enabled
+    if (preferencesFilterEnabled) {
+      filteredStudents = filteredStudents.filter(student => 
+        sharedPreferences[student.id] && sharedPreferences[student.id].length > 0
+      );
+    }
+    
+    // Apply interests filter if enabled
+    if (interestsFilterEnabled) {
+      filteredStudents = filteredStudents.filter(student => 
+        sharedInterests[student.id] && sharedInterests[student.id].length > 0
+      );
+    }
+    
+    setDisplayedStudents(filteredStudents);
+  }, [classesFilterEnabled, preferencesFilterEnabled, interestsFilterEnabled, currentUser, allStudents]);
+
+  const toggleClassesFilter = () => {
+    setClassesFilterEnabled(!classesFilterEnabled);
+  };
+
+  const togglePreferencesFilter = () => {
+    setPreferencesFilterEnabled(!preferencesFilterEnabled);
+  };
+
+  const toggleInterestsFilter = () => {
+    setInterestsFilterEnabled(!interestsFilterEnabled);
   };
 
   const handleSendRequest = async (studentId) => {
@@ -195,8 +312,8 @@ const IndexScreen = () => {
   const handleAcceptRequest = async (studentId) => {
     try {
       await acceptFriendRequest(currentUser.uid, studentId);
-      setFriends([...friends, studentId]);
-      setFriendRequests(friendRequests.filter(id => id !== studentId));
+      // Refresh friends and requests after accepting
+      await fetchFriendsAndRequests();
     } catch (error) {
       console.error("Error accepting friend request:", error);
     }
@@ -240,13 +357,12 @@ const IndexScreen = () => {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
-        <Text style={styles.loadingText}>Loading students...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeftPlaceholder}></View>
         <Text style={styles.headerText}>Match with a Buddy</Text>
@@ -258,87 +374,190 @@ const IndexScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity 
-        style={[
-          styles.matchButton, 
-          matchingEnabled ? styles.matchButtonActive : styles.matchButtonInactive
-        ]} 
-        onPress={toggleMatchingFilter}
-      >
-        <Ionicons 
-          name={matchingEnabled ? "checkmark-circle" : "filter"} 
-          size={20} 
-          color={'#fff'} 
-          style={styles.buttonIcon} 
-        />
-        <Text style={styles.matchButtonText}>
-          {matchingEnabled ? "Matching Classes Only" : "Show All Students"}
-        </Text>
-      </TouchableOpacity>
+      {refreshingData && (
+        <View style={styles.refreshingBanner}>
+          <ActivityIndicator size="small" color={COLORS.UCONN_NAVY} />
+          <Text style={styles.refreshingText}>Refreshing student data...</Text>
+        </View>
+      )}
 
-      <FlatList
-        data={matchedStudents}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image 
-              source={{ uri: getStudentImage(item.id) }} 
-              style={styles.avatar} 
+      <View style={styles.filtersContainer}>
+        <Text style={styles.filtersTitle}>Filter by:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScrollView}>
+          <TouchableOpacity 
+            style={[
+              styles.filterButton, 
+              classesFilterEnabled ? styles.filterButtonActive : styles.filterButtonInactive
+            ]} 
+            onPress={toggleClassesFilter}
+          >
+            <Ionicons 
+              name={classesFilterEnabled ? "checkmark-circle" : "school-outline"} 
+              size={18} 
+              color={classesFilterEnabled ? '#fff' : COLORS.UCONN_NAVY} 
+              style={styles.buttonIcon} 
             />
-            <View style={styles.cardContent}>
-              <Text style={styles.profileName}>{item.name || `${item.firstName || ''} ${item.lastName || ''}`}</Text>
-              
-              {/* Display shared courses */}
-              {sharedCourses[item.id] && sharedCourses[item.id].length > 0 ? (
-                <View style={styles.sharedCoursesContainer}>
-                  <Text style={styles.sectionLabel}>Shared Classes:</Text>
-                  <View style={styles.tagsContainer}>
-                    {sharedCourses[item.id].map((course, index) => (
-                      <View key={`course-${index}`} style={styles.courseTag}>
-                        <Text style={styles.courseTagText}>{course}</Text>
-                      </View>
-                    ))}
+            <Text style={[
+              styles.filterButtonText,
+              classesFilterEnabled ? styles.filterButtonTextActive : styles.filterButtonTextInactive
+            ]}>
+              Matching Classes
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.filterButton, 
+              preferencesFilterEnabled ? styles.filterButtonActive : styles.filterButtonInactive
+            ]} 
+            onPress={togglePreferencesFilter}
+          >
+            <Ionicons 
+              name={preferencesFilterEnabled ? "checkmark-circle" : "options-outline"} 
+              size={18} 
+              color={preferencesFilterEnabled ? '#fff' : COLORS.UCONN_NAVY} 
+              style={styles.buttonIcon} 
+            />
+            <Text style={[
+              styles.filterButtonText,
+              preferencesFilterEnabled ? styles.filterButtonTextActive : styles.filterButtonTextInactive
+            ]}>
+              Study Preferences
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.filterButton, 
+              interestsFilterEnabled ? styles.filterButtonActive : styles.filterButtonInactive
+            ]} 
+            onPress={toggleInterestsFilter}
+          >
+            <Ionicons 
+              name={interestsFilterEnabled ? "checkmark-circle" : "heart-outline"} 
+              size={18} 
+              color={interestsFilterEnabled ? '#fff' : COLORS.UCONN_NAVY} 
+              style={styles.buttonIcon} 
+            />
+            <Text style={[
+              styles.filterButtonText,
+              interestsFilterEnabled ? styles.filterButtonTextActive : styles.filterButtonTextInactive
+            ]}>
+              Interests
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      {displayedStudents.length === 0 ? (
+        <View style={styles.emptyResults}>
+          <Ionicons name="search" size={48} color={COLORS.UCONN_NAVY} />
+          <Text style={styles.emptyResultsText}>No students match your filters</Text>
+          <Text style={styles.emptyResultsSubtext}>Try adjusting your filters</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={displayedStudents}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Image 
+                source={{ uri: getStudentImage(item.id) }} 
+                style={styles.avatar} 
+              />
+              <View style={styles.cardContent}>
+                <Text style={styles.profileName}>{item.name || `${item.firstName || ''} ${item.lastName || ''}`}</Text>
+                
+                {/* Display shared courses */}
+                {sharedCourses[item.id] && sharedCourses[item.id].length > 0 && (
+                  <View style={styles.sharedCoursesContainer}>
+                    <Text style={styles.sectionLabel}>Shared Classes:</Text>
+                    <View style={styles.tagsContainer}>
+                      {sharedCourses[item.id].map((course, index) => (
+                        <View key={`course-${index}`} style={styles.courseTag}>
+                          <Text style={styles.courseTagText}>{course}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
-                </View>
+                )}
+                
+                {/* Display study preferences */}
+                {studyPreferences[item.id] && studyPreferences[item.id].length > 0 && (
+                  <View style={styles.studyPreferencesContainer}>
+                    <Text style={styles.sectionLabel}>Study Preferences:</Text>
+                    <View style={styles.tagsContainer}>
+                      {studyPreferences[item.id].map((preference, index) => (
+                        <View 
+                          key={`pref-${index}`} 
+                          style={[
+                            styles.preferenceTag,
+                            sharedPreferences[item.id]?.includes(preference) ? styles.sharedPreferenceTag : {}
+                          ]}
+                        >
+                          <Text 
+                            style={[
+                              styles.preferenceTagText,
+                              sharedPreferences[item.id]?.includes(preference) ? styles.sharedTagText : {}
+                            ]}
+                          >
+                            {preference}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                
+                {/* Display interests */}
+                {interests[item.id] && interests[item.id].length > 0 && (
+                  <View style={styles.interestsContainer}>
+                    <Text style={styles.sectionLabel}>Interests:</Text>
+                    <View style={styles.tagsContainer}>
+                      {interests[item.id].map((interest, index) => (
+                        <View 
+                          key={`int-${index}`} 
+                          style={[
+                            styles.interestTag,
+                            sharedInterests[item.id]?.includes(interest) ? styles.sharedInterestTag : {}
+                          ]}
+                        >
+                          <Text 
+                            style={[
+                              styles.interestTagText,
+                              sharedInterests[item.id]?.includes(interest) ? styles.sharedTagText : {}
+                            ]}
+                          >
+                            {interest}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+              {friends.includes(item.id) ? (
+                <Text style={styles.friendLabel}>Friend</Text>
+              ) : outgoingRequests.includes(item.id) ? (
+                <TouchableOpacity 
+                  style={styles.cancelButton} 
+                  onPress={() => handleCancelRequest(item.id)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
               ) : (
-                <Text style={styles.noSharedClasses}>No shared classes</Text>
-              )}
-              
-              {/* Display study preferences */}
-              {studyPreferences[item.id] && studyPreferences[item.id].length > 0 && (
-                <View style={styles.studyPreferencesContainer}>
-                  <Text style={styles.sectionLabel}>Study Preferences:</Text>
-                  <View style={styles.tagsContainer}>
-                    {studyPreferences[item.id].map((preference, index) => (
-                      <View key={`pref-${index}`} style={styles.preferenceTag}>
-                        <Text style={styles.preferenceTagText}>{preference}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
+                <TouchableOpacity 
+                  style={styles.requestButton} 
+                  onPress={() => handleSendRequest(item.id)}
+                >
+                  <Ionicons name="person-add" size={16} color="#fff" style={styles.buttonIcon} />
+                  <Text style={styles.buttonText}>Add</Text>
+                </TouchableOpacity>
               )}
             </View>
-            {friends.includes(item.id) ? (
-              <Text style={styles.friendLabel}>Friend</Text>
-            ) : outgoingRequests.includes(item.id) ? (
-              <TouchableOpacity 
-                style={styles.cancelButton} 
-                onPress={() => handleCancelRequest(item.id)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.requestButton} 
-                onPress={() => handleSendRequest(item.id)}
-              >
-                <Ionicons name="person-add" size={16} color="#fff" style={styles.buttonIcon} />
-                <Text style={styles.buttonText}>Add</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-        keyExtractor={item => item.id}
-      />
+          )}
+          keyExtractor={item => item.id}
+        />
+      )}
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <SafeAreaView style={styles.modalOverlay}>
@@ -352,6 +571,13 @@ const IndexScreen = () => {
                 <Ionicons name="close" size={24} color={COLORS.UCONN_NAVY} />
               </TouchableOpacity>
             </View>
+
+            {refreshingFriends && (
+              <View style={styles.refreshingIndicator}>
+                <ActivityIndicator size="small" color={COLORS.UCONN_NAVY} />
+                <Text style={styles.refreshingText}>Refreshing...</Text>
+              </View>
+            )}
 
             {friendRequests.length > 0 && (
               <>
@@ -421,7 +647,7 @@ const IndexScreen = () => {
               </>
             )}
 
-            {friendRequests.length === 0 && friends.length === 0 && (
+            {!refreshingFriends && friendRequests.length === 0 && friends.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={48} color={COLORS.UCONN_NAVY} />
                 <Text style={styles.emptyStateText}>No friends or requests yet</Text>
@@ -430,14 +656,13 @@ const IndexScreen = () => {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: COLORS.UCONN_WHITE 
   },
   loadingContainer: {
     flex: 1,
@@ -450,15 +675,15 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_NAVY,
     fontSize: 16
   },
-  header: { 
+  header: {
     backgroundColor: COLORS.UCONN_NAVY,
-    padding: 15,
-    paddingTop: 54,
-    marginBottom: 20,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 10,
     borderRadius: 1,
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexDirection: 'row'
   },
   headerText: { 
     color: '#fff', 
@@ -470,33 +695,90 @@ const styles = StyleSheet.create({
     width: 40, // Same width as the icon button on the right
   },
   iconButton: {
-    padding: 8,
-    borderRadius: 20,
     width: 40,
     alignItems: 'center'
   },
-  matchButton: {
+  refreshingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#E6F7FF',
+    padding: 8,
     marginHorizontal: 16,
-    marginVertical: 12,
-    padding: 12,
-    borderRadius: 8
+    marginBottom: 8,
+    borderRadius: 8,
   },
-  matchButtonActive: {
+  refreshingText: {
+    marginLeft: 8,
+    color: COLORS.UCONN_NAVY,
+    fontSize: 14,
+  },
+  filtersContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  filtersTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4B5563',
+    marginBottom: 8,
+  },
+  filtersScrollView: {
+    flexDirection: 'row',
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  filterButtonActive: {
     backgroundColor: COLORS.UCONN_NAVY,
+    borderColor: COLORS.UCONN_NAVY,
   },
-  matchButtonInactive: {
-    backgroundColor: '#6B7280',
+  filterButtonInactive: {
+    backgroundColor: 'transparent',
+    borderColor: COLORS.UCONN_NAVY,
   },
-  matchButtonText: {
+  filterButtonText: {
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  filterButtonTextActive: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14
+  },
+  filterButtonTextInactive: {
+    color: COLORS.UCONN_NAVY,
   },
   buttonIcon: {
     marginRight: 6
+  },
+  refreshingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  emptyResults: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyResultsText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.UCONN_NAVY,
+    marginTop: 16,
+  },
+  emptyResultsSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
   },
   card: { 
     flexDirection: 'row',
@@ -542,6 +824,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: 'column',
   },
+  interestsContainer: {
+    marginTop: 8,
+    flexDirection: 'column',
+  },
   courseTag: {
     backgroundColor: '#E5E7EB',
     borderRadius: 4,
@@ -567,6 +853,28 @@ const styles = StyleSheet.create({
   preferenceTagText: {
     fontSize: 12,
     color: '#1E40AF' // Darker blue text
+  },
+  interestTag: {
+    backgroundColor: '#FEF3C7', // Light yellow background
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 4,
+    alignSelf: 'flex-start'
+  },
+  interestTagText: {
+    fontSize: 12,
+    color: '#92400E' // Brown text
+  },
+  sharedPreferenceTag: {
+    backgroundColor: '#93C5FD', // Brighter blue for shared preferences
+  },
+  sharedInterestTag: {
+    backgroundColor: '#FDE68A', // Brighter yellow for shared interests
+  },
+  sharedTagText: {
+    fontWeight: 'bold',
   },
   noSharedClasses: {
     fontSize: 12,
