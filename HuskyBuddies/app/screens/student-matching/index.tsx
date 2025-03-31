@@ -155,7 +155,7 @@ const IndexScreen = () => {
             }
           }
           
-          // Get student study preferences
+          // Get student study preferences (now includes additional preferences)
           const preferences = await getUserStudyPreferences(student.id);
           if (preferences) {
             preferencesMap[student.id] = preferences;
@@ -167,7 +167,7 @@ const IndexScreen = () => {
             }
           }
           
-          // Get student interests
+          // Get student interests (now includes additional interests)
           const studentInterests = await getUserInterests(student.id);
           if (studentInterests) {
             interestsMap[student.id] = studentInterests;

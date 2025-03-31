@@ -417,7 +417,9 @@ export const getUserCourses = async (userId) => {
 };
 
 /**
- * Retrieves a user's study preferences from the userProfile subcollection
+/**
+ * Retrieves a user's study preferences from the userProfile subcollection,
+ * including both regular and additional study preferences
  * @param {string} userId - ID of the user
  * @returns {Promise<string[]|null>} - Array of study preferences or null if not found
  */
@@ -426,8 +428,20 @@ export const getUserStudyPreferences = async (userId) => {
     const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
     const profileDoc = await getDoc(profileDocRef);
     
-    if (profileDoc.exists() && profileDoc.data().studyPreferences) {
-      return profileDoc.data().studyPreferences;
+    let allPreferences = [];
+    
+    if (profileDoc.exists()) {
+      // Get regular study preferences
+      if (profileDoc.data().studyPreferences) {
+        allPreferences = [...profileDoc.data().studyPreferences];
+      }
+      
+      // Get additional study preferences and combine them
+      if (profileDoc.data().additionalStudyPreferences) {
+        allPreferences = [...allPreferences, ...profileDoc.data().additionalStudyPreferences];
+      }
+      
+      return allPreferences.length > 0 ? allPreferences : null;
     }
     return null;
   } catch (error) {
@@ -437,7 +451,8 @@ export const getUserStudyPreferences = async (userId) => {
 };
 
 /**
- * Retrieves a user's interests from the userProfile subcollection
+ * Retrieves a user's interests from the userProfile subcollection,
+ * including both regular and additional interests
  * @param {string} userId - ID of the user
  * @returns {Promise<string[]|null>} - Array of interests or null if not found
  */
@@ -446,8 +461,20 @@ export const getUserInterests = async (userId) => {
     const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
     const profileDoc = await getDoc(profileDocRef);
     
-    if (profileDoc.exists() && profileDoc.data().interests) {
-      return profileDoc.data().interests;
+    let allInterests = [];
+    
+    if (profileDoc.exists()) {
+      // Get regular interests
+      if (profileDoc.data().interests) {
+        allInterests = [...profileDoc.data().interests];
+      }
+      
+      // Get additional interests and combine them
+      if (profileDoc.data().additionalInterests) {
+        allInterests = [...allInterests, ...profileDoc.data().additionalInterests];
+      }
+      
+      return allInterests.length > 0 ? allInterests : null;
     }
     return null;
   } catch (error) {
