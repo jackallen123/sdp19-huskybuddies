@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,11 +14,22 @@ import { Alert } from "react-native";
 import { storeCourse } from "@/backend/firebase/firestoreService";
 import { auth } from "@/backend/firebase/firebaseConfig";
 import axios from "axios";
+import Constants from "expo-constants";
+import { ActivityIndicator } from "react-native-paper";
 
 interface Section {
   sectionNumber: string;
   meets: string;
-  instructor: string;
+  // instructor: string;
+}
+
+interface SectionData {
+  sections: Section[];
+}
+
+interface SectionResponse {
+  source: 'cache' | 'live';
+  data: SectionData[];
 }
 
 export default function AddSection({
@@ -39,21 +49,27 @@ export default function AddSection({
     message: "",
   });
 
+  // get base url from env
+  const base_url = Constants?.expoConfig?.extra?.VERCEL_BASE_URL;
+
   useEffect(() => {
     fetchSections();
   }, []);
 
-  const ip_address = ""; // set your IP address here
-
   const fetchSections = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `http://${ip_address}:3000/sections/${courseCode}`
+      const response = await axios.get<SectionResponse>(
+        `${base_url}/sections`, {
+          params: { courseCode }
+        }
       );
-      setSections(response.data[0]?.sections || []);
+      const { data, source } = response.data;
+      console.log(`Section data source: ${source}`);
+      setSections(data[0]?.sections || []);
     } catch (error) {
       console.error("Error fetching sections:", error);
+      Alert.alert("Error", "Failed to fetch sections");
     } finally {
       setLoading(false);
     }
@@ -144,7 +160,7 @@ export default function AddSection({
                 <Text style={styles.sectionText}>
                   Section {item.sectionNumber}
                 </Text>
-                <Text style={styles.sectionDetails}>{item.instructor}</Text>
+                {/* <Text style={styles.sectionDetails}>{courseCode}</Text> */}
                 <Text style={styles.sectionDetails}>{item.meets}</Text>
               </View>
               <TouchableOpacity

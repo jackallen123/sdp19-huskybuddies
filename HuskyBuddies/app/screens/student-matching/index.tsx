@@ -357,6 +357,7 @@ const IndexScreen = () => {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+        {/* <Text style={styles.loadingText}>Loading students...</Text> */}
       </SafeAreaView>
     );
   }
