@@ -42,7 +42,7 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
     }
   }, [userId])
 
-  // only show items where isadded is true
+  // Only show items where isadded is true
   const getItemsForDate = (date: Date): (Event | StudySession)[] => {
     const filteredEvents = events
       .filter((event) => event.isadded) 

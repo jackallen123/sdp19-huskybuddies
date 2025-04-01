@@ -49,7 +49,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [creatorNames, setCreatorNames] = useState<{ [key: string]: string }>({})
 
-  // Fetch the current user ID once when component mounts
+  // Get the current user ID
   useEffect(() => {
     const fetchUserId = async () => {
       const uid = await getUserId()
@@ -59,7 +59,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     fetchUserId()
   }, [])
 
-  // Add this useEffect to fetch creator names when events change
+  // Get creator names when the current user changes
   useEffect(() => {
     const fetchCreatorNames = async () => {
       const uniqueCreatorIds = [...new Set(localEvents.map((event) => event.createdBy))]
@@ -82,30 +82,29 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       setCreatorNames(namesMap)
     }
 
+    // Only fetch if we have events and current user
     if (localEvents.length > 0 && currentUserId) {
       fetchCreatorNames()
     }
   }, [localEvents, currentUserId])
 
-  // Set up the real-time listener when the component mounts
+  // Set up the real-time listener that keeps the list of events active and current
   useEffect(() => {
     setupEventListener()
 
-    // Clean up the listener when the component unmounts
+    // Clean up the listener
     return () => {
       if (unsubscribeRef.current) {
-        console.log("Cleaning up event listener")
         unsubscribeRef.current()
       }
     }
   }, []) // Empty dependency array means this runs once on mount
 
-  // Update local state when initialEvents changes (from parent)
+  // Update local state when events are updated from other users
   useEffect(() => {
     if (initialEvents && initialEvents.length > 0) {
-      console.log(`Received ${initialEvents.length} events from parent`)
 
-      // Merge with existing events, preserving isadded status
+      // Merge with existing events
       setLocalEvents((prevEvents) => {
         const eventMap = new Map(prevEvents.map((event) => [event.id, event]))
 
@@ -133,17 +132,14 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         return
       }
 
-      console.log("Setting up real-time event listener")
       setLoading(true)
 
-      // Clean up existing listener if it exists
       if (unsubscribeRef.current) {
         unsubscribeRef.current()
       }
 
-      // Store the unsubscribe function in the ref so we can clean it up later
+      // Store the unsubscribe function to clean it up later
       const unsubscribe = FetchAllEventsFromDatabase(userId, (fetchedEvents: Event[]) => {
-        console.log(`Real-time update: received ${fetchedEvents.length} events`)
 
         if (!fetchedEvents || fetchedEvents.length === 0) {
           setLocalEvents([])
@@ -151,7 +147,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
           return
         }
 
-        // Deduplicate events using a Map with composite key
+        // Get rid of duplicate events 
         const uniqueEventsMap = new Map()
 
         fetchedEvents.forEach((event) => {
@@ -160,9 +156,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         })
 
         const deduplicatedEvents = Array.from(uniqueEventsMap.values())
-        console.log(`After deduplication: ${deduplicatedEvents.length} events`)
 
-        // Replace local events with fetched events
+        // Update events list 
         setLocalEvents(deduplicatedEvents)
         setLoading(false)
       })
@@ -175,7 +170,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     }
   }
 
-  // Force a complete resync of all events from all users
+  // Force a complete resync of all events from all users when refresh is clicked
   const fetchEvents = async () => {
     try {
       setRefreshing(true)
@@ -192,8 +187,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         return
       }
 
-      console.log("Manually refreshing events...")
-
       // Clean up existing listener
       if (unsubscribeRef.current) {
         unsubscribeRef.current()
@@ -201,13 +194,10 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       }
 
       try {
-        // Force a complete resync with all users' events
         await SyncAllEventsFromDatabase(userId, (syncedEvents: Event[]) => {
           if (!syncedEvents || syncedEvents.length === 0) {
             setLocalEvents([])
-            console.log("No events found during sync")
           } else {
-            console.log(`Synced ${syncedEvents.length} events from all users`)
 
             const uniqueEventsMap = new Map()
 
@@ -218,7 +208,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
             // Convert back to array
             const deduplicatedEvents = Array.from(uniqueEventsMap.values())
-            console.log(`After deduplication: ${deduplicatedEvents.length} events`)
 
             setLocalEvents(deduplicatedEvents)
           }
@@ -239,7 +228,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     }
   }
 
-  // allows the toggle button to function and add other user events to calendar
+  // Allows the toggle button to function and add other user events to calendar
   const handleToggleEvent = async (event: Event) => {
     try {
       // Get the current user ID
@@ -252,11 +241,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
       const updatedIsAdded = !event.isadded
 
-      // Optimistically update UI
       setLocalEvents((prevEvents) => prevEvents.map((e) => (e.id === event.id ? { ...e, isadded: updatedIsAdded } : e)))
-
-      console.log(`Updating event ${event.id} in user ${currentUserId}'s allEvents collection`)
-      console.log(`Setting isadded to: ${updatedIsAdded}`)
 
       // Update the event in the current user's allEvents collection
       const allEventsRef = doc(db, "users", currentUserId, "allEvents", event.id)
@@ -270,11 +255,9 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         })
       }
 
-      console.log(`Event ${updatedIsAdded ? "added to" : "removed from"} calendar: ${event.title}`)
     } catch (error) {
       console.error("Error updating event: ", error)
 
-      // Revert UI on error
       setLocalEvents((prevEvents) => prevEvents.map((e) => (e.id === event.id ? { ...e, isadded: event.isadded } : e)))
       setError("Failed to update event. Please try again.")
     }
@@ -459,7 +442,7 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_NAVY,
     marginBottom: 0,
     padding: 15,
-    paddingTop: 10,
+    paddingTop: 20,
   },
   refreshingText: {
     fontSize: 16,

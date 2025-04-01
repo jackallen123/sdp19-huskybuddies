@@ -627,13 +627,11 @@ export const hasMessagesWithFriend = async (userId, friendId) => {
   }
 };
 
-
 /*
  * SCHEDULER DB INTERACTIONS
  */
-
 /**
- * Adds a new event to a specific user's Firestore database.
+ * Adds a new event to current users database and the shared database
  * @param {string} userId
  * @param {string} eventId 
  * @param {string} title
@@ -678,7 +676,7 @@ export const AddEventToDatabase = async (userId, eventId, title, date, descripti
 }
 
 /**
- * Deletes an event from a specific user's Firestore database and syncs the deletion to all users.
+ * Deletes an event from the current users database and shared database
  * @param {string} userId 
  * @param {string} eventId
  */
@@ -725,15 +723,17 @@ export const DeleteEventFromDatabase = async (userId, eventId) => {
 }
 
 /**
- * Fetches events for a specific user from Firestore (Real-time listener).
+ * Fetches events for current user
  * @param {string} userId 
  * @param {function} setEvents
  */
+
+// Get user
 export const FetchEventsFromDatabase = (userId, setEvents) => {
   if (!userId) {
     return () => {};
   }
-
+  // Get events
   const userEventsRef = collection(db, "users", userId, "events");
   return onSnapshot(
     userEventsRef,
@@ -842,7 +842,7 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
       }
     }
 
-    // Now process all the batch operations in chunks to avoid Firestore limits
+    // Now process all the batch operations in chunks 
     const BATCH_SIZE = 500 
     let operationCount = 0
     let batch = writeBatch(db)
@@ -876,12 +876,13 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
 }
 
 /**
- * Safely removes specific events from allEvents collection without clearing everything
+ * Safely removes specific events from allEvents collection
  * @param {string} userId 
  * @param {string[]} eventIdsToRemove
  */
 export const removeEventsFromAllEvents = async (userId, eventIdsToRemove) => {
   try {
+    // If there are none, exit
     if (!eventIdsToRemove || eventIdsToRemove.length === 0) {
       return
     }
@@ -910,6 +911,7 @@ export const removeEventsFromAllEvents = async (userId, eventIdsToRemove) => {
   }
 }
 
+// Gets the allEvents collection for current user
 export const FetchAllEventsFromDatabase = (userId, setEvents) => {
   if (!userId) {
     console.error("Cannot fetch all events: No user ID provided")
@@ -933,7 +935,7 @@ export const FetchAllEventsFromDatabase = (userId, setEvents) => {
           creatorName: data.creatorName || "Unknown User",
         }
       })
-      setEvents(eventsList)
+      setEvents(eventsList) //update events
     },
     (error) => {
       console.error("Error fetching all events:", error)
@@ -942,13 +944,12 @@ export const FetchAllEventsFromDatabase = (userId, setEvents) => {
 }
 
 /**
- * Force refresh all events by syncing without clearing first
+ * Force refresh all events
  * @param {string} userId 
  * @param {function} setEvents
  */
 export const ForceRefreshAllEvents = async (userId, setEvents) => {
   try {
-    // Just sync all events without clearing first
     return await SyncAllEventsFromDatabase(userId, setEvents)
   } catch (error) {
     console.error("Error force refreshing events:", error)
@@ -956,11 +957,11 @@ export const ForceRefreshAllEvents = async (userId, setEvents) => {
 }
 
 /**
- * Adds a new study session to the Firestore database for the creator and all participants.
- * @param {string} userId 
- * @param {string} studySessionId 
- * @param {string} studySessionTitle 
- * @param {Time} studySessionDate 
+ * Adds a new study session to the current user's database and all participants with personalized view.
+ * @param {string} userId
+ * @param {string} studySessionId
+ * @param {string} studySessionTitle
+ * @param {Time} studySessionDate
  * @param {string[]} studySessionFriends
  */
 export const AddStudySessionToDatabase = async (
@@ -987,10 +988,25 @@ export const AddStudySessionToDatabase = async (
       participantNames.set(friendId, friendName || friendId)
     }
 
-    // Add to creator's study sessions collection with original title
+    // Create a personalized title for the creator that includes "You" and all friends
+    let creatorParticipantsList = ""
+    if (studySessionFriends.length === 0) {
+    } else if (studySessionFriends.length === 1) {
+      // Creator and one friend
+      creatorParticipantsList = "You & " + (participantNames.get(studySessionFriends[0]) || "Friend")
+    } else {
+      // Creator and multiple friends
+      const friendNames = studySessionFriends.map((id) => participantNames.get(id) || id)
+      creatorParticipantsList =
+        "You, " + friendNames.slice(0, -1).join(", ") + " & " + friendNames[friendNames.length - 1]
+    }
+
+    const creatorPersonalizedTitle = `Study session with ${creatorParticipantsList}`
+
+    // Add to creator's study sessions collection with personalized title
     const userStudySessionsRef = doc(db, "users", userId, "studySessions", sessionId)
     await setDoc(userStudySessionsRef, {
-      title: studySessionTitle, 
+      title: creatorPersonalizedTitle, 
       date: studySessionDate,
       friends: studySessionFriends,
       createdBy: userId,
@@ -999,26 +1015,38 @@ export const AddStudySessionToDatabase = async (
 
     // Add to each friend's study sessions collection with personalized title
     for (const friendId of studySessionFriends) {
-      // Create a personalized title for this friend that includes the creator and other participants
+      // Create a personalized title for this friend that includes "You" and other participants
       const otherParticipants = studySessionFriends
         .filter((id) => id !== friendId) // Exclude the current friend
         .map((id) => participantNames.get(id)) // Get names of other friends
 
-      // Add creator's name at the beginning if they're not already in the list
-      const allParticipants = [creatorName || "Creator", ...otherParticipants]
+      let participantsList = ""
 
-      const personalizedTitle = `Study session with ${allParticipants.join(", ")}`
+      if (otherParticipants.length === 0) {
+        participantsList = "You & " + (creatorName || "Creator")
+      } else {
+        const allParticipants = [creatorName || "Creator", ...otherParticipants]
+
+        if (allParticipants.length === 1) {
+          participantsList = "You & " + allParticipants[0]
+        } else {
+          participantsList =
+            "You, " + allParticipants.slice(0, -1).join(", ") + " & " + allParticipants[allParticipants.length - 1]
+        }
+      }
+
+      const personalizedTitle = `Study session with ${participantsList}`
 
       const friendStudySessionsRef = doc(db, "users", friendId, "studySessions", sessionId)
       await setDoc(friendStudySessionsRef, {
         title: personalizedTitle,
         date: studySessionDate,
         friends: studySessionFriends,
-        createdBy: userId, 
+        createdBy: userId,
         creatorName: creatorName || "Creator",
       })
     }
-    return sessionId 
+    return sessionId
   } catch (error) {
     console.error("Error adding study session:", error)
     throw error
@@ -1033,14 +1061,14 @@ export const AddStudySessionToDatabase = async (
  */
 export const DeleteStudySessionFromDatabase = async (userId, studySessionId, participants = []) => {
   try {
-    // First, get the study session to find all participants if not provided
+    // Get the study session to find all participants if not provided
     if (participants.length === 0) {
       const sessionRef = doc(db, "users", userId, "studySessions", studySessionId)
       const sessionSnap = await getDoc(sessionRef)
 
       if (sessionSnap.exists()) {
         const sessionData = sessionSnap.data()
-        participants = sessionData.friends || []
+        participants = sessionData.friends
       }
     }
 
@@ -1061,13 +1089,15 @@ export const DeleteStudySessionFromDatabase = async (userId, studySessionId, par
 }
 
 /**
- * Fetches study sessions from Firestore for the current user (Real-time listener).
+ * Fetches study sessions for the current user
  * @param {string} userId
  * @param {function} setSessions
  */
+//Get user
 export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
   const userStudySessionsRef = collection(db, "users", userId, "studySessions")
 
+  //Get study session
   return onSnapshot(userStudySessionsRef, (snapshot) => {
     const sessionsList = snapshot.docs.map((doc) => {
       const data = doc.data()

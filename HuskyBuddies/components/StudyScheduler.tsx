@@ -45,7 +45,7 @@ export default function StudyScheduler({ onBack, onSchedule, currentUserId }: St
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
-  // Fetch friends list from Firebase and get their full names
+  // Fetch friends list from database and get their full names
   useEffect(() => {
     if (!currentUserId) return
 
@@ -146,7 +146,7 @@ export default function StudyScheduler({ onBack, onSchedule, currentUserId }: St
       const friendNames = selectedFriends.map((id) => getFriendNameById(id))
 
       const newSession: StudySession = {
-        id: new Date().toISOString(),
+        id: "",
         title: `Study session with ${friendNames.join(", ")}`,
         date: Timestamp.fromDate(date),
         friends: selectedFriends,
