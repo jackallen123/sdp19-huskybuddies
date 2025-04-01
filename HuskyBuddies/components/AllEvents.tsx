@@ -1,5 +1,5 @@
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   SafeAreaView,
   View,
@@ -9,14 +9,20 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  Alert,
 } from "react-native"
 import { COLORS } from "@/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { type Timestamp, doc, updateDoc } from "firebase/firestore"
 import { db } from "@/backend/firebase/firebaseConfig"
-import { getUserId, FetchAllEventsFromDatabase } from "@/backend/firebase/firestoreService"
+import {
+  getUserId,
+  FetchAllEventsFromDatabase,
+  SyncAllEventsFromDatabase,
+  getFullName,
+} from "@/backend/firebase/firestoreService"
 
-// event setup for database 
+// event setup for database
 interface Event {
   id: string
   title: string
@@ -24,6 +30,7 @@ interface Event {
   description: string
   isadded?: boolean
   createdBy: string
+  creatorName?: string
 }
 
 interface AllEventsProps {
@@ -36,20 +43,87 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   const [localEvents, setLocalEvents] = useState<Event[]>(initialEvents || [])
   const [loading, setLoading] = useState(!initialEvents || initialEvents.length === 0)
   const [error, setError] = useState<string | null>(null)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now())
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [creatorNames, setCreatorNames] = useState<{ [key: string]: string }>({})
 
+  // Get the current user ID
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const uid = await getUserId()
+      setCurrentUserId(uid)
+    }
+
+    fetchUserId()
+  }, [])
+
+  // Get creator names when the current user changes
+  useEffect(() => {
+    const fetchCreatorNames = async () => {
+      const uniqueCreatorIds = [...new Set(localEvents.map((event) => event.createdBy))]
+      const namesMap: { [key: string]: string } = {}
+
+      for (const creatorId of uniqueCreatorIds) {
+        if (creatorId === currentUserId) {
+          namesMap[creatorId] = "You"
+        } else {
+          try {
+            const name = await getFullName(creatorId)
+            namesMap[creatorId] = name || creatorId
+          } catch (error) {
+            console.error("Error fetching name:", error)
+            namesMap[creatorId] = creatorId
+          }
+        }
+      }
+
+      setCreatorNames(namesMap)
+    }
+
+    // Only fetch if we have events and current user
+    if (localEvents.length > 0 && currentUserId) {
+      fetchCreatorNames()
+    }
+  }, [localEvents, currentUserId])
+
+  // Set up the real-time listener that keeps the list of events active and current
+  useEffect(() => {
+    setupEventListener()
+
+    // Clean up the listener
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
+      }
+    }
+  }, []) // Empty dependency array means this runs once on mount
+
+  // Update local state when events are updated from other users
   useEffect(() => {
     if (initialEvents && initialEvents.length > 0) {
-      setLocalEvents(initialEvents.map((event) => ({ ...event, isadded: event.isadded ?? false }))) // Ensure isadded is false by default
+
+      // Merge with existing events
+      setLocalEvents((prevEvents) => {
+        const eventMap = new Map(prevEvents.map((event) => [event.id, event]))
+
+        initialEvents.forEach((event) => {
+          const existingEvent = eventMap.get(event.id)
+          eventMap.set(event.id, {
+            ...event,
+            isadded: existingEvent ? existingEvent.isadded : (event.isadded ?? false),
+          })
+        })
+
+        return Array.from(eventMap.values())
+      })
+
       setLoading(false)
-    } else {
-      fetchEvents()
     }
   }, [initialEvents])
 
-  const fetchEvents = async () => {
-    setLoading(true)
-    setError(null)
-
+  const setupEventListener = async () => {
     try {
       const userId = await getUserId()
 
@@ -58,23 +132,103 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         return
       }
 
-      // fetch all events from all users
+      setLoading(true)
+
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
+      }
+
+      // Store the unsubscribe function to clean it up later
       const unsubscribe = FetchAllEventsFromDatabase(userId, (fetchedEvents: Event[]) => {
-        // isadded should be false for all events when they are first fetched
-        const eventsWithDefaultIsAdded = fetchedEvents.map((event) => ({ ...event, isadded: event.isadded ?? false }))
-        setLocalEvents(eventsWithDefaultIsAdded)
+
+        if (!fetchedEvents || fetchedEvents.length === 0) {
+          setLocalEvents([])
+          setLoading(false)
+          return
+        }
+
+        // Get rid of duplicate events 
+        const uniqueEventsMap = new Map()
+
+        fetchedEvents.forEach((event) => {
+          const uniqueKey = `${event.id}-${event.createdBy}`
+          uniqueEventsMap.set(uniqueKey, event)
+        })
+
+        const deduplicatedEvents = Array.from(uniqueEventsMap.values())
+
+        // Update events list 
+        setLocalEvents(deduplicatedEvents)
+        setLoading(false)
       })
 
-      return () => unsubscribe()
+      unsubscribeRef.current = unsubscribe
     } catch (err) {
-      console.error("Error fetching events:", err)
+      console.error("Error setting up event listener:", err)
       setError("Failed to load events. Please try again later.")
-    } finally {
       setLoading(false)
     }
   }
 
-  // allows the toggle button to function and add other user events to calendar
+  // Force a complete resync of all events from all users when refresh is clicked
+  const fetchEvents = async () => {
+    try {
+      setRefreshing(true)
+      setError(null)
+      setLastRefreshTime(Date.now())
+      setLocalEvents([]) 
+
+      // Get the current user ID
+      const userId = await getUserId()
+
+      if (!userId) {
+        setError("User not logged in.")
+        setRefreshing(false)
+        return
+      }
+
+      // Clean up existing listener
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
+        unsubscribeRef.current = null
+      }
+
+      try {
+        await SyncAllEventsFromDatabase(userId, (syncedEvents: Event[]) => {
+          if (!syncedEvents || syncedEvents.length === 0) {
+            setLocalEvents([])
+          } else {
+
+            const uniqueEventsMap = new Map()
+
+            syncedEvents.forEach((event: Event) => {
+              const uniqueKey = `${event.id}-${event.createdBy}`
+              uniqueEventsMap.set(uniqueKey, event)
+            })
+
+            // Convert back to array
+            const deduplicatedEvents = Array.from(uniqueEventsMap.values())
+
+            setLocalEvents(deduplicatedEvents)
+          }
+        })
+      } catch (syncError) {
+        console.error("Error during sync:", syncError)
+        Alert.alert("Sync Error", "There was an error syncing events. Please try again.")
+      }
+
+      // Set up a new listener to keep getting real-time updates
+      setupEventListener()
+
+      setRefreshing(false)
+    } catch (err) {
+      console.error("Error refreshing events:", err)
+      setError("Failed to refresh events. Please try again.")
+      setRefreshing(false)
+    }
+  }
+
+  // Allows the toggle button to function and add other user events to calendar
   const handleToggleEvent = async (event: Event) => {
     try {
       // Get the current user ID
@@ -89,9 +243,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
       setLocalEvents((prevEvents) => prevEvents.map((e) => (e.id === event.id ? { ...e, isadded: updatedIsAdded } : e)))
 
-      console.log(`Updating event ${event.id} in user ${currentUserId}'s allEvents collection`)
-      console.log(`Setting isadded to: ${updatedIsAdded}`)
-
       // Update the event in the current user's allEvents collection
       const allEventsRef = doc(db, "users", currentUserId, "allEvents", event.id)
       await updateDoc(allEventsRef, { isadded: updatedIsAdded })
@@ -104,7 +255,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         })
       }
 
-      console.log(`Event ${updatedIsAdded ? "added to" : "removed from"} calendar: ${event.title}`)
     } catch (error) {
       console.error("Error updating event: ", error)
 
@@ -112,25 +262,32 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       setError("Failed to update event. Please try again.")
     }
   }
-  
-  // Formatting for page consistency 
-  const renderEventItem = ({ item }: { item: Event }) => (
-    <View style={styles.eventItem}>
-      <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text style={styles.eventText}>
-        {item.date.toDate().toLocaleDateString()}{" "}
-        {item.date.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-      </Text>
-      <Text style={styles.eventText}>{item.description}</Text>
 
-      <TouchableOpacity
-        style={[styles.addToCalendarButton, item.isadded ? styles.removeButton : styles.addButton]}
-        onPress={() => handleToggleEvent(item)} 
-      >
-        <Text style={styles.addToCalendarButtonText}>{item.isadded ? "Remove from Calendar" : "Add to Calendar"}</Text>
-      </TouchableOpacity>
-    </View>
-  )
+  // Formatting for page consistency
+  const renderEventItem = ({ item }: { item: Event }) => {
+    const creatorName = item.createdBy === currentUserId ? "You" : creatorNames[item.createdBy] || "Loading..."
+
+    return (
+      <View style={styles.eventItem}>
+        <Text style={styles.eventTitle}>{item.title}</Text>
+        <Text style={styles.eventText}>
+          {item.date.toDate().toLocaleDateString()}{" "}
+          {item.date.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </Text>
+        <Text style={styles.eventText}>{item.description}</Text>
+        <Text style={styles.creatorText}>Created by: {creatorName}</Text>
+
+        <TouchableOpacity
+          style={[styles.addToCalendarButton, item.isadded ? styles.removeButton : styles.addButton]}
+          onPress={() => handleToggleEvent(item)}
+        >
+          <Text style={styles.addToCalendarButtonText}>
+            {item.isadded ? "Remove from Calendar" : "Add to Calendar"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    )
+  }
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -141,14 +298,19 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         <Text style={styles.headerText}>All Events</Text>
       </View>
       {/* Refresh Button */}
-      <TouchableOpacity style={styles.refreshButton} onPress={fetchEvents}>
-        <Ionicons name="refresh" size={24} color={COLORS.UCONN_WHITE} />
+      <TouchableOpacity style={styles.refreshButton} onPress={fetchEvents} disabled={refreshing}>
+        <Ionicons
+          name={refreshing ? "sync" : "refresh"}
+          size={24}
+          color={COLORS.UCONN_WHITE}
+          style={refreshing ? styles.spinningIcon : undefined}
+        />
       </TouchableOpacity>
     </View>
   )
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && !refreshing) {
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
@@ -171,19 +333,35 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (localEvents.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.noEventsText}>No events available</Text>
+          <Text style={styles.noEventsText}>Loading events...</Text>
+          {refreshing ? (
+            <ActivityIndicator style={{ marginTop: 20 }} size="large" color={COLORS.UCONN_NAVY} />
+          ) : (
+            <TouchableOpacity style={styles.retryButton} onPress={fetchEvents}>
+              <Text style={styles.retryButtonText}>Refresh</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )
     }
 
     return (
       <>
-        <Text style={styles.postedEventsTitle}>Available Events: {localEvents.length}</Text>
+        <Text style={styles.postedEventsTitle}>
+          Available Events: 
+          {refreshing && <Text style={styles.refreshingText}> (Refreshing...)</Text>}
+        </Text>
+        {refreshing && (
+          <View style={styles.refreshingIndicator}>
+            <ActivityIndicator size="small" color={COLORS.UCONN_NAVY} />
+          </View>
+        )}
         <FlatList
           style={styles.eventsContainer}
           data={localEvents}
           renderItem={renderEventItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `event-${item.id}-${item.createdBy}-${index}-${lastRefreshTime}`}
+          extraData={[localEvents, lastRefreshTime]} 
         />
       </>
     )
@@ -198,7 +376,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   )
 }
 
-// Styles to keep pages consistent 
+// Styles to keep pages consistent
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -237,6 +415,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
   },
+  creatorText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
   addToCalendarButton: {
     marginTop: 8,
     padding: 8,
@@ -258,7 +442,16 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_NAVY,
     marginBottom: 0,
     padding: 15,
-    paddingTop: 1,
+    paddingTop: 20,
+  },
+  refreshingText: {
+    fontSize: 16,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  refreshingIndicator: {
+    alignItems: "center",
+    paddingBottom: 10,
   },
   eventsContainer: {
     flex: 1,
@@ -285,6 +478,7 @@ const styles = StyleSheet.create({
   noEventsText: {
     fontSize: 18,
     color: COLORS.UCONN_NAVY,
+    marginBottom: 20,
   },
   retryButton: {
     backgroundColor: COLORS.UCONN_NAVY,
@@ -299,6 +493,9 @@ const styles = StyleSheet.create({
   refreshButton: {
     padding: 8,
     marginLeft: "auto",
+  },
+  spinningIcon: {
+    transform: [{ rotate: "45deg" }],
   },
 })
 

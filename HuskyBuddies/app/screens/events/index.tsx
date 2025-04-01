@@ -5,7 +5,7 @@ import CustomCalendar from '@/components/CustomCalendar';
 import AddEvent from '@/components/AddEvent';
 import AllEvents from '@/components/AllEvents';
 import StudyScheduler from '@/components/StudyScheduler';
-import { Timestamp, doc, collection, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { Timestamp, doc, collection, getDocs, writeBatch } from 'firebase/firestore';
 import {  
   DeleteStudySessionFromDatabase,  
   DeleteEventFromDatabase, 
@@ -13,8 +13,7 @@ import {
   FetchStudySessionsFromDatabase,
   AddEventToDatabase,
 } from '@/backend/firebase/firestoreService';
-import { auth } from '@/backend/firebase/firebaseConfig';
-import { db } from '@/backend/firebase/firebaseConfig';
+import { auth, db } from '@/backend/firebase/firebaseConfig';
 
 // Event setup for database 
 interface Event {
@@ -34,7 +33,7 @@ interface StudySession {
   friends: string[];
 }
 
-// Get all isadded == true events from other users for display
+// Get allEvents for current user from database
 const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React.Dispatch<React.SetStateAction<Event[]>>) => {
   try {
     const usersRef = collection(db, "users");
@@ -105,7 +104,7 @@ const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React
 
     await batch.commit();
     
-    // Update state with all events, preserving isadded status
+    // Update state with all events isadded status
     if (setEvents) {
       const eventsWithStatus = allEvents.map(event => ({
         ...event,
@@ -123,6 +122,7 @@ const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React
   }
 };
 
+// Multipage functionality 
 export default function MainPage() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
@@ -135,7 +135,7 @@ export default function MainPage() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true); 
 
-  // Add a function to sync all events
+  // Sync all events
   const syncAllEvents = async () => {
     try {
       setLoading(true);
@@ -147,7 +147,7 @@ export default function MainPage() {
     }
   };
 
-  // Load events and study sessions from Firestore
+  // Fetch events and study sessions
   useEffect(() => {
     const unsubscribeEvents = FetchAllEventsFromDatabase(currentUserId, setEvents);
     const unsubscribeSessions = FetchStudySessionsFromDatabase(currentUserId, setSessions);
@@ -163,7 +163,7 @@ export default function MainPage() {
     };
   }, [currentUserId]); 
   
-  // Add a new event to Firestore
+  // Add a new event to database
   const handleAddEvent = async (event: Event) => {
     if (!event.date) {
       console.error('Event date is missing for event:', event);
@@ -186,12 +186,12 @@ export default function MainPage() {
     );
   };
 
-  // Delete event from Firestore
+  // Delete event from database
   const handleDeleteEvent = async (id: string) => {  
     await DeleteEventFromDatabase(currentUserId, id);  
   };
   
-  // Delete study session from Firestore
+  // Delete study session from database
   const handleDeleteStudySession = async (sessionId: string) => {  
     try {
       await DeleteStudySessionFromDatabase(currentUserId, sessionId); 
@@ -200,7 +200,7 @@ export default function MainPage() {
     }
   };
 
-  // Add a new study session to Firestore
+  // Add a new study session to database
   const ScheduleSession = async (session: { date: Date; friends: string[] }) => {
     if (!(session.date instanceof Date) || isNaN(session.date.getTime())) {
       console.error('Invalid session date:', session.date);
@@ -245,7 +245,7 @@ export default function MainPage() {
   const startOfWeek = getStartOfWeek(new Date());
   const endOfWeek = getEndOfWeek(new Date());
 
-  // Filter events to only include those within the current week
+  // Filter events to only include those within the current week including today
   const filteredEvents = events.filter((event) => {
     const eventDate = event.date?.toDate();
     if (!eventDate) {
@@ -259,14 +259,17 @@ export default function MainPage() {
     );
   });
 
-  // Filter study sessions to only include those within the current week
+  // Filter study sessions to only include those within the current week including today
   const filteredSessions = sessions.filter((session) => {
     const sessionDate = session.date?.toDate();
     if (!sessionDate) {
       console.error('Invalid session date:', session);
       return false;
     }
-    return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+    const today = new Date();
+    return (
+      sessionDate >= startOfWeek && sessionDate <= endOfWeek) ||
+      sessionDate.toDateString() === today.toDateString()
   });
 
   // Multipage event/study/calendar session handling
@@ -327,7 +330,7 @@ export default function MainPage() {
         <View style={styles.eventsWrapper}>
           <Text style={styles.sectionTitle}>Your Upcoming Items:</Text>
           <ScrollView style={styles.eventsList}>
-            {filteredEvents.length > 0 || filteredSessions.length > 0 ? (
+          {(filteredEvents.some(event => event.isadded) || filteredSessions.length > 0) ? (
               <>
                 {filteredEvents
                   .filter((event) => event.isadded)  
