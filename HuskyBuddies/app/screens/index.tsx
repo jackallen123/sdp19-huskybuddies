@@ -29,8 +29,12 @@ interface Match {
 type StudySessionCardProps = {
   title: string;
   date: string;
-  friends: string[];
+  creatorName: string;
 }
+
+const getDateFromTimestamp = (date: any): Date => {
+  return (date as { toDate?: () => Date }).toDate ? (date as { toDate: () => Date }).toDate() : new Date(date);
+};
 
 const formatDate = (date: Date): string => {
   const datePart = date.toLocaleDateString(); // e.g., "4/7/2025"
@@ -38,25 +42,36 @@ const formatDate = (date: Date): string => {
   return `${datePart} at ${timePart}`;
 };
 
-const getDateFromTimestamp = (date: any): Date => {
-  return (date as { toDate?: () => Date }).toDate ? (date as { toDate: () => Date }).toDate() : new Date(date);
+const formatSessionTitle = (title: string): string => {
+  const prefix = "Study session with ";
+  if (title.startsWith(prefix)) {
+    let trimmed = title.substring(prefix.length).trim();
+    // Remove "You," or "You &" if present at the beginning
+    if (trimmed.startsWith("You,")) {
+      trimmed = trimmed.substring(4).trim();
+    } else if (trimmed.startsWith("You &")) {
+      trimmed = trimmed.substring(5).trim();
+    } else if (trimmed.startsWith("You")) {
+      trimmed = trimmed.substring(3).trim();
+    }
+    return "Session with " + trimmed;
+  }
+  return title;
 };
 
-const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, friends }) => {
+const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, creatorName }) => {
   const theme = useTheme();
 
-  // convert Firestore Timestamp to JavaScript Date and then to a readable string.
+  // convert timestamp using helper and format date & title
   const dateObj = getDateFromTimestamp(date);
   const formattedDate = formatDate(dateObj);
-
-  // If friends is an array, join them into a string.
-  const formattedFriends = Array.isArray(friends) ? friends.join(", ") : friends;
+  const formattedTitle = formatSessionTitle(title);
 
   return (
     <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{title}</Text>
+      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{formattedTitle}</Text>
       <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{formattedDate}</Text>
-      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{formattedFriends}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{`Session created by ${creatorName}`}</Text>
     </View>
   );
 };
@@ -384,7 +399,7 @@ export default function HomePage() {
                     key={session.id}
                     title={session.title}
                     date={session.date}
-                    friends={session.friends}
+                    creatorName={session.creatorName}
                   />
                 ))}
               </ScrollView>
