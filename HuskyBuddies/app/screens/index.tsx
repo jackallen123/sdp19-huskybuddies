@@ -80,24 +80,6 @@ const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, creato
   );
 };
 
-type EventCardProps = {
-  name: string;
-  date: string;
-  location: string;
-}
-
-// Card for featured events
-const EventCard: React.FC<EventCardProps> = ({ name, date, location }) => {
-  const theme = useTheme();
-  return (
-    <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{name}</Text>
-      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{date}</Text>
-      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{location}</Text>
-    </View>
-  );
-};
-
 type StudyBuddyCardProps = {
   name: string;
   sharedClasses: number;
@@ -231,50 +213,6 @@ export default function HomePage() {
       return dateA.getTime() - dateB.getTime();
     })
     .slice(0, 3);
-
-  // Mock data for featured events
-  const featuredEvents = [
-    {
-      id: 1,
-      name: "UConn MBB Game",
-      date: "Mar 15, 2024",
-      location: "Gampel Pavilion",
-    },
-    {
-      id: 2,
-      name: "Spring Concert",
-      date: "Apr 20, 2024",
-      location: "Jorgensen Center",
-    },
-    {
-      id: 3,
-      name: "Career Fair",
-      date: "May 5, 2024",
-      location: "Student Union",
-    },
-  ];
-
-  // Mock data for study buddies
-  const studyBuddies = [
-    {
-      id: 1,
-      name: "John Doe",
-      sharedClasses: 3,
-      profilePicture: "https://robohash.org/stefan-one",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      sharedClasses: 2,
-      profilePicture: "https://robohash.org/stefan-two",
-    },
-    {
-      id: 3,
-      name: "Alex Johnson",
-      sharedClasses: 4,
-      profilePicture: "https://robohash.org/stefan-three",
-    },
-  ];
 
   // Links for campus services
   const campusServices: ResourceItem[] = [
