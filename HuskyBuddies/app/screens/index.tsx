@@ -40,8 +40,8 @@ const getDateFromTimestamp = (date: any): Date => {
 
 // helper to format the date and time
 const formatDate = (date: Date): string => {
-  const datePart = date.toLocaleDateString(); 
-  const timePart = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const datePart = date.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric'}); 
+  const timePart = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   return `${datePart} at ${timePart}`;
 };
 
