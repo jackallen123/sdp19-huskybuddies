@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { ActivityIndicator, useTheme } from 'react-native-paper';
 import { auth } from '../../backend/firebase/firebaseConfig';
-import { getAllUsers, getUserCourses, getUserProfile } from '../../backend/firebase/firestoreService';
+import { getAllUsers, getUserCourses, getUserProfile, FetchStudySessionsFromDatabase, getUsersWithMessages } from '../../backend/firebase/firestoreService';
 
 interface UserData {
   id: string;
@@ -26,23 +26,44 @@ interface Match {
   sharedClasses: number;
 }
 
-type EventCardProps = {
-  name: string;
-  date: string;
-  location: string;
+// helper to convert Firestore timestamp to Date
+const getDateFromTimestamp = (date: any): Date => {
+  return (date as { toDate?: () => Date }).toDate ? (date as { toDate: () => Date }).toDate() : new Date(date);
+};
+
+// helper to format the date and time
+const formatDate = (date: Date): string => {
+  const datePart = date.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric'}); 
+  const timePart = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${datePart} at ${timePart}`;
+};
+
+// helper to format only the time
+const formatTimeOnly = (date: Date): string => {
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-// Card for featured events
-const EventCard: React.FC<EventCardProps> = ({ name, date, location }) => {
-  const theme = useTheme();
-  return (
-    <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{name}</Text>
-      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{date}</Text>
-      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{location}</Text>
-    </View>
-  );
+// helper to format the session title
+const formatSessionTitle = (title: string): string => {
+  const prefix = "Study session with ";
+  if (title.startsWith(prefix)) {
+    let trimmed = title.substring(prefix.length).trim();
+    if (trimmed.startsWith("You,")) {
+      trimmed = trimmed.substring(4).trim();
+    } else if (trimmed.startsWith("You &")) {
+      trimmed = trimmed.substring(5).trim();
+    } else if (trimmed.startsWith("You")) {
+      trimmed = trimmed.substring(3).trim();
+    }
+    return "Session with " + trimmed;
+  }
+  return title;
 };
+
+// helper to truncate messages
+const truncateMessage = (message: string): string => {
+  return message.length > 10 ? message.substring(0, 10) + '...' : message;
+}
 
 type StudyBuddyCardProps = {
   name: string;
@@ -62,6 +83,52 @@ const StudyBuddyCard: React.FC<StudyBuddyCardProps> = ({ name, sharedClasses, pr
   );
 };
 
+type StudySessionCardProps = {
+  title: string;
+  date: string;
+  creatorName: string;
+}
+
+// card for study sessions
+const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, creatorName }) => {
+  const theme = useTheme();
+  const dateObj = getDateFromTimestamp(date);
+  const formattedDate = formatDate(dateObj);
+  const formattedTitle = formatSessionTitle(title);
+
+  return (
+    <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{formattedTitle}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{formattedDate}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{`Session created by ${creatorName}`}</Text>
+    </View>
+  );
+};
+
+type MessageCardProps = {
+  firstName: string;
+  lastName: string;
+  lastMessage: string;
+  time: any;
+}
+
+// card for messages
+const MessageCard: React.FC<MessageCardProps> = ({ firstName, lastName, lastMessage, time }) => {
+  const theme = useTheme();
+  const formattedTime = (typeof time === 'object' && time.toDate)
+    ? formatTimeOnly(getDateFromTimestamp(time))
+    : time;
+  const truncatedMessage = truncateMessage(lastMessage);
+
+  return (
+    <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{`Message with ${firstName} ${lastName}`}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{`Received at ${formattedTime}`}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{`"${truncatedMessage}"`}</Text>
+    </View>
+  );
+};
+
 // Interface to store resource items
 interface ResourceItem {
   name: string;
@@ -77,6 +144,20 @@ export default function HomePage() {
   // states for top matching study buddies & loading icon
   const [topMatches, setTopMatches] = useState<Array<{ id: string; name: string; profilePicture: string; sharedClasses: number }>>([]);
   const [loading, setLoading] = useState(false);
+
+  // state for study sessions
+  const [studySessions, setStudySessions] = useState<Array<{ id: string; title: string; date: string; friends: string; createdBy: string; creatorName: string }>>([]);
+
+  // state for messages
+  const [recentMessages, setRecentMessages] = useState<Array<{ 
+    id: string; 
+    firstName: string; 
+    lastName: string; 
+    profilePicture: string; 
+    lastMessage: string; 
+    time: any; 
+    timestamp?: any;
+  }>>([]);
 
   // function to find shared courses between two users
   const findSharedCourses = (userCourses: Array<any>, otherCourses: Array<any>): string[] => {
@@ -148,49 +229,53 @@ export default function HomePage() {
     fetchTopMatches();
   }, []);
 
-  // Mock data for featured events
-  const featuredEvents = [
-    {
-      id: 1,
-      name: "UConn MBB Game",
-      date: "Mar 15, 2024",
-      location: "Gampel Pavilion",
-    },
-    {
-      id: 2,
-      name: "Spring Concert",
-      date: "Apr 20, 2024",
-      location: "Jorgensen Center",
-    },
-    {
-      id: 3,
-      name: "Career Fair",
-      date: "May 5, 2024",
-      location: "Student Union",
-    },
-  ];
+  // useEffect to fetch study sessions for the current user
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
 
-  // Mock data for study buddies
-  const studyBuddies = [
-    {
-      id: 1,
-      name: "John Doe",
-      sharedClasses: 3,
-      profilePicture: "https://robohash.org/stefan-one",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      sharedClasses: 2,
-      profilePicture: "https://robohash.org/stefan-two",
-    },
-    {
-      id: 3,
-      name: "Alex Johnson",
-      sharedClasses: 4,
-      profilePicture: "https://robohash.org/stefan-three",
-    },
-  ];
+    // fetch study sessions
+    const unsubscribe = FetchStudySessionsFromDatabase(currentUser.uid, setStudySessions);
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
+
+  // process study sessions to get 3 upcoming sessions & filter out past sessions
+  const upcomingSessions = studySessions
+    .filter(session => {
+      const sessionDate = getDateFromTimestamp(session.date);
+      return sessionDate >= new Date();
+    })
+    .sort((a, b) => {
+      const dateA = getDateFromTimestamp(a.date);
+      const dateB = getDateFromTimestamp(b.date);
+      return dateA.getTime() - dateB.getTime();
+    })
+    .slice(0, 3);
+
+  // useEffect to fetch recent messages for the current user
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        const messagesData = await getUsersWithMessages(currentUser.uid);
+        const sortedMessages = messagesData.sort((a, b) => {
+          const timeA = a.timestamp ? getDateFromTimestamp(a.timestamp).getTime() : 0;
+          const timeB = b.timestamp ? getDateFromTimestamp(b.timestamp).getTime() : 0;
+          return timeB - timeA;
+        });
+        setRecentMessages(sortedMessages.slice(0, 3));
+      } catch (error) {
+        console.error("Error fetching recent messages:", error);
+      }
+    };
+
+    fetchMessages();
+  }, []);
 
   // Links for campus services
   const campusServices: ResourceItem[] = [
@@ -269,9 +354,8 @@ export default function HomePage() {
         </TouchableOpacity>
       </View>
 
-      {/* Campus Services Modal */}
+      {/* Modals */}
       {renderModal("Campus Services", campusServices, campusServicesModalVisible, setCampusServicesModalVisible)}
-      {/* Academic Resources Modal */}
       {renderModal("Academic Resources", academicResources, academicModalVisible, setAcademicModalVisible)}
 
       {/* Content */}
@@ -307,18 +391,57 @@ export default function HomePage() {
               </Link>
             </View>
 
-            {/* Featured events section */}
-            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Featured Events</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventScroll}>
-              {featuredEvents.map((event) => (
-                <EventCard key={event.id} {...event} />
-              ))}
-            </ScrollView>
+            {/* Upcoming Study Sessions Section */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Upcoming Study Sessions</Text>
+            {upcomingSessions.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventScroll}>
+                {upcomingSessions.map((session) => (
+                  <StudySessionCard
+                    key={session.id}
+                    title={session.title}
+                    date={session.date}
+                    creatorName={session.creatorName}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ color: theme.colors.onBackground, marginBottom: 16 }}>
+                No study sessions scheduled. Schedule a study session with a buddy using the button below.
+              </Text>
+            )}
 
             <View style={styles.viewAllButtonWrapper}>
               <Link href="/screens/events" style={styles.fullWidthLink} asChild>
                 <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
-                  <Text style={styles.viewAllButtonText}>View All Events</Text>
+                  <Text style={styles.viewAllButtonText}>View All Study Sessions</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+
+            {/* Recent Messages Section */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Recent Messages</Text>
+            {recentMessages.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventScroll}>
+                {recentMessages.map((msg) => (
+                  <MessageCard
+                    key={msg.id}
+                    firstName={msg.firstName}
+                    lastName={msg.lastName}
+                    lastMessage={msg.lastMessage}
+                    time={msg.time}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ color: theme.colors.onBackground, marginBottom: 16 }}>
+                No recent messages
+              </Text>
+            )}
+
+            <View style={styles.viewAllButtonWrapper}>
+              <Link href="/screens/messages" style={styles.fullWidthLink} asChild>
+                <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
+                  <Text style={styles.viewAllButtonText}>View All Messages</Text>
                 </TouchableOpacity>
               </Link>
             </View>
