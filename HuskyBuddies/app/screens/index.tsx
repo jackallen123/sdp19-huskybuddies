@@ -29,16 +29,25 @@ interface Match {
 type StudySessionCardProps = {
   title: string;
   date: string;
-  friends: string;
+  friends: string[];
 }
 
 const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, friends }) => {
   const theme = useTheme();
+
+  // convert Firestore Timestamp to JavaScript Date and then to a readable string.
+  const formattedDate = date && typeof date.toDate === 'function'
+    ? date.toDate().toLocaleString()
+    : new Date(date).toLocaleString();
+
+  // If friends is an array, join them into a string.
+  const formattedFriends = Array.isArray(friends) ? friends.join(", ") : friends;
+
   return (
     <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
       <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{title}</Text>
-      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{date}</Text>
-      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{friends}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{formattedDate}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{formattedFriends}</Text>
     </View>
   );
 };
@@ -175,6 +184,7 @@ export default function HomePage() {
 
     // fetch study sessions
     const unsubscribe = FetchStudySessionsFromDatabase(currentUser.uid, setStudySessions);
+    console.log("Study sessions fetched:", studySessions);
     return () => {
       if (unsubscribe) {
         unsubscribe();
@@ -184,9 +194,25 @@ export default function HomePage() {
 
   // process study sessions to get 3 upcoming sessions & filter out past sessions
   const upcomingSessions = studySessions
-    .filter(session => new Date(session.date) >= new Date())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter(session => {
+      // Convert Firestore Timestamp to Date if possible
+      const sessionDate = session.date && typeof session.date.toDate === 'function' 
+        ? session.date.toDate() 
+        : new Date(session.date);
+      return sessionDate >= new Date();
+    })
+    .sort((a, b) => {
+      const dateA = a.date && typeof a.date.toDate === 'function' 
+        ? a.date.toDate() 
+        : new Date(a.date);
+      const dateB = b.date && typeof b.date.toDate === 'function' 
+        ? b.date.toDate() 
+        : new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    })
     .slice(0, 3);
+
+  console.log("Upcoming sessions:", upcomingSessions);
 
   // Mock data for featured events
   const featuredEvents = [
@@ -347,18 +373,29 @@ export default function HomePage() {
               </Link>
             </View>
 
-            {/* Featured events section */}
-            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Featured Events</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventScroll}>
-              {featuredEvents.map((event) => (
-                <EventCard key={event.id} {...event} />
-              ))}
-            </ScrollView>
+            {/* Upcoming Study Sessions Section */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Upcoming Study Sessions</Text>
+            {upcomingSessions.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventScroll}>
+                {upcomingSessions.map((session) => (
+                  <StudySessionCard
+                    key={session.id}
+                    title={session.title}
+                    date={session.date}
+                    friends={session.friends}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ color: theme.colors.onBackground, marginBottom: 16 }}>
+                No study sessions scheduled. Schedule a study session with a buddy using the button below.
+              </Text>
+            )}
 
             <View style={styles.viewAllButtonWrapper}>
               <Link href="/screens/events" style={styles.fullWidthLink} asChild>
                 <TouchableOpacity style={StyleSheet.flatten([styles.viewAllButton, { backgroundColor: theme.colors.primary }])}>
-                  <Text style={styles.viewAllButtonText}>View All Events</Text>
+                  <Text style={styles.viewAllButtonText}>View All Study Sessions</Text>
                 </TouchableOpacity>
               </Link>
             </View>
