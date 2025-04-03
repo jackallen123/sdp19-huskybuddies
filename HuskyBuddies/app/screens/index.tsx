@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { ActivityIndicator, useTheme } from 'react-native-paper';
 import { auth } from '../../backend/firebase/firebaseConfig';
-import { getAllUsers, getUserCourses, getUserProfile } from '../../backend/firebase/firestoreService';
+import { getAllUsers, getUserCourses, getUserProfile, FetchStudySessionsFromDatabase } from '../../backend/firebase/firestoreService';
 
 interface UserData {
   id: string;
@@ -25,6 +25,23 @@ interface Match {
   profilePicture: string;
   sharedClasses: number;
 }
+
+type StudySessionCardProps = {
+  title: string;
+  date: string;
+  friends: string;
+}
+
+const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, friends }) => {
+  const theme = useTheme();
+  return (
+    <View style={[styles.eventCard, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.eventName, { color: theme.colors.onBackground }]}>{title}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{date}</Text>
+      <Text style={[styles.eventDetails, { color: theme.colors.onSurface }]}>{friends}</Text>
+    </View>
+  );
+};
 
 type EventCardProps = {
   name: string;
@@ -77,6 +94,9 @@ export default function HomePage() {
   // states for top matching study buddies & loading icon
   const [topMatches, setTopMatches] = useState<Array<{ id: string; name: string; profilePicture: string; sharedClasses: number }>>([]);
   const [loading, setLoading] = useState(false);
+
+  // state for study sessions
+  const [studySessions, setStudySessions] = useState<Array<{ id: string; title: string; date: string; friends: string; createdBy: string; creatorName: string }>>([]);
 
   // function to find shared courses between two users
   const findSharedCourses = (userCourses: Array<any>, otherCourses: Array<any>): string[] => {
@@ -147,6 +167,26 @@ export default function HomePage() {
 
     fetchTopMatches();
   }, []);
+
+  // useEffect to fetch study sessions for the current user
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    // fetch study sessions
+    const unsubscribe = FetchStudySessionsFromDatabase(currentUser.uid, setStudySessions);
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
+
+  // process study sessions to get 3 upcoming sessions & filter out past sessions
+  const upcomingSessions = studySessions
+    .filter(session => new Date(session.date) >= new Date())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 3);
 
   // Mock data for featured events
   const featuredEvents = [
