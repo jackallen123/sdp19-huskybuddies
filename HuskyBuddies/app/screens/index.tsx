@@ -32,13 +32,22 @@ type StudySessionCardProps = {
   friends: string[];
 }
 
+const formatDate = (date: Date): string => {
+  const datePart = date.toLocaleDateString(); // e.g., "4/7/2025"
+  const timePart = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); // e.g., "8:00 AM"
+  return `${datePart} at ${timePart}`;
+};
+
+const getDateFromTimestamp = (date: any): Date => {
+  return (date as { toDate?: () => Date }).toDate ? (date as { toDate: () => Date }).toDate() : new Date(date);
+};
+
 const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, friends }) => {
   const theme = useTheme();
 
   // convert Firestore Timestamp to JavaScript Date and then to a readable string.
-  const formattedDate = date && typeof date.toDate === 'function'
-    ? date.toDate().toLocaleString()
-    : new Date(date).toLocaleString();
+  const dateObj = getDateFromTimestamp(date);
+  const formattedDate = formatDate(dateObj);
 
   // If friends is an array, join them into a string.
   const formattedFriends = Array.isArray(friends) ? friends.join(", ") : friends;
@@ -195,19 +204,12 @@ export default function HomePage() {
   // process study sessions to get 3 upcoming sessions & filter out past sessions
   const upcomingSessions = studySessions
     .filter(session => {
-      // Convert Firestore Timestamp to Date if possible
-      const sessionDate = session.date && typeof session.date.toDate === 'function' 
-        ? session.date.toDate() 
-        : new Date(session.date);
+      const sessionDate = getDateFromTimestamp(session.date);
       return sessionDate >= new Date();
     })
     .sort((a, b) => {
-      const dateA = a.date && typeof a.date.toDate === 'function' 
-        ? a.date.toDate() 
-        : new Date(a.date);
-      const dateB = b.date && typeof b.date.toDate === 'function' 
-        ? b.date.toDate() 
-        : new Date(b.date);
+      const dateA = getDateFromTimestamp(a.date);
+      const dateB = getDateFromTimestamp(b.date);
       return dateA.getTime() - dateB.getTime();
     })
     .slice(0, 3);
