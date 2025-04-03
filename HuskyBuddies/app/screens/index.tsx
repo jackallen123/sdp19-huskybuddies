@@ -26,27 +26,30 @@ interface Match {
   sharedClasses: number;
 }
 
+
 type StudySessionCardProps = {
   title: string;
   date: string;
   creatorName: string;
 }
 
+// helper to convert Firestore timestamp to Date
 const getDateFromTimestamp = (date: any): Date => {
   return (date as { toDate?: () => Date }).toDate ? (date as { toDate: () => Date }).toDate() : new Date(date);
 };
 
+// helper to format the date and time
 const formatDate = (date: Date): string => {
-  const datePart = date.toLocaleDateString(); // e.g., "4/7/2025"
-  const timePart = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); // e.g., "8:00 AM"
+  const datePart = date.toLocaleDateString(); 
+  const timePart = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   return `${datePart} at ${timePart}`;
 };
 
+// helper to format the session title
 const formatSessionTitle = (title: string): string => {
   const prefix = "Study session with ";
   if (title.startsWith(prefix)) {
     let trimmed = title.substring(prefix.length).trim();
-    // Remove "You," or "You &" if present at the beginning
     if (trimmed.startsWith("You,")) {
       trimmed = trimmed.substring(4).trim();
     } else if (trimmed.startsWith("You &")) {
@@ -59,6 +62,7 @@ const formatSessionTitle = (title: string): string => {
   return title;
 };
 
+// card for study sessions
 const StudySessionCard: React.FC<StudySessionCardProps> = ({ title, date, creatorName }) => {
   const theme = useTheme();
 
@@ -208,7 +212,6 @@ export default function HomePage() {
 
     // fetch study sessions
     const unsubscribe = FetchStudySessionsFromDatabase(currentUser.uid, setStudySessions);
-    console.log("Study sessions fetched:", studySessions);
     return () => {
       if (unsubscribe) {
         unsubscribe();
@@ -228,8 +231,6 @@ export default function HomePage() {
       return dateA.getTime() - dateB.getTime();
     })
     .slice(0, 3);
-
-  console.log("Upcoming sessions:", upcomingSessions);
 
   // Mock data for featured events
   const featuredEvents = [
