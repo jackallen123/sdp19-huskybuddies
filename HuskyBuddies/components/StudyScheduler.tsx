@@ -11,6 +11,8 @@ import {
   DeleteStudySessionFromDatabase,
   getFullName,
 } from "@/backend/firebase/firestoreService"
+import { useTheme } from "react-native-paper"
+
 
 // Study session setup for database
 interface StudySession {
@@ -36,6 +38,7 @@ type StudySchedulerProps = {
 }
 
 export default function StudyScheduler({ onBack, onSchedule, currentUserId }: StudySchedulerProps) {
+  const theme = useTheme()
   const [selectedFriends, setSelectedFriends] = useState<string[]>([])
   const [date, setDate] = useState<Date | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -206,41 +209,45 @@ export default function StudyScheduler({ onBack, onSchedule, currentUserId }: St
 
   // Formatting for page consistency
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
-          <Text style={styles.headerText}>Study Scheduler</Text>
+          <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Study Scheduler</Text>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Schedule a Study Session</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Schedule a Study Session</Text>
         {loading ? (
-          <Text style={styles.loadingText}>Loading friends...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Loading friends...</Text>
         ) : friendsList.length > 0 ? (
           friendsList.map((friend) => (
             <TouchableOpacity
               key={friend.id}
-              style={[styles.friendItem, selectedFriends.includes(friend.id) && styles.selectedFriend]}
+              style={[
+                styles.friendItem,
+                selectedFriends.includes(friend.id) && styles.selectedFriend,
+                { borderColor: theme.colors.primary }
+              ]}
               onPress={() => toggleFriendSelection(friend.id)}
             >
-              <Text style={styles.friendText}>{friend.name}</Text>
+              <Text style={[styles.friendText, { color: theme.colors.onBackground }]}>{friend.name}</Text>
               {selectedFriends.includes(friend.id) && (
-                <Ionicons name="checkmark" size={20} color={COLORS.UCONN_WHITE} />
+                <Ionicons name="checkmark" size={20} color={theme.colors.onPrimary} />
               )}
             </TouchableOpacity>
           ))
         ) : (
-          <Text style={styles.friendText}>No friends found.</Text>
+          <Text style={[styles.friendText, { color: theme.colors.onBackground }]}>No friends found.</Text>
         )}
       </View>
 
       <View style={styles.section}>
         <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.inputText}>{date ? date.toLocaleString() : "Select Date & Time"}</Text>
+          <Text style={[styles.inputText, { color: theme.colors.onBackground }]}>{date ? date.toLocaleString() : "Select Date & Time"}</Text>
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
@@ -272,33 +279,33 @@ export default function StudyScheduler({ onBack, onSchedule, currentUserId }: St
       </View>
 
       <View style={styles.buttonWrapper}>
-        <TouchableOpacity style={styles.scheduleButton} onPress={scheduleSession}>
-          <Text style={styles.scheduleButtonText}>Schedule Study Session</Text>
+        <TouchableOpacity style={[styles.scheduleButton, { backgroundColor: theme.colors.primary }]} onPress={scheduleSession}>
+          <Text style={[styles.scheduleButtonText, { color: theme.colors.onPrimary }]}>Schedule Study Session</Text>
         </TouchableOpacity>
       </View>
 
       <View style={[styles.section, { flex: 1 }]}>
-        <Text style={styles.sectionTitle}>Scheduled Study Sessions:</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Scheduled Study Sessions:</Text>
         <ScrollView style={styles.scrollContainer}>
           {scheduledSessions.length > 0 ? (
             scheduledSessions.map((session) => (
-              <View key={session.id} style={styles.sessionBox}>
+              <View key={session.id} style={[styles.sessionBox, { backgroundColor: theme.colors.surface }]}>
                 <View style={styles.sessionDetails}>
-                  <Text style={styles.sessionText}>{session.title}</Text>
-                  <Text style={styles.sessionDate}>{session.date ? formatDate(session.date) : "Invalid Date"}</Text>
+                  <Text style={[styles.sessionText, { color: theme.colors.onBackground }]}>{session.title}</Text>
+                  <Text style={[styles.sessionDate, { color: theme.colors.onBackground }]}>{session.date ? formatDate(session.date) : "Invalid Date"}</Text>
                   {/* Display creator name */}
-                  <Text style={styles.creatorText}>Created by: {creatorNames[session.createdBy] || "Loading..."}</Text>
+                  <Text style={[styles.creatorText, { color: theme.colors.onBackground }]}>Created by: {creatorNames[session.createdBy] || "Loading..."}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => handleDeleteStudySession(session.id, session.friends)}
-                  style={styles.deleteButton}
+                  style={[styles.deleteButton, { backgroundColor: theme.colors.error || "#FF4C4C" }]}
                 >
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               </View>
             ))
           ) : (
-            <Text style={styles.friendText}> No sessions scheduled yet.</Text>
+            <Text style={[styles.friendText, { color: theme.colors.onBackground }]}> No sessions scheduled yet.</Text>
           )}
         </ScrollView>
       </View>
