@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS } from '@/constants/Colors';
 import CustomCalendar from '@/components/CustomCalendar';
 import AddEvent from '@/components/AddEvent';
 import AllEvents from '@/components/AllEvents';
