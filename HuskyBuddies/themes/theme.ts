@@ -16,7 +16,8 @@ export const lightTheme: MD3Theme = {
     onPrimaryContainer: COLORS.UCONN_NAVY,
     secondary: COLORS.UCONN_WHITE,
     tertiaryContainer: "#E6F7FF",
-    tertiary: "#E5E7EB"
+    tertiary: "#E5E7EB",
+    onTertiary: "#ccc"
   },
 };
 
@@ -35,6 +36,7 @@ export const darkTheme: MD3Theme = {
     onPrimaryContainer: COLORS.UCONN_DARK_BACKGROUND,
     secondary: COLORS.UCONN_DARK_BACKGROUND,
     tertiaryContainer: COLORS.UCONN_DARK_HEADER,
-    tertiary: COLORS.UCONN_DARK_HEADER
+    tertiary: COLORS.UCONN_DARK_HEADER,
+    onTertiary: COLORS.UCONN_DARK_BACKGROUND
   },
 };
