@@ -15,6 +15,7 @@ import { COLORS } from "@/constants/Colors";
 import AddSection from "./addSection";
 import Constants from "expo-constants";
 import { ActivityIndicator } from "react-native-paper";
+import { useTheme } from "react-native-paper";
 
 interface Course {
   code: string;
@@ -27,6 +28,7 @@ interface CourseResponse {
 }
 
 export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddingSection, setIsAddingSection] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -71,42 +73,42 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView edges={["left", "right"]} style={styles.safeArea}>
-        <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView edges={["left", "right"]} style={[styles.safeArea, { backgroundColor: theme.colors.primary }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <TouchableOpacity onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerText}>Add Course</Text>
+          <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Add Course</Text>
           <TouchableOpacity>
             <Ionicons
               name="ellipsis-vertical"
               size={24}
-              color={COLORS.UCONN_NAVY}
+              color={theme.colors.onPrimary}
             />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
 
       <View style={styles.content}>
-        <View style={styles.searchContainer}>
+        <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
           <Ionicons
             name="search"
             size={24}
-            color="gray"
+            color={theme.colors.onSurface}
             style={styles.searchIcon}
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.colors.onBackground }]}
             placeholder="Search for a course"
+            placeholderTextColor={theme.colors.onSurface}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
-
         {loading ? (
           <View style={styles.centerContent}>
-            <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
         ) : (
           <>
@@ -115,21 +117,21 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.courseItem}
+                  style={[styles.courseItem, { backgroundColor: theme.colors.surface }]}
                   onPress={() => {
                     setSelectedCourse(item);
                     setIsAddingSection(true);
                   }}
                 >
                   <View>
-                    <Text style={styles.courseName}>{item.code}</Text>
+                    <Text style={[styles.courseName, { color: theme.colors.onBackground }]}>{item.code}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={24} color="black" />
+                  <Ionicons name="chevron-forward" size={24} color={theme.colors.onBackground} />
                 </TouchableOpacity>
               )}
               ListEmptyComponent={() => (
                 <View style={styles.centerContent}>
-                  <Text>No courses found</Text>
+                  <Text style={{ color: theme.colors.onBackground }}>No courses found</Text>
                 </View>
               )}
             />
@@ -143,7 +145,7 @@ export default function AddCourseScreen({ onBack }: { onBack: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: COLORS.UCONN_WHITE,
   },
   safeArea: {
     backgroundColor: COLORS.UCONN_NAVY,
