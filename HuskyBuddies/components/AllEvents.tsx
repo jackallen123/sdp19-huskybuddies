@@ -21,6 +21,7 @@ import {
   SyncAllEventsFromDatabase,
   getFullName,
 } from "@/backend/firebase/firestoreService"
+import { useTheme } from "react-native-paper"
 
 // event setup for database
 interface Event {
@@ -40,6 +41,7 @@ interface AllEventsProps {
 }
 
 const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, onAddToCalendar }) => {
+  const theme = useTheme();
   const [localEvents, setLocalEvents] = useState<Event[]>(initialEvents || [])
   const [loading, setLoading] = useState(!initialEvents || initialEvents.length === 0)
   const [error, setError] = useState<string | null>(null)
@@ -269,19 +271,24 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
     return (
       <View style={styles.eventItem}>
-        <Text style={styles.eventTitle}>{item.title}</Text>
-        <Text style={styles.eventText}>
+        <Text style={[styles.eventTitle, { color: theme.colors.onBackground }]}>{item.title}</Text>
+        <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>
           {item.date.toDate().toLocaleDateString()}{" "}
           {item.date.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </Text>
-        <Text style={styles.eventText}>{item.description}</Text>
-        <Text style={styles.creatorText}>Created by: {creatorName}</Text>
+        <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>{item.description}</Text>
+        <Text style={[styles.creatorText, { color: theme.colors.onBackground }]}>Created by: {creatorName}</Text>
 
         <TouchableOpacity
-          style={[styles.addToCalendarButton, item.isadded ? styles.removeButton : styles.addButton]}
+          style={[
+            styles.addToCalendarButton,
+            item.isadded 
+            ? { backgroundColor: theme.colors.error }
+            : { backgroundColor: theme.colors.primary }
+          ]}
           onPress={() => handleToggleEvent(item)}
         >
-          <Text style={styles.addToCalendarButtonText}>
+          <Text style={[styles.addToCalendarButtonText, { color: theme.colors.onPrimary }]}>
             {item.isadded ? "Remove from Calendar" : "Add to Calendar"}
           </Text>
         </TouchableOpacity>
@@ -290,19 +297,19 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   }
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+        <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
       </TouchableOpacity>
       <View style={styles.headerTextContainer}>
-        <Text style={styles.headerText}>All Events</Text>
+        <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>All Events</Text>
       </View>
       {/* Refresh Button */}
       <TouchableOpacity style={styles.refreshButton} onPress={fetchEvents} disabled={refreshing}>
         <Ionicons
           name={refreshing ? "sync" : "refresh"}
           size={24}
-          color={COLORS.UCONN_WHITE}
+          color={theme.colors.onPrimary}
           style={refreshing ? styles.spinningIcon : undefined}
         />
       </TouchableOpacity>
@@ -313,8 +320,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (loading && !refreshing) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
-          <Text style={styles.loadingText}>Loading events...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Loading events...</Text>
         </View>
       )
     }
@@ -322,9 +329,9 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (error) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchEvents}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={[styles.errorText, { color: theme.colors.error || "#FF4C4C" }]}>{error}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.primary }]} onPress={fetchEvents}>
+            <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       )
@@ -333,12 +340,12 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (localEvents.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.noEventsText}>Loading events...</Text>
+          <Text style={[styles.noEventsText, { color: theme.colors.onBackground }]}>Loading events...</Text>
           {refreshing ? (
-            <ActivityIndicator style={{ marginTop: 20 }} size="large" color={COLORS.UCONN_NAVY} />
+            <ActivityIndicator style={{ marginTop: 20 }} size="large" color={theme.colors.primary} />
           ) : (
-            <TouchableOpacity style={styles.retryButton} onPress={fetchEvents}>
-              <Text style={styles.retryButtonText}>Refresh</Text>
+            <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.primary }]} onPress={fetchEvents}>
+              <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>Refresh</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -347,13 +354,13 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
     return (
       <>
-        <Text style={styles.postedEventsTitle}>
+        <Text style={[styles.postedEventsTitle, { color: theme.colors.onBackground }]}>
           Available Events: 
           {refreshing && <Text style={styles.refreshingText}> (Refreshing...)</Text>}
         </Text>
         {refreshing && (
           <View style={styles.refreshingIndicator}>
-            <ActivityIndicator size="small" color={COLORS.UCONN_NAVY} />
+            <ActivityIndicator size="small" color={theme.colors.primary} />
           </View>
         )}
         <FlatList
@@ -368,8 +375,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.UCONN_NAVY} />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
       {renderHeader()}
       {renderContent()}
     </SafeAreaView>
