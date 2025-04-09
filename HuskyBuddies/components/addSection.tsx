@@ -16,6 +16,7 @@ import { auth } from "@/backend/firebase/firebaseConfig";
 import axios from "axios";
 import Constants from "expo-constants";
 import { ActivityIndicator } from "react-native-paper";
+import { useTheme } from "react-native-paper";
 
 interface Section {
   sectionNumber: string;
@@ -39,6 +40,7 @@ export default function AddSection({
   onBack: () => void;
   courseCode: string;
 }) {
+  const theme = useTheme();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationPopup, setLocationPopup] = useState<{
@@ -130,50 +132,50 @@ export default function AddSection({
   });
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView edges={["left", "right"]} style={styles.safeArea}>
-        <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView edges={["left", "right"]} style={[styles.safeArea, { backgroundColor: theme.colors.primary }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <TouchableOpacity onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerText}>Add Section</Text>
+          <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Add Section</Text>
           <TouchableOpacity>
             <Ionicons
               name="ellipsis-vertical"
               size={24}
-              color={COLORS.UCONN_NAVY}
+              color={theme.colors.onPrimary}
             />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
       {loading ? (
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
         <FlatList
           data={sortedSections}
           keyExtractor={(item) => item.sectionNumber}
           renderItem={({ item }) => (
-            <View style={styles.sectionCard}>
+            <View style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]}>
               <View style={styles.sectionInfo}>
-                <Text style={styles.sectionText}>
+                <Text style={[styles.sectionText, { color: theme.colors.onBackground }]}>
                   Section {item.sectionNumber}
                 </Text>
                 {/* <Text style={styles.sectionDetails}>{courseCode}</Text> */}
-                <Text style={styles.sectionDetails}>{item.meets}</Text>
+                <Text style={[styles.sectionDetails, { color: theme.colors.onSurface }]}>{item.meets}</Text>
               </View>
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => handleAddSection(item)}
               >
-                <Ionicons name="add-circle-outline" size={24} color="black" />
+                <Ionicons name="add-circle-outline" size={24} color={theme.colors.onBackground} />
               </TouchableOpacity>
             </View>
           )}
           ListEmptyComponent={() => (
             <View style={styles.centerContent}>
-              <Text>No sections found</Text>
+              <Text style={{ color: theme.colors.onBackground }}>No sections found</Text>
             </View>
           )}
         />
@@ -210,11 +212,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COLORS.UCONN_WHITE,
     textAlign: "center",
-  },
-  courseNameText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
   },
   centerContent: {
     flex: 1,

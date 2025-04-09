@@ -30,10 +30,12 @@ import {
   removeFriend,
 } from "../../../backend/firebase/firestoreService"
 import { auth } from "../../../backend/firebase/firebaseConfig"
-import { ActivityIndicator } from "react-native-paper"
+import { ActivityIndicator, useTheme } from "react-native-paper"
 import { useFocusEffect } from "@react-navigation/native"
 
 const IndexScreen = ({ navigation }) => {
+  const theme = useTheme()
+
   const [currentUser, setCurrentUser] = useState(null)
   const [currentUserCourses, setCurrentUserCourses] = useState([])
   const [currentUserPreferences, setCurrentUserPreferences] = useState([])
@@ -434,17 +436,17 @@ const IndexScreen = ({ navigation }) => {
 
   const renderProfileChecklist = () => {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <View style={styles.headerLeftPlaceholder}></View>
-          <Text style={styles.headerText}>Complete Your Profile</Text>
+          <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Complete Your Profile</Text>
           <View style={styles.headerLeftPlaceholder}></View>
         </View>
 
-        <View style={styles.checklistContainer}>
-          <View style={styles.checklistHeader}>
-            <Ionicons name="alert-circle" size={24} color={COLORS.UCONN_NAVY} />
-            <Text style={styles.checklistTitle}>Complete your profile to start matching with buddies</Text>
+        <View style={[styles.checklistContainer, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.checklistHeader, { backgroundColor: theme.colors.tertiaryContainer }]}>
+            <Ionicons name="alert-circle" size={24} color={theme.colors.onSurface} />
+            <Text style={[styles.checklistTitle, { color: theme.colors.onBackground }]}>Complete your profile to start matching with buddies</Text>
           </View>
 
           <View style={styles.checklistItems}>
@@ -457,8 +459,8 @@ const IndexScreen = ({ navigation }) => {
                 )}
               </View>
               <View style={styles.checkTextContainer}>
-                <Text style={styles.checkItemTitle}>Upload a profile picture</Text>
-                <Text style={styles.checkItemDescription}>Add a photo so others can recognize you</Text>
+                <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Upload a profile picture</Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Add a photo so others can recognize you</Text>
               </View>
             </View>
 
@@ -471,8 +473,8 @@ const IndexScreen = ({ navigation }) => {
                 )}
               </View>
               <View style={styles.checkTextContainer}>
-                <Text style={styles.checkItemTitle}>Add your courses</Text>
-                <Text style={styles.checkItemDescription}>Select at least one course you're taking</Text>
+                <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Add your courses</Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Select at least one course you're taking</Text>
               </View>
             </View>
 
@@ -485,8 +487,8 @@ const IndexScreen = ({ navigation }) => {
                 )}
               </View>
               <View style={styles.checkTextContainer}>
-                <Text style={styles.checkItemTitle}>Add study preferences</Text>
-                <Text style={styles.checkItemDescription}>Select at least one study preference</Text>
+                <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Add study preferences</Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Select at least one study preference</Text>
               </View>
             </View>
 
@@ -499,15 +501,15 @@ const IndexScreen = ({ navigation }) => {
                 )}
               </View>
               <View style={styles.checkTextContainer}>
-                <Text style={styles.checkItemTitle}>Add your interests</Text>
-                <Text style={styles.checkItemDescription}>Select at least one interest</Text>
+                <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Add your interests</Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Select at least one interest</Text>
               </View>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.refreshButton} onPress={() => fetchAllStudentData(true)}>
-            <Ionicons name="refresh" size={18} color={COLORS.UCONN_NAVY} style={styles.buttonIcon} />
-            <Text style={styles.refreshButtonText}>Refresh Profile Status</Text>
+          <TouchableOpacity style={[styles.refreshButton, { backgroundColor: theme.colors.tertiary }]} onPress={() => fetchAllStudentData(true)}>
+            <Ionicons name="refresh" size={18} color={theme.colors.onPrimary} style={styles.buttonIcon} />
+            <Text style={[styles.refreshButtonText, { color: theme.colors.onBackground }]}>Refresh Profile Status</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -516,8 +518,8 @@ const IndexScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+      <SafeAreaView style={[styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </SafeAreaView>
     )
   }
@@ -529,42 +531,46 @@ const IndexScreen = ({ navigation }) => {
 
   // Otherwise show the matching interface
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
         <View style={styles.headerLeftPlaceholder}></View>
-        <Text style={styles.headerText}>Match with a Buddy</Text>
+        <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Match with a Buddy</Text>
         <TouchableOpacity style={styles.iconButton} onPress={() => setModalVisible(true)}>
-          <Ionicons name="people" size={24} color={"#fff"} />
+          <Ionicons name="people" size={24} color={theme.colors.onPrimary} />
         </TouchableOpacity>
       </View>
 
       {refreshingData && (
-        <View style={styles.refreshingBanner}>
-          <ActivityIndicator size="small" color={COLORS.UCONN_NAVY} />
-          <Text style={styles.refreshingText}>Refreshing student data...</Text>
+        <View style={[styles.refreshingBanner, { backgroundColor: theme.colors.surface }]}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={[styles.refreshingText, { color: theme.colors.onBackground }]}>Refreshing student data...</Text>
         </View>
       )}
 
       <View style={styles.filtersContainer}>
-        <Text style={styles.filtersTitle}>Filter by:</Text>
+        <Text style={[styles.filtersTitle, { color: theme.colors.onBackground }]}>Filter by:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScrollView}>
           <TouchableOpacity
             style={[
               styles.filterButton,
-              classesFilterEnabled ? styles.filterButtonActive : styles.filterButtonInactive,
+              classesFilterEnabled
+                ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
+                : { backgroundColor: "transparent", borderColor: theme.colors.onSurface },
             ]}
             onPress={toggleClassesFilter}
           >
             <Ionicons
               name={classesFilterEnabled ? "checkmark-circle" : "school-outline"}
               size={18}
-              color={classesFilterEnabled ? "#fff" : COLORS.UCONN_NAVY}
+              color={classesFilterEnabled ? theme.colors.onPrimary : theme.colors.onSurface}
               style={styles.buttonIcon}
             />
             <Text
               style={[
                 styles.filterButtonText,
-                classesFilterEnabled ? styles.filterButtonTextActive : styles.filterButtonTextInactive,
+                classesFilterEnabled
+                  ? { color: theme.colors.onPrimary }
+                  : { color: theme.colors.onSurface },
               ]}
             >
               Matching Classes
@@ -574,20 +580,24 @@ const IndexScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.filterButton,
-              preferencesFilterEnabled ? styles.filterButtonActive : styles.filterButtonInactive,
+              preferencesFilterEnabled
+                ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
+                : { backgroundColor: "transparent", borderColor: theme.colors.onSurface },
             ]}
             onPress={togglePreferencesFilter}
           >
             <Ionicons
               name={preferencesFilterEnabled ? "checkmark-circle" : "options-outline"}
               size={18}
-              color={preferencesFilterEnabled ? "#fff" : COLORS.UCONN_NAVY}
+              color={preferencesFilterEnabled ? theme.colors.onPrimary : theme.colors.onSurface}
               style={styles.buttonIcon}
             />
             <Text
               style={[
                 styles.filterButtonText,
-                preferencesFilterEnabled ? styles.filterButtonTextActive : styles.filterButtonTextInactive,
+                preferencesFilterEnabled
+                  ? { color: theme.colors.onPrimary }
+                  : { color: theme.colors.onSurface },
               ]}
             >
               Study Preferences
@@ -597,20 +607,24 @@ const IndexScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.filterButton,
-              interestsFilterEnabled ? styles.filterButtonActive : styles.filterButtonInactive,
+              interestsFilterEnabled
+                ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
+                : { backgroundColor: "transparent", borderColor: theme.colors.onSurface },
             ]}
             onPress={toggleInterestsFilter}
           >
             <Ionicons
               name={interestsFilterEnabled ? "checkmark-circle" : "heart-outline"}
               size={18}
-              color={interestsFilterEnabled ? "#fff" : COLORS.UCONN_NAVY}
+              color={interestsFilterEnabled ? theme.colors.onPrimary : theme.colors.onSurface}
               style={styles.buttonIcon}
             />
             <Text
               style={[
                 styles.filterButtonText,
-                interestsFilterEnabled ? styles.filterButtonTextActive : styles.filterButtonTextInactive,
+                interestsFilterEnabled
+                  ? { color: theme.colors.onPrimary }
+                  : { color: theme.colors.onSurface },
               ]}
             >
               Interests
@@ -621,42 +635,40 @@ const IndexScreen = ({ navigation }) => {
 
       {displayedStudents.length === 0 ? (
         <View style={styles.emptyResults}>
-          <Ionicons name="search" size={48} color={COLORS.UCONN_NAVY} />
-          <Text style={styles.emptyResultsText}>No students match your filters</Text>
-          <Text style={styles.emptyResultsSubtext}>Try adjusting your filters</Text>
+          <Ionicons name="search" size={48} color={theme.colors.primary} />
+          <Text style={[styles.emptyResultsText, { color: theme.colors.onBackground }]}>No students match your filters</Text>
+          <Text style={[styles.emptyResultsSubtext, { color: theme.colors.onBackground }]}>Try adjusting your filters</Text>
         </View>
       ) : (
         <FlatList
           data={displayedStudents}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
               <View style={styles.cardHeader}>
                 <Image source={{ uri: getStudentImage(item.id) }} style={styles.avatar} />
                 <View style={styles.cardHeaderContent}>
-                  <Text style={styles.profileName}>
+                  <Text style={[styles.profileName, { color: theme.colors.onBackground }]}>
                     {item.name || `${item.firstName || ""} ${item.lastName || ""}`}
                   </Text>
 
                   {/* Display shared classes count */}
                   {sharedCourses[item.id] && sharedCourses[item.id].length > 0 ? (
                     <View style={styles.sharedClassesCountContainer}>
-                      <Ionicons name="school" size={14} color={COLORS.UCONN_NAVY} style={styles.sharedIcon} />
-                      <Text style={styles.sharedClassesCount}>
-                        {sharedCourses[item.id].length} shared{" "}
-                        {sharedCourses[item.id].length === 1 ? "class" : "classes"}
+                      <Ionicons name="school" size={14} color={theme.colors.onBackground} style={styles.sharedIcon} />
+                      <Text style={[styles.sharedClassesCount, { color: theme.colors.onBackground }]}>
+                        {sharedCourses[item.id].length} shared {sharedCourses[item.id].length === 1 ? "class" : "classes"}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={styles.noSharedClasses}>No shared classes</Text>
+                    <Text style={[styles.noSharedClasses, { color: theme.colors.onBackground }]}>No shared classes</Text>
                   )}
 
                   {/* Display shared preferences count */}
                   {sharedPreferences[item.id] && sharedPreferences[item.id].length > 0 && (
                     <View style={styles.sharedPreferencesCountContainer}>
                       <Ionicons name="options" size={14} color="#1E40AF" style={styles.sharedIcon} />
-                      <Text style={styles.sharedPreferencesCount}>
-                        {sharedPreferences[item.id].length} shared{" "}
-                        {sharedPreferences[item.id].length === 1 ? "preference" : "preferences"}
+                      <Text style={[styles.sharedPreferencesCount, { color: theme.colors.onBackground }]}>
+                        {sharedPreferences[item.id].length} shared {sharedPreferences[item.id].length === 1 ? "preference" : "preferences"}
                       </Text>
                     </View>
                   )}
@@ -665,35 +677,34 @@ const IndexScreen = ({ navigation }) => {
                   {sharedInterests[item.id] && sharedInterests[item.id].length > 0 && (
                     <View style={styles.sharedInterestsCountContainer}>
                       <Ionicons name="heart" size={14} color="#92400E" style={styles.sharedIcon} />
-                      <Text style={styles.sharedInterestsCount}>
-                        {sharedInterests[item.id].length} shared{" "}
-                        {sharedInterests[item.id].length === 1 ? "interest" : "interests"}
+                      <Text style={[styles.sharedInterestsCount, { color: theme.colors.onBackground }]}>
+                        {sharedInterests[item.id].length} shared {sharedInterests[item.id].length === 1 ? "interest" : "interests"}
                       </Text>
                     </View>
                   )}
                 </View>
 
                 {friends.includes(item.id) ? (
-                  <Text style={styles.friendLabel}>Friend</Text>
+                  <Text style={[styles.friendLabel, { color: theme.colors.onSurface }]}>Friend</Text>
                 ) : outgoingRequests.includes(item.id) ? (
-                  <TouchableOpacity style={styles.cancelButton} onPress={() => handleCancelRequest(item.id)}>
-                    <Text style={styles.buttonText}>Cancel</Text>
+                  <TouchableOpacity style={[styles.cancelButton, { backgroundColor: theme.colors.error || "#EF4444" }]} onPress={() => handleCancelRequest(item.id)}>
+                    <Text style={[styles.buttonText, { color: theme.colors.onPrimary || "#fff" }]}>Cancel</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity style={styles.requestButton} onPress={() => handleSendRequest(item.id)}>
-                    <Ionicons name="person-add" size={16} color="#fff" style={styles.buttonIcon} />
-                    <Text style={styles.buttonText}>Add</Text>
+                  <TouchableOpacity style={[styles.requestButton, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: "#fff" }]} onPress={() => handleSendRequest(item.id)}>
+                    <Ionicons name="person-add" size={16} color={theme.colors.onPrimary} style={styles.buttonIcon} />
+                    <Text style={[styles.buttonText, { color: theme.colors.onPrimary }]}>Add</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {/* More Details Button */}
               <TouchableOpacity style={styles.moreDetailsButton} onPress={() => toggleCardExpansion(item.id)}>
-                <Text style={styles.moreDetailsText}>{expandedCards[item.id] ? "Hide Details" : "More Details"}</Text>
+                <Text style={[styles.moreDetailsText, { color: theme.colors.onBackground }]}>{expandedCards[item.id] ? "Hide Details" : "More Details"}</Text>
                 <Ionicons
                   name={expandedCards[item.id] ? "chevron-up" : "chevron-down"}
                   size={16}
-                  color={COLORS.UCONN_NAVY}
+                  color={theme.colors.onBackground}
                 />
               </TouchableOpacity>
 
@@ -703,11 +714,11 @@ const IndexScreen = ({ navigation }) => {
                   {/* Display shared courses */}
                   {sharedCourses[item.id] && sharedCourses[item.id].length > 0 && (
                     <View style={styles.detailSection}>
-                      <Text style={styles.sectionLabel}>Shared Classes:</Text>
+                      <Text style={[styles.sectionLabel, { color: theme.colors.onBackground }]}>Shared Classes:</Text>
                       <View style={styles.tagsContainer}>
                         {sharedCourses[item.id].map((course, index) => (
                           <View key={`course-${index}`} style={styles.courseTag}>
-                            <Text style={styles.courseTagText}>{course}</Text>
+                            <Text style={[styles.courseTagText, { color: theme.colors.onPrimaryContainer }]}>{course}</Text>
                           </View>
                         ))}
                       </View>
@@ -717,7 +728,7 @@ const IndexScreen = ({ navigation }) => {
                   {/* Display study preferences */}
                   {studyPreferences[item.id] && studyPreferences[item.id].length > 0 && (
                     <View style={styles.detailSection}>
-                      <Text style={styles.sectionLabel}>Study Preferences:</Text>
+                      <Text style={[styles.sectionLabel, { color: theme.colors.onBackground }]}>Study Preferences:</Text>
                       <View style={styles.tagsContainer}>
                         {studyPreferences[item.id].map((preference, index) => (
                           <View
@@ -731,6 +742,7 @@ const IndexScreen = ({ navigation }) => {
                               style={[
                                 styles.preferenceTagText,
                                 sharedPreferences[item.id]?.includes(preference) ? styles.sharedTagText : {},
+                                { color: theme.colors.onPrimaryContainer }
                               ]}
                             >
                               {preference}
@@ -744,7 +756,7 @@ const IndexScreen = ({ navigation }) => {
                   {/* Display interests */}
                   {interests[item.id] && interests[item.id].length > 0 && (
                     <View style={styles.detailSection}>
-                      <Text style={styles.sectionLabel}>Interests:</Text>
+                      <Text style={[styles.sectionLabel, { color: theme.colors.onBackground }]}>Interests:</Text>
                       <View style={styles.tagsContainer}>
                         {interests[item.id].map((interest, index) => (
                           <View
@@ -758,6 +770,7 @@ const IndexScreen = ({ navigation }) => {
                               style={[
                                 styles.interestTagText,
                                 sharedInterests[item.id]?.includes(interest) ? styles.sharedTagText : {},
+                                { color: theme.colors.onPrimaryContainer }
                               ]}
                             >
                               {interest}
@@ -777,32 +790,32 @@ const IndexScreen = ({ navigation }) => {
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <SafeAreaView style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Friends & Requests</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.onBackground }]}>Friends & Requests</Text>
               <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={COLORS.UCONN_NAVY} />
+                <Ionicons name="close" size={24} color={theme.colors.onBackground} />
               </TouchableOpacity>
             </View>
 
             {refreshingFriends && (
               <View style={styles.refreshingIndicator}>
-                <ActivityIndicator size="small" color={COLORS.UCONN_NAVY} />
-                <Text style={styles.refreshingText}>Refreshing...</Text>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={[styles.refreshingText, { color: theme.colors.onBackground }]}>Refreshing...</Text>
               </View>
             )}
 
             {friendRequests.length > 0 && (
               <>
-                <Text style={styles.sectionHeader}>Friend Requests</Text>
+                <Text style={[styles.sectionHeader, { color: theme.colors.onBackground }]}>Friend Requests</Text>
                 {friendRequests.map((id) => (
                   <View key={id} style={styles.friendRequestItem}>
                     <View style={styles.userInfo}>
                       <Image source={{ uri: getStudentImage(id) }} style={styles.smallAvatar} />
                       <View>
-                        <Text style={styles.userName}>{getStudentName(id)}</Text>
+                        <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{getStudentName(id)}</Text>
                         {sharedCourses[id] && sharedCourses[id].length > 0 && (
-                          <Text style={styles.sharedClassesText}>
+                          <Text style={[styles.sharedClassesText, { color: theme.colors.onBackground }]}>
                             {sharedCourses[id].length} shared {sharedCourses[id].length === 1 ? "class" : "classes"}
                           </Text>
                         )}
@@ -823,22 +836,22 @@ const IndexScreen = ({ navigation }) => {
 
             {friends.length > 0 && (
               <>
-                <Text style={styles.sectionHeader}>Friends</Text>
+                <Text style={[styles.sectionHeader, { color: theme.colors.onBackground }]}>Friends</Text>
                 {friends.map((id) => (
                   <View key={id} style={styles.friendItem}>
                     <View style={styles.userInfo}>
                       <Image source={{ uri: getStudentImage(id) }} style={styles.smallAvatar} />
                       <View>
-                        <Text style={styles.userName}>{getStudentName(id)}</Text>
+                        <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{getStudentName(id)}</Text>
                         {sharedCourses[id] && sharedCourses[id].length > 0 && (
-                          <Text style={styles.sharedClassesText}>
+                          <Text style={[styles.sharedClassesText, { color: theme.colors.onBackground }]}>
                             {sharedCourses[id].length} shared {sharedCourses[id].length === 1 ? "class" : "classes"}
                           </Text>
                         )}
                       </View>
                     </View>
-                    <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveFriend(id)}>
-                      <Ionicons name="person-remove" size={16} color="#fff" />
+                    <TouchableOpacity style={[styles.removeButton, { backgroundColor: theme.colors.error || "#EF4444" }]} onPress={() => handleRemoveFriend(id)}>
+                      <Ionicons name="person-remove" size={16} color={theme.colors.onPrimary || "#fff"} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -847,8 +860,8 @@ const IndexScreen = ({ navigation }) => {
 
             {!refreshingFriends && friendRequests.length === 0 && friends.length === 0 && (
               <View style={styles.emptyState}>
-                <Ionicons name="people-outline" size={48} color={COLORS.UCONN_NAVY} />
-                <Text style={styles.emptyStateText}>No friends or requests yet</Text>
+                <Ionicons name="people-outline" size={48} color={theme.colors.onBackground} />
+                <Text style={[styles.emptyStateText, { color: theme.colors.onBackground }]}>No friends or requests yet</Text>
               </View>
             )}
           </View>
@@ -929,23 +942,9 @@ const styles = StyleSheet.create({
     marginRight: 8,
     borderWidth: 1,
   },
-  filterButtonActive: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    borderColor: COLORS.UCONN_NAVY,
-  },
-  filterButtonInactive: {
-    backgroundColor: "transparent",
-    borderColor: COLORS.UCONN_NAVY,
-  },
   filterButtonText: {
     fontWeight: "500",
     fontSize: 14,
-  },
-  filterButtonTextActive: {
-    color: "#fff",
-  },
-  filterButtonTextInactive: {
-    color: COLORS.UCONN_NAVY,
   },
   buttonIcon: {
     marginRight: 6,
@@ -1130,7 +1129,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: COLORS.UCONN_NAVY,
     borderRadius: 8,
   },
   cancelButton: {
@@ -1139,7 +1137,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: "#EF4444",
     borderRadius: 8,
   },
   buttonText: {

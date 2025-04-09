@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { Timestamp } from "firebase/firestore"
 import { COLORS } from "@/constants/Colors"
 import { FetchAllEventsFromDatabase, FetchStudySessionsFromDatabase } from "@/backend/firebase/firestoreService"
+import { useTheme } from 'react-native-paper';
 
 // event setup for database 
 interface Event {
@@ -26,6 +27,7 @@ interface StudySession {
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 export default function CustomCalendar({ userId, onBack }: { userId: string; onBack: () => void }) {
+  const theme = useTheme()
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [events, setEvents] = useState<Event[]>([])
   const [studySessions, setStudySessions] = useState<StudySession[]>([])
@@ -85,14 +87,14 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
 
  // Formatting for page consistency 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
-          <Text style={styles.headerText}>My Calendar</Text>
+          <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>My Calendar</Text>
         </View>
       </View>
 
@@ -102,21 +104,21 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
           <TouchableOpacity
             onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
           >
-            <Ionicons name="chevron-back-outline" size={24} color={COLORS.UCONN_NAVY} />
+            <Ionicons name="chevron-back-outline" size={24} color={theme.colors.onBackground} />
           </TouchableOpacity>
-          <Text style={styles.monthText}>
+          <Text style={[styles.monthText, { color: theme.colors.onBackground }]}>
             {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
           </Text>
           <TouchableOpacity
             onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
           >
-            <Ionicons name="chevron-forward-outline" size={24} color={COLORS.UCONN_NAVY} />
+            <Ionicons name="chevron-forward-outline" size={24} color={theme.colors.onBackground} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.daysContainer}>
           {daysOfWeek.map((day, index) => (
-            <Text key={index} style={styles.day}>
+            <Text key={index} style={[styles.day, { color: theme.colors.onBackground }]}>
               {day}
             </Text>
           ))}
@@ -128,11 +130,16 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
             date ? (
               <TouchableOpacity
                 key={index}
-                style={[styles.dateContainer, isToday(date) ? styles.highlightedDate : styles.date]}
+                style={[
+                  styles.dateContainer,
+                  isToday(date)
+                    ? { ...styles.highlightedDate }
+                    : { ...styles.date, backgroundColor: theme.colors.surface }
+                ]}
                 onPress={() => setSelectedDate(date)}
               >
-                <Text style={styles.dateText}>{date.getDate()}</Text>
-                {getItemsForDate(date).length > 0 && <View style={styles.eventIndicator} />}
+                <Text style={[styles.dateText, { color: theme.colors.onBackground }]}>{date.getDate()}</Text>
+                {getItemsForDate(date).length > 0 && <View style={[styles.eventIndicator, { backgroundColor: theme.colors.onBackground }]} />}
               </TouchableOpacity>
             ) : (
               <View key={index} style={styles.dateContainer} />
@@ -142,28 +149,28 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
       </View>
 
       {/* Event and Study Session List */}
-      <View style={styles.eventListContainer}>
-        <Text style={styles.eventListTitle}>Your Items:</Text>
+      <View style={[styles.eventListContainer, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.eventListTitle, { color: theme.colors.onBackground }]}>Your Items:</Text>
         {selectedDate ? (
           <ScrollView contentContainerStyle={styles.eventListContent}>
             {getItemsForDate(selectedDate).length > 0 ? (
               getItemsForDate(selectedDate).map((item) => (
                 <View key={item.id} style={styles.eventItem}>
-                  <Text style={styles.eventItemText}>
+                  <Text style={[styles.eventItemText, { color: theme.colors.onBackground }]}>
                     {item.title} on {new Date(item.date.toDate()).toLocaleDateString()} at{" "}
                     {new Date(item.date.toDate()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </Text>
                 </View>
               ))
             ) : (
-              <Text style={styles.noEventsText}>No items for this date.</Text>
+              <Text style={[styles.noEventsText, { color: theme.colors.onSurface }]}>No items for this date.</Text>
             )}
           </ScrollView>
         ) : (
-          <Text style={styles.noEventsText}>Select a date to view items.</Text>
+          <Text style={[styles.noEventsText, { color: theme.colors.onSurface }]}>Select a date to view items.</Text>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -171,13 +178,15 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    flexDirection: "row",
-    padding: 16,
-    alignItems: "center",
-    backgroundColor: COLORS.UCONN_NAVY,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   backButton: {
     padding: 8,
@@ -240,7 +249,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.EVENT_COLOR,
     marginTop: 4,
   },
   eventListContainer: {

@@ -5,11 +5,14 @@ import SingleChatView from '@/components/SingleChat';
 import { getAuth } from "firebase/auth";
 import { getUsersWithMessages, getAlluidWithNames, getFriends, hasMessagesWithFriend } from "@/backend/firebase/firestoreService";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useTheme } from 'react-native-paper';
 
 type MaterialIconName = "add";
 
 {/* MAIN PAGE */}
 export default function MessagingPage() {
+  const theme = useTheme();
+
   const [userId, setUserId] = useState<string | null>(null);
   const [users, setUsers] = useState<chatDataProps[]>([]);
   const [showSingleChat, setShowSingleChat] = React.useState(false);
@@ -98,10 +101,10 @@ const handleAddChatPress = async () => {
 };
 
 return (
-  <View style={styles.pageContainer}>
-    <Banner onAddChatPress={handleAddChatPress} />
+  <View style={[styles.pageContainer, { backgroundColor: theme.colors.background }]}>
+    <Banner onAddChatPress={handleAddChatPress} theme={theme} />
     <View style={styles.container}>
-      <ChatList onChatPress={handleChatPress} chatData={users} />
+      <ChatList onChatPress={handleChatPress} chatData={users} theme={theme} />
     </View>
 
     {/* Display modal for all existing users in database */}
@@ -112,8 +115,8 @@ return (
       onRequestClose={() => setShowAddChatModal(false)}
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Create a new chat</Text>
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.onBackground }]}>Create a new chat</Text>
           {allUsers.length === 0 ? (
             <Text style={styles.placeholderText}>Add new friends to chat.</Text>
           ) : (
@@ -142,7 +145,7 @@ return (
             />
           )}
           <TouchableOpacity
-            style={styles.closeButton}
+            style={[styles.closeButton, {backgroundColor: theme.colors.onPrimaryContainer }]}
             onPress={() => setShowAddChatModal(false)}
           >
             <Text style={styles.closeButtonText}>Close</Text>
@@ -157,17 +160,18 @@ return (
 {/* U/I COMPONENTS */}
 interface BannerProps {
   onAddChatPress: () => void;
+  theme: any;
 }
 
-const Banner = ({ onAddChatPress }: BannerProps) => {
+const Banner = ({ onAddChatPress, theme }: BannerProps) => {
   const iconName: MaterialIconName = "add"; //type safety NOTE: accounts for <Text> component error
 
   return (
-  <View style={styles.banner}>
-    <TouchableOpacity style={styles.addButton} onPress={onAddChatPress}>
-      <MaterialIcons name={iconName} size={28} color={COLORS.UCONN_WHITE} />
+  <View style={[styles.banner, { backgroundColor: theme.colors.primary }]}>
+    <TouchableOpacity style={[styles.addButton, { borderWidth: 1 }]} onPress={onAddChatPress}>
+      <MaterialIcons name={iconName} size={28} color={theme.colors.onPrimary} />
     </TouchableOpacity>
-    <Text style={styles.bannerText}>Let's Chat!</Text>
+    <Text style={[styles.bannerText, { color: theme.colors.onPrimary }]}>Let's Chat!</Text>
   </View>
 );
 };
@@ -195,7 +199,7 @@ function ischatDataProps(chat: any): chat is chatDataProps {
   );
 }
 
-const ChatList = ({ onChatPress, chatData }: { onChatPress: (chat: chatDataProps) => void, chatData: chatDataProps[] }) => {
+const ChatList = ({ onChatPress, chatData, theme }: { onChatPress: (chat: chatDataProps) => void, chatData: chatDataProps[], theme: any }) => {
   return (
     <FlatList
       data={chatData}
@@ -209,6 +213,7 @@ const ChatList = ({ onChatPress, chatData }: { onChatPress: (chat: chatDataProps
           profilePicture={item.profilePicture}
           onPress={onChatPress} 
           chat={item}
+          theme={theme}
         />
       )}
       keyExtractor={(item) => item.id}
@@ -217,15 +222,15 @@ const ChatList = ({ onChatPress, chatData }: { onChatPress: (chat: chatDataProps
 };
 
 //pass the data from a selected chat item to onPress function...
-const ChatItem: React.FC<chatDataProps & { onPress: (chat: chatDataProps) => void; chat: chatDataProps }> = ({ firstName, lastName, lastMessage, time, profilePicture, onPress, chat }) => {
+const ChatItem: React.FC<chatDataProps & { onPress: (chat: chatDataProps) => void; chat: chatDataProps; theme: any }> = ({ firstName, lastName, lastMessage, time, profilePicture, onPress, chat, theme }) => {
   return (
-    <TouchableOpacity style={styles.chatItem} onPress={() => onPress(chat)}>
+    <TouchableOpacity style={[styles.chatItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.onTertiary }]} onPress={() => onPress(chat)}>
       <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
       <View style={styles.chatInfo}>
-        <Text style={styles.chatName}>{firstName} {lastName}</Text>
-        <Text style={styles.chatMessage}>{lastMessage}</Text>
+        <Text style={[styles.chatName, { color: theme.colors.onBackground }]}>{firstName} {lastName}</Text>
+        <Text style={[styles.chatMessage, { color: theme.colors.onBackground }]}>{lastMessage}</Text>
       </View>
-      <Text style={styles.chatTime}>{time}</Text>
+      <Text style={[styles.chatTime, { color: theme.colors.onSurface }]}>{time}</Text>
     </TouchableOpacity>
   );
 };
@@ -245,7 +250,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     marginBottom: 20,
     borderRadius: 1,
-    backgroundColor: COLORS.UCONN_NAVY,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -265,7 +269,6 @@ const styles = StyleSheet.create({
   chatItem: {
     flexDirection: 'row',
     borderWidth: 2,
-    borderColor: '#ccc', 
     borderRadius: 25,
     marginBottom: 10,
     padding: 15,
