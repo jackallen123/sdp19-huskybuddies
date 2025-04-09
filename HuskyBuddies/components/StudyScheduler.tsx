@@ -209,7 +209,7 @@ export default function StudyScheduler({ onBack, onSchedule, currentUserId }: St
 
   // Formatting for page consistency
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
@@ -309,7 +309,7 @@ export default function StudyScheduler({ onBack, onSchedule, currentUserId }: St
           )}
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -320,11 +320,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTextContainer: {
     flex: 1,

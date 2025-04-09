@@ -137,7 +137,7 @@ const AddEvent: React.FC<{
   )
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
@@ -214,7 +214,7 @@ const AddEvent: React.FC<{
         renderItem={renderEventItem}
         keyExtractor={(item) => item.id}
       />
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -224,10 +224,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.UCONN_NAVY,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTextContainer: {
     flex: 1,

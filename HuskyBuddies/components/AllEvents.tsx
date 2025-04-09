@@ -375,11 +375,11 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
       {renderHeader()}
       {renderContent()}
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -390,10 +390,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    backgroundColor: COLORS.UCONN_NAVY,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTextContainer: {
     flex: 1,

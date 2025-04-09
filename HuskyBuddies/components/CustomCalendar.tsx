@@ -87,7 +87,7 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
 
  // Formatting for page consistency 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -170,7 +170,7 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
           <Text style={[styles.noEventsText, { color: theme.colors.onSurface }]}>Select a date to view items.</Text>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -178,13 +178,15 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    flexDirection: "row",
-    padding: 16,
-    alignItems: "center",
-    backgroundColor: COLORS.UCONN_NAVY,
+    padding: 20,
+    paddingTop: 60,
+    marginBottom: 20,
+    borderRadius: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   backButton: {
     padding: 8,
