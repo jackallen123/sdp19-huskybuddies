@@ -139,7 +139,7 @@ export default function CustomCalendar({ userId, onBack }: { userId: string; onB
                 onPress={() => setSelectedDate(date)}
               >
                 <Text style={[styles.dateText, { color: theme.colors.onBackground }]}>{date.getDate()}</Text>
-                {getItemsForDate(date).length > 0 && <View style={[styles.eventIndicator, { backgroundColor: theme.colors.primary }]} />}
+                {getItemsForDate(date).length > 0 && <View style={[styles.eventIndicator, { backgroundColor: theme.colors.onBackground }]} />}
               </TouchableOpacity>
             ) : (
               <View key={index} style={styles.dateContainer} />
