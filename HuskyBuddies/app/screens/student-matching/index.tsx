@@ -779,7 +779,7 @@ const IndexScreen = ({ navigation }) => {
         <SafeAreaView style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Friends & Requests</Text>
+              <Text style={styles.modalTitle}>Buddies & Requests</Text>
               <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={COLORS.UCONN_NAVY} />
               </TouchableOpacity>
@@ -794,7 +794,7 @@ const IndexScreen = ({ navigation }) => {
 
             {friendRequests.length > 0 && (
               <>
-                <Text style={styles.sectionHeader}>Friend Requests</Text>
+                <Text style={styles.sectionHeader}>Buddy Requests</Text>
                 {friendRequests.map((id) => (
                   <View key={id} style={styles.friendRequestItem}>
                     <View style={styles.userInfo}>
@@ -823,7 +823,7 @@ const IndexScreen = ({ navigation }) => {
 
             {friends.length > 0 && (
               <>
-                <Text style={styles.sectionHeader}>Friends</Text>
+                <Text style={styles.sectionHeader}>Buddies</Text>
                 {friends.map((id) => (
                   <View key={id} style={styles.friendItem}>
                     <View style={styles.userInfo}>
