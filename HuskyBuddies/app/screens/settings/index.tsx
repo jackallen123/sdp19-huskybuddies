@@ -108,7 +108,7 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={24} color={theme.colors.onBackground} />
             </TouchableOpacity>
 
-            {/* enable notifications */}
+            {/* enable notifications
             <View style={styles.settingItem}>
             <Text style={[styles.settingText, { fontSize: textSize, color: theme.colors.onBackground }]}>Enable Notifications</Text>
               <Switch
@@ -117,7 +117,7 @@ export default function SettingsScreen() {
                 trackColor={{ false: theme.colors.surface, true: theme.colors.surface }}
                 thumbColor={notificationsEnabled ? theme.colors.onBackground : theme.colors.outline}
               />
-            </View>
+            </View> */}
 
             {/* enable dark mode */}
             <View style={styles.settingItem}>

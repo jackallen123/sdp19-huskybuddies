@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard,Platform, Image, ScrollView} from 'react-native';
 import { sendMessage, getMessages, getUserId, getFullName } from '@/backend/firebase/firestoreService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from 'react-native-paper';
 
 interface SingleChatViewProps {
     onBack: () => void;
@@ -23,6 +24,8 @@ const [userId, setUserId] = useState<string | null>(null);
 const [userFullName, setUserFullName] = useState<string>(""); //store first  last name
 const scrollViewRef = useRef<ScrollView>(null);
 const senderNameCache = useRef<{ [key: string]: string }>({});
+
+const theme = useTheme();
 
 //Fetch full name of logged in user...
 useEffect(() => {
@@ -130,7 +133,7 @@ useEffect(() => {
 }, [userId, otherUserId]);
 
 const [messageInput, setMessageInput] = useState('');
-const [chatMessages, setChatMessages] = useState<Array<{ sender: string; receiver: string; message: string; time: string }>>([]); //assert expected object types for variables in array and initiliaze empty array
+const [chatMessages, setChatMessages] = useState<Array<{ sender: string; receiver: string; message: string; time: string }>>([]); //assert expected object types for variables in array and initialize empty array
 
 useEffect(() => {
   console.log("\n \n Chat Messages:", chatMessages)
@@ -174,109 +177,108 @@ const handleSendMessage = async () => {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.pageContainer} 
+      style={[styles.pageContainer, { backgroundColor: theme.colors.background }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
 
     {/* Structure banner, full name, message log... */}
     <View style={styles.chatContainer}>
-        <Banner onBack={onBack} />
-        <Text style={styles.sendButtonText}>Send</Text>
+        <Banner onBack={onBack} theme={theme} />
         <UserBanner firstName={firstName || ""} lastName={lastName || ""} profilePicture={profilePicture || ""}/>
-        <HorizontalLine 
-      />
+        <HorizontalLine />
   
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <ScrollView
         ref={scrollViewRef}
         contentContainerStyle={{ flexGrow: 1 }}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-        keyboardShouldPersistTaps="never" //dismisses keyboard when user taps putside of text input area
+        keyboardShouldPersistTaps="never" //dismisses keyboard when user taps outside of text input area
       >
         {chatMessages.map((msg, index) => (
-          <Message key={index || ""} sender={msg.sender || ""} message={msg.message || ""} time={msg.time || ""}/>
+          <Message key={index.toString()} sender={msg.sender || ""} message={msg.message || ""} time={msg.time || ""} theme={theme} />
         ))}
       </ScrollView>
     </TouchableWithoutFeedback>
-
+  
   {/* Message input area with keyboard handling */}
-    <View style={styles.inputContainer}>
+    <View style={[styles.inputContainer, { borderColor: theme.colors.onSurface, backgroundColor: theme.colors.background }]}>
     <TextInput
-        style={styles.input}
+        style={[styles.input, { color: theme.colors.onBackground, borderColor: theme.colors.onSurface }]}
         value={messageInput}
         onChangeText={setMessageInput}
         placeholder="Message..."
-        placeholderTextColor={COLORS.UCONN_GREY}
+        placeholderTextColor={theme.colors.onSurface}
         onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 300)} //handles keyboard view below last message in chat log
     />
-    <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-        <Text style={styles.sendButtonText}>Send</Text>
+    <TouchableOpacity style={[styles.sendButton, { backgroundColor: theme.colors.primary }]} onPress={handleSendMessage}>
+        <Text style={[styles.sendButtonText, { color: theme.colors.onPrimary }]}>Send</Text>
         </TouchableOpacity>
       </View> 
     </View>
-  </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   );
 };
 
-  const Banner = ({ onBack }: { onBack: () => void }) => {
+const Banner = ({ onBack, theme }: { onBack: () => void; theme: any; }) => {
       return (
-          <View style={styles.banner}>
+          <View style={[styles.banner, { backgroundColor: theme.colors.primary }]}>
               <TouchableOpacity style={styles.BackButton} onPress={onBack}>
-                  <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+                  <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
               </TouchableOpacity>
-              <Text style={styles.bannerText}>Let's Chat!</Text>
+              <Text style={[styles.bannerText, { color: theme.colors.onPrimary }]}>Let's Chat!</Text>
           </View>
       );
-  };
+};
 
-  interface UserBannerProps {
-      firstName: string;
-      lastName: string;
-      profilePicture: string;
-    }
-    
-  const UserBanner: React.FC<UserBannerProps> = ({ firstName, lastName, profilePicture }) => {
+interface UserBannerProps {
+    firstName: string;
+    lastName: string;
+    profilePicture: string;
+}
+  
+const UserBanner: React.FC<UserBannerProps> = ({ firstName, lastName, profilePicture }) => {
+    const theme = useTheme();
     return (
       <View style={styles.userBanner}>
         <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
-        <Text style={styles.userBannerText}>{`${firstName} ${lastName}`}</Text>
+        <Text style={[styles.userBannerText, { color: theme.colors.onBackground }]}>{`${firstName} ${lastName}`}</Text>
       </View>
     );
-  };
+};
 
-  const HorizontalLine = () => {
+const HorizontalLine = () => {
       return <View style={styles.horizontalLine} />;
-  };
+};
 
-  interface MessageProps {
-      message: string;
-      sender: string;
-      time: string;
-    }
+interface MessageProps {
+    message: string;
+    sender: string;
+    time: string;
+    theme: any;
+}
   
-  const Message: React.FC<MessageProps> = ({ message, sender, time }) => {
+const Message: React.FC<MessageProps> = ({ message, sender, time, theme }) => {
     console.log("➤ Loading message from:", sender);
     console.log("➤ Rendering message:", { message, sender, time });
   
     return ( //Conditional rendering of placeholder message in chat log where sender is "System"
       <View style={styles.messageContainer}>
         {sender === "System" ? ( 
-          <Text style={styles.systemMessage}>{message}</Text> 
+          <Text style={[styles.systemMessage, { color: theme.colors.onBackground }]}>{message}</Text> 
         ) : (
           <>
-            <Text style={styles.sender}>{sender}</Text>
-            <Text style={styles.message}>{message}</Text>
-            <Text style={styles.time}>{time}</Text>
+            <Text style={[styles.sender, { color: theme.colors.onBackground }]}>{sender}</Text>
+            <Text style={[styles.message, { color: theme.colors.onBackground }]}>{message}</Text>
+            <Text style={[styles.time, { color: theme.colors.onSurface }]}>{time}</Text>
           </>
         )}
       </View>
     );
-  };
+};
   
 const styles = StyleSheet.create({
     pageContainer: {
         flex: 1,
-        backgroundColor: COLORS.UCONN_WHITE,
     },
     chatContainer: {
         flex: 1,
@@ -287,7 +289,6 @@ const styles = StyleSheet.create({
         paddingTop: 60,
         marginBottom: 20,
         borderRadius: 1,
-        backgroundColor: COLORS.UCONN_NAVY,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center'
@@ -299,6 +300,12 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         flex: 1,
     },
+    BackButton: {
+        position: 'absolute',
+        left: 30,
+        top: 60,
+        padding: 5,
+    },
     userBanner: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -308,10 +315,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         fontSize: 18,
         fontWeight: 'bold',
-    },
-    userBannerIcon: {
-        marginLeft: 20,
-        marginRight: 5,
     },
     horizontalLine: {
         height: 2,
@@ -345,35 +348,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 10,
         borderTopWidth: 1,
-        borderColor: COLORS.UCONN_GREY,
-        backgroundColor: COLORS.UCONN_WHITE,
     },
     input: {
         flex: 1,
-        borderColor: COLORS.UCONN_GREY,
         borderWidth: 1,
         borderRadius: 20,
         padding: 10,
         marginRight: 10,
-        color: 'black',
     },
     sendButton: {
-        backgroundColor: COLORS.UCONN_NAVY,
         borderRadius: 20,
         padding: 10,
     },
     sendButtonText: {
-        color: COLORS.UCONN_WHITE,
-        fontWeight: 'bold',
-    },
-    BackButton: {
-        position: 'absolute',
-        left: 30,
-        top: 60,
-        padding: 5,
-    },
-    BackButtonText: {
-        color: COLORS.UCONN_WHITE,
         fontWeight: 'bold',
     },
     profilePicture: {
@@ -384,7 +371,6 @@ const styles = StyleSheet.create({
     },
     systemMessage: {
       fontStyle: 'italic',
-      color: COLORS.UCONN_GREY,
       textAlign: 'center',
       marginVertical: 20,
       fontSize: 15,

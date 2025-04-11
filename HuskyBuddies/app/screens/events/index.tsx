@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS } from '@/constants/Colors';
 import CustomCalendar from '@/components/CustomCalendar';
 import AddEvent from '@/components/AddEvent';
 import AllEvents from '@/components/AllEvents';
 import StudyScheduler from '@/components/StudyScheduler';
-import { Timestamp, doc, collection, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { Timestamp, doc, collection, getDocs, writeBatch } from 'firebase/firestore';
 import {  
   DeleteStudySessionFromDatabase,  
   DeleteEventFromDatabase, 
@@ -13,8 +12,9 @@ import {
   FetchStudySessionsFromDatabase,
   AddEventToDatabase,
 } from '@/backend/firebase/firestoreService';
-import { auth } from '@/backend/firebase/firebaseConfig';
-import { db } from '@/backend/firebase/firebaseConfig';
+import { auth, db } from '@/backend/firebase/firebaseConfig';
+import { useTheme } from 'react-native-paper';
+import { useThemeSettings } from '@/context/ThemeContext';
 
 // Event setup for database 
 interface Event {
@@ -34,7 +34,7 @@ interface StudySession {
   friends: string[];
 }
 
-// Get all isadded == true events from other users for display
+// Get allEvents for current user from database
 const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React.Dispatch<React.SetStateAction<Event[]>>) => {
   try {
     const usersRef = collection(db, "users");
@@ -44,7 +44,6 @@ const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React
 
     for (const userDoc of usersSnapshot.docs) {
       const creatorId = userDoc.id;
-
       const userEventsRef = collection(db, "users", creatorId, "events");
       const eventsSnapshot = await getDocs(userEventsRef);
 
@@ -105,7 +104,7 @@ const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React
 
     await batch.commit();
     
-    // Update state with all events, preserving isadded status
+    // Update state with all events isadded status
     if (setEvents) {
       const eventsWithStatus = allEvents.map(event => ({
         ...event,
@@ -123,7 +122,11 @@ const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React
   }
 };
 
+// Multipage functionality 
 export default function MainPage() {
+  const theme = useTheme();
+  const { textSize } = useThemeSettings();
+
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
@@ -135,7 +138,7 @@ export default function MainPage() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true); 
 
-  // Add a function to sync all events
+  // Sync all events
   const syncAllEvents = async () => {
     try {
       setLoading(true);
@@ -147,7 +150,7 @@ export default function MainPage() {
     }
   };
 
-  // Load events and study sessions from Firestore
+  // Fetch events and study sessions
   useEffect(() => {
     const unsubscribeEvents = FetchAllEventsFromDatabase(currentUserId, setEvents);
     const unsubscribeSessions = FetchStudySessionsFromDatabase(currentUserId, setSessions);
@@ -163,7 +166,7 @@ export default function MainPage() {
     };
   }, [currentUserId]); 
   
-  // Add a new event to Firestore
+  // Add a new event to database
   const handleAddEvent = async (event: Event) => {
     if (!event.date) {
       console.error('Event date is missing for event:', event);
@@ -186,12 +189,12 @@ export default function MainPage() {
     );
   };
 
-  // Delete event from Firestore
+  // Delete event from database
   const handleDeleteEvent = async (id: string) => {  
     await DeleteEventFromDatabase(currentUserId, id);  
   };
   
-  // Delete study session from Firestore
+  // Delete study session from database
   const handleDeleteStudySession = async (sessionId: string) => {  
     try {
       await DeleteStudySessionFromDatabase(currentUserId, sessionId); 
@@ -200,19 +203,13 @@ export default function MainPage() {
     }
   };
 
-  // Add a new study session to Firestore
+  // Add a new study session to database
   const ScheduleSession = async (session: { date: Date; friends: string[] }) => {
     if (!(session.date instanceof Date) || isNaN(session.date.getTime())) {
       console.error('Invalid session date:', session.date);
       return;
     }
-
-    const newStudySession: StudySession = {
-      id: '',
-      title: `Study Session with ${session.friends.join(', ')}`,
-      date: Timestamp.fromDate(session.date), 
-      friends: session.friends,
-    };
+    // Your study session scheduling logic here...
   };
 
   // Format event time for display
@@ -221,7 +218,6 @@ export default function MainPage() {
       console.error('Invalid event date:', eventDate); 
       return 'Invalid date'; 
     }
-
     return eventDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: 'numeric',
@@ -235,7 +231,6 @@ export default function MainPage() {
           diff = date.getDate() - day + (day == 0 ? -6 : 1); 
     return new Date(date.setDate(diff));
   };
-
   const getEndOfWeek = (date: Date) => {
     const startOfWeek = getStartOfWeek(new Date(date));
     startOfWeek.setDate(startOfWeek.getDate() + 6); 
@@ -245,7 +240,7 @@ export default function MainPage() {
   const startOfWeek = getStartOfWeek(new Date());
   const endOfWeek = getEndOfWeek(new Date());
 
-  // Filter events to only include those within the current week
+  // Filter events to only include those within the current week including today
   const filteredEvents = events.filter((event) => {
     const eventDate = event.date?.toDate();
     if (!eventDate) {
@@ -259,14 +254,17 @@ export default function MainPage() {
     );
   });
 
-  // Filter study sessions to only include those within the current week
+  // Filter study sessions to only include those within the current week including today
   const filteredSessions = sessions.filter((session) => {
     const sessionDate = session.date?.toDate();
     if (!sessionDate) {
       console.error('Invalid session date:', session);
       return false;
     }
-    return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+    const today = new Date();
+    return (
+      sessionDate >= startOfWeek && sessionDate <= endOfWeek) ||
+      sessionDate.toDateString() === today.toDateString()
   });
 
   // Multipage event/study/calendar session handling
@@ -313,34 +311,38 @@ export default function MainPage() {
 
   // Check if loading and if there are no events
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <Text style={{ color: theme.colors.onBackground, fontSize: textSize }}>Loading...</Text>;
   }
 
   // Formatting for page consistency 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Scheduler</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+        <Text style={[styles.headerText, { color: theme.colors.onPrimary, fontSize: textSize + 4 }]}>
+          Scheduler
+        </Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.eventsWrapper}>
-          <Text style={styles.sectionTitle}>Your Upcoming Items:</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.onBackground, fontSize: textSize + 2 }]}>
+            Your Upcoming Items:
+          </Text>
           <ScrollView style={styles.eventsList}>
-            {filteredEvents.length > 0 || filteredSessions.length > 0 ? (
+            {(filteredEvents.some(event => event.isadded) || filteredSessions.length > 0) ? (
               <>
                 {filteredEvents
-                  .filter((event) => event.isadded)  
+                  .filter((event) => event.isadded)
                   .map((event) => {
                     const eventDate = event.date?.toDate();
                     if (!eventDate) {
                       console.error('Invalid event date:', event);
-                      return null; 
+                      return null;
                     }
 
                     return (
-                      <View key={event.id} style={styles.eventItem}>
-                        <Text style={styles.eventItemText}>
+                      <View key={event.id} style={[styles.eventItem, { backgroundColor: theme.colors.surface }]}>
+                        <Text style={[styles.eventItemText, { color: theme.colors.onBackground, fontSize: textSize }]}>
                           {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
                         </Text>
                       </View>
@@ -352,10 +354,9 @@ export default function MainPage() {
                     console.error('Invalid session date:', session);
                     return null; 
                   }
-
                   return (
-                    <View key={session.id} style={styles.eventItem}>
-                      <Text style={styles.eventItemText}>
+                    <View key={session.id} style={[styles.eventItem, { backgroundColor: theme.colors.surface }]}>
+                      <Text style={[styles.eventItemText, { color: theme.colors.onBackground, fontSize: textSize }]}>
                         {session.title} on {sessionDate.toLocaleDateString()} at {formatEventTime(sessionDate)}
                       </Text>
                     </View>
@@ -363,32 +364,42 @@ export default function MainPage() {
                 })}
               </>
             ) : (
-              <Text style={styles.noEventsText}>No upcoming items this week</Text>
+              <Text style={[styles.noEventsText, { color: theme.colors.onBackground, fontSize: textSize }]}>
+                No upcoming items this week
+              </Text>
             )}
           </ScrollView>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={styles.button} onPress={() => setShowAllEvents(true)}>
-            <Text style={styles.buttonText}>View All Events</Text>
+          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowAllEvents(true)}>
+            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
+              View All Events
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={styles.button} onPress={() => setShowAddEvent(true)}>
-            <Text style={styles.buttonText}>Post An Event</Text>
+          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowAddEvent(true)}>
+            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
+              Post An Event
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={styles.button} onPress={() => setShowStudyScheduler(true)}>
-            <Text style={styles.buttonText}>Schedule a Study Session</Text>
+          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowStudyScheduler(true)}>
+            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
+              Schedule a Study Session
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={styles.button} onPress={() => setShowCalendar(true)}>
-            <Text style={styles.buttonText}>View Your Calendar</Text>
+          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowCalendar(true)}>
+            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
+              View Your Calendar
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -400,10 +411,8 @@ export default function MainPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    backgroundColor: COLORS.UCONN_NAVY,
     padding: 20,
     paddingTop: 60,
     marginBottom: 20,
@@ -411,8 +420,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 20,
     fontWeight: 'bold',
   },
   scrollContent: {
@@ -423,41 +430,29 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
     marginBottom: 10,
   },
   eventsList: {
     maxHeight: 250,
   },
   eventItem: {
-    backgroundColor: COLORS.UCONN_GREY,
     padding: 10,
     marginBottom: 10,
     borderRadius: 8,
   },
-  eventItemText: {
-    fontSize: 16,
-    color: COLORS.UCONN_NAVY,
-  },
+  eventItemText: {},
   noEventsText: {
-    fontSize: 16,
-    color: COLORS.UCONN_GREY,
     textAlign: 'center',
   },
   buttonWrapper: {
     marginBottom: 20,
   },
   button: {
-    backgroundColor: COLORS.UCONN_NAVY,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   buttonText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 16,
     fontWeight: 'bold',
   },
 });
