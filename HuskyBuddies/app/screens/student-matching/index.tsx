@@ -792,7 +792,7 @@ const IndexScreen = ({ navigation }) => {
         <SafeAreaView style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.colors.onBackground }]}>Friends & Requests</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.onBackground }]}>Buddies & Requests</Text>
               <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={theme.colors.onBackground} />
               </TouchableOpacity>
@@ -807,7 +807,7 @@ const IndexScreen = ({ navigation }) => {
 
             {friendRequests.length > 0 && (
               <>
-                <Text style={[styles.sectionHeader, { color: theme.colors.onBackground }]}>Friend Requests</Text>
+                <Text style={[styles.sectionHeader, { color: theme.colors.onBackground }]}>Buddy Requests</Text>
                 {friendRequests.map((id) => (
                   <View key={id} style={styles.friendRequestItem}>
                     <View style={styles.userInfo}>
@@ -836,7 +836,7 @@ const IndexScreen = ({ navigation }) => {
 
             {friends.length > 0 && (
               <>
-                <Text style={[styles.sectionHeader, { color: theme.colors.onBackground }]}>Friends</Text>
+                <Text style={[styles.sectionHeader, { color: theme.colors.onBackground }]}>Buddies</Text>
                 {friends.map((id) => (
                   <View key={id} style={styles.friendItem}>
                     <View style={styles.userInfo}>
