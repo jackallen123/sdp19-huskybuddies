@@ -1,3 +1,4 @@
+import type React from "react"
 import { useState, useEffect } from "react"
 import {
   SafeAreaView,
@@ -16,7 +17,7 @@ import DateTimePicker from "@react-native-community/datetimepicker"
 import { AddEventToDatabase, DeleteEventFromDatabase, getFullName } from "@/backend/firebase/firestoreService"
 import { Timestamp, collection, onSnapshot, getDocs } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
-import { useTheme } from "react-native-paper"
+import { db } from "@/backend/firebase/firebaseConfig"
 
 // Event setup for database
 interface Event {
@@ -35,7 +36,6 @@ const AddEvent: React.FC<{
   onDeleteEvent: (id: string) => void
   events: Event[]
 }> = ({ onBack, onAddEvent, onDeleteEvent, events: initialEvents }) => {
-  const theme = useTheme();
   const [title, setTitle] = useState("")
   const [date, setDate] = useState<Date | null>(null)
   const [description, setDescription] = useState("")
@@ -45,7 +45,6 @@ const AddEvent: React.FC<{
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [debugInfo, setDebugInfo] = useState<string>("")
 
   // Get the current users id so we can get their events
   useEffect(() => {
@@ -58,16 +57,20 @@ const AddEvent: React.FC<{
       const fetchUserName = async () => {
         try {
           const fullName = await getFullName(user.uid)
-          setCurrentUserName(fullName)
+          setCurrentUserName(fullName || "Unknown User")
         } catch (error) {
           console.error("Error fetching user name:", error)
+          setCurrentUserName("Unknown User")
         }
       }
+
       fetchUserName()
-    } 
+    } else {
+      console.error("No authenticated user found")
+    }
   }, [])
 
-  // Fetch events and check to ensure only current user's events are shown
+  // Fetch events with and check if only current user's events are shown
   const fetchEvents = async () => {
     if (!currentUserId) {
       console.error("Cannot fetch events: No current user ID")
@@ -85,7 +88,7 @@ const AddEvent: React.FC<{
         return
       }
 
-      // Filter to ensure only current user's events
+      // Map and filter to ensure only current user's events
       const allEvents = snapshot.docs.map((doc) => {
         const data = doc.data()
         return {
@@ -95,7 +98,7 @@ const AddEvent: React.FC<{
           description: data.description || "",
           isadded: data.isadded || false,
           createdBy: data.createdBy || currentUserId,
-          creatorName: data.creatorName || currentUserName,
+          creatorName: data.creatorName || currentUserName || "Unknown User",
         }
       })
 
@@ -104,7 +107,6 @@ const AddEvent: React.FC<{
         const isCurrentUserEvent =
           event.createdBy === currentUserId ||
           (event.creatorName === currentUserName && event.creatorName !== "Unknown User")
-
         return isCurrentUserEvent
       })
 
@@ -130,6 +132,7 @@ const AddEvent: React.FC<{
       eventsRef,
       (snapshot) => {
         if (snapshot.empty) {
+         
           setEvents([])
           setLoading(false)
           return
@@ -155,18 +158,14 @@ const AddEvent: React.FC<{
             event.createdBy === currentUserId ||
             (event.creatorName === currentUserName && event.creatorName !== "Unknown User")
 
-          if (!isCurrentUserEvent) {
-          }
           return isCurrentUserEvent
         })
 
-    
         setEvents(filteredEvents)
         setLoading(false)
       },
       (error) => {
         console.error("Error in events listener:", error)
-        setDebugInfo(`Listener error: ${error.message}`)
         setLoading(false)
       },
     )
@@ -176,6 +175,7 @@ const AddEvent: React.FC<{
 
     return () => {
       unsubscribe()
+    
     }
   }, [currentUserId, currentUserName])
 
@@ -193,13 +193,14 @@ const AddEvent: React.FC<{
       // Use the user's name
       const creatorName = currentUserName || "Unknown User"
 
+      // Store the current user ID in createdBy and name in Name
       await AddEventToDatabase(
         currentUserId,
         eventId,
         title,
         Timestamp.fromDate(date),
         description,
-        false, // Set isadded to true by default for user's own events
+        false, 
         currentUserId, 
         creatorName, 
       )
@@ -210,7 +211,7 @@ const AddEvent: React.FC<{
         title,
         date: Timestamp.fromDate(date),
         description,
-        isadded: false, // Set isadded to true by default for user's own events
+        isadded: false, 
         createdBy: currentUserId,
         creatorName: creatorName,
       }
@@ -253,8 +254,8 @@ const AddEvent: React.FC<{
   // Formatting for page consistency
   const renderEventItem = ({ item }: { item: Event }) => (
     <View style={styles.eventItem}>
-      <Text style={[styles.eventTitle, { color: theme.colors.onBackground }]}>{item.title}</Text>
-      <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>
+      <Text style={styles.eventTitle}>{item.title}</Text>
+      <Text style={styles.eventText}>
         {item.date
           ? new Date(item.date.toDate()).toLocaleString("en-US", {
               month: "2-digit",
@@ -266,7 +267,8 @@ const AddEvent: React.FC<{
             })
           : "No date available"}
       </Text>
-      <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>{item.description}</Text>
+      <Text style={styles.eventText}>{item.description}</Text>
+      <Text style={styles.creatorText}>Created by: {item.creatorName || currentUserName || "Unknown User"}</Text>
       <TouchableOpacity onPress={() => handleDeleteEvent(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
@@ -274,30 +276,30 @@ const AddEvent: React.FC<{
   )
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
+          <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
-          <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Event Poster</Text>
+          <Text style={styles.headerText}>Event Poster</Text>
         </View>
       </View>
 
       <View style={styles.formContainer}>
-        <Text style={[styles.title, { color: theme.colors.onBackground }]}>Post a New Event</Text>
+        <Text style={styles.title}>Post a New Event</Text>
 
         <TextInput
           value={title}
           onChangeText={setTitle}
           placeholder="Enter event title"
-          placeholderTextColor={theme.colors.onSurface}
-          style={[styles.input, { borderColor: theme.colors.onSurface, color: theme.colors.onBackground }]}
+          placeholderTextColor="#B0B0B0"
+          style={styles.input}
         />
 
         <View style={styles.section}>
           <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-            <Text style={[styles.inputText, { color: theme.colors.onBackground }]}>{date ? date.toLocaleString() : "Select Date & Time"}</Text>
+            <Text style={styles.inputText}>{date ? date.toLocaleString() : "Select Date & Time"}</Text>
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
@@ -332,54 +334,72 @@ const AddEvent: React.FC<{
           value={description}
           onChangeText={setDescription}
           placeholder="Enter event description"
-          placeholderTextColor={theme.colors.onSurface}
-          style={[styles.textarea, { borderColor: theme.colors.onSurface, color: theme.colors.onBackground }]}
+          placeholderTextColor="#B0B0B0"
+          style={styles.textarea}
           multiline
           numberOfLines={4}
         />
 
-        <TouchableOpacity onPress={handleSubmit} style={[styles.button, { backgroundColor: theme.colors.primary }]}>
-          <Text style={[styles.buttonText, { color: theme.colors.onPrimary }]}>Post Event</Text>
+        <TouchableOpacity onPress={handleSubmit} style={styles.button}>
+          <Text style={styles.buttonText}>Post Event</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={[styles.postedEventsTitle, { color: theme.colors.onBackground }]}>Posted Events:</Text>
+      <View style={styles.eventsHeaderContainer}>
+        <Text style={styles.postedEventsTitle}>Your Posted Events</Text>
+      </View>
 
-      <FlatList
-        style={styles.eventsContainer}
-        data={events}
-        renderItem={renderEventItem}
-        keyExtractor={(item) => item.id}
-      />
-    </View>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+          <Text style={styles.loadingText}>Loading events...</Text>
+        </View>
+      ) : events.length === 0 ? (
+        <View style={styles.noEventsContainer}>
+          <Text>No events posted yet. Create your first event above!</Text>
+        </View>
+      ) : (
+        <FlatList
+          style={styles.eventsContainer}
+          data={events}
+          renderItem={renderEventItem}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+        />
+      )}
+    </SafeAreaView>
   )
 }
 
+// Styles to keep pages consistent
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    marginBottom: 20,
-    borderRadius: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: COLORS.UCONN_NAVY,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerTextContainer: {
     flex: 1,
     alignItems: "center",
   },
   headerText: {
+    color: COLORS.UCONN_WHITE,
     fontSize: 20,
     fontWeight: "bold",
-    color: COLORS.UCONN_WHITE,
   },
   backButton: {
     padding: 8,
+  },
+  eventItem: {
+    marginBottom: 12,
+    padding: 10,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 5,
   },
   formContainer: {
     padding: 16,
@@ -390,6 +410,7 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 40,
+    borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 10,
@@ -398,18 +419,21 @@ const styles = StyleSheet.create({
   },
   inputText: {
     fontSize: 16,
+    color: "#000",
   },
   section: {
     padding: 0,
   },
   textarea: {
     height: 60,
+    borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 10,
     marginBottom: 12,
   },
   button: {
+    backgroundColor: COLORS.UCONN_NAVY,
     paddingVertical: 12,
     paddingHorizontal: 150,
     borderRadius: 8,
@@ -418,6 +442,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   buttonText: {
+    color: COLORS.UCONN_WHITE,
     fontSize: 16,
   },
   eventsHeaderContainer: {
@@ -428,6 +453,7 @@ const styles = StyleSheet.create({
   },
   postedEventsTitle: {
     fontSize: 20,
+    color: COLORS.UCONN_NAVY,
     marginBottom: 0,
     padding: 15,
     paddingTop: 1,
@@ -438,19 +464,25 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingTop: 1,
   },
-  eventItem: {
-    marginBottom: 12,
-    padding: 10,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 5,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.UCONN_NAVY,
+  },
+  noEventsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   eventTitle: {
     fontSize: 18,
     fontWeight: "bold",
-  },
-  eventText: {
-    fontSize: 16,
   },
   deleteButton: {
     marginTop: 8,
@@ -461,6 +493,21 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: "#FFFFFF",
+  },
+  eventText: {
+    fontSize: 16,
+    color: "#000",
+  },
+  creatorText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  debugText: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "#999",
   },
 })
 
