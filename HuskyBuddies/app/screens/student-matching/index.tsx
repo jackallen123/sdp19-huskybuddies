@@ -122,6 +122,17 @@ const IndexScreen = ({ navigation }) => {
       setCurrentUserPreferences(preferences || [])
       setCurrentUserInterests(userInterests || [])
 
+      console.log("Profile completion check:", {
+        hasPicture,
+        hasCourses,
+        hasPreferences,
+        hasInterests,
+        isComplete,
+      })
+      console.log("Current user courses:", courses)
+      console.log("Current user preferences:", preferences)
+      console.log("Current user interests:", userInterests)
+
       return isComplete
     } catch (error) {
       console.error("Error checking profile completion:", error)
@@ -157,7 +168,10 @@ const IndexScreen = ({ navigation }) => {
   const findSharedItems = (userItems, otherItems, nameField = null) => {
     const shared = []
 
-    if (!userItems || !otherItems) return shared
+    if (!userItems || !otherItems) {
+      console.log("Missing items to compare:", { userItems, otherItems })
+      return shared
+    }
 
     for (const userItem of userItems) {
       for (const otherItem of otherItems) {
@@ -216,6 +230,27 @@ const IndexScreen = ({ navigation }) => {
       const sharedInterestsMap = {}
       const picturesMap = {}
 
+      // Make sure we have the current user data before calculating shared items
+      const userCourses = currentUserCourses.length > 0 ? currentUserCourses : (await getUserCourses(user.uid)) || []
+      const userPreferences =
+        currentUserPreferences.length > 0 ? currentUserPreferences : (await getUserStudyPreferences(user.uid)) || []
+      const userInterests =
+        currentUserInterests.length > 0 ? currentUserInterests : (await getUserInterests(user.uid)) || []
+
+      // Update state with current user data if not already set
+      if (currentUserCourses.length === 0 && userCourses.length > 0) {
+        console.log("Setting current user courses:", userCourses)
+        setCurrentUserCourses(userCourses)
+      }
+      if (currentUserPreferences.length === 0 && userPreferences.length > 0) {
+        console.log("Setting current user preferences:", userPreferences)
+        setCurrentUserPreferences(userPreferences)
+      }
+      if (currentUserInterests.length === 0 && userInterests.length > 0) {
+        console.log("Setting current user interests:", userInterests)
+        setCurrentUserInterests(userInterests)
+      }
+
       for (const student of users) {
         if (student.id !== user.uid) {
           // Get student courses
@@ -224,9 +259,10 @@ const IndexScreen = ({ navigation }) => {
             coursesMap[student.id] = courses
 
             // Find shared courses
-            const shared = findSharedItems(currentUserCourses, courses, "name")
+            const shared = findSharedItems(userCourses, courses, "name")
             if (shared.length > 0) {
               sharedCoursesMap[student.id] = shared
+              console.log(`Shared courses with ${student.id}:`, shared)
             }
           }
 
@@ -236,9 +272,10 @@ const IndexScreen = ({ navigation }) => {
             preferencesMap[student.id] = preferences
 
             // Find shared preferences
-            const sharedPrefs = findSharedItems(currentUserPreferences, preferences)
+            const sharedPrefs = findSharedItems(userPreferences, preferences)
             if (sharedPrefs.length > 0) {
               sharedPreferencesMap[student.id] = sharedPrefs
+              console.log(`Shared preferences with ${student.id}:`, sharedPrefs)
             }
           }
 
@@ -248,9 +285,10 @@ const IndexScreen = ({ navigation }) => {
             interestsMap[student.id] = studentInterests
 
             // Find shared interests
-            const sharedInts = findSharedItems(currentUserInterests, studentInterests)
+            const sharedInts = findSharedItems(userInterests, studentInterests)
             if (sharedInts.length > 0) {
               sharedInterestsMap[student.id] = sharedInts
+              console.log(`Shared interests with ${student.id}:`, sharedInts)
             }
           }
 
@@ -303,6 +341,10 @@ const IndexScreen = ({ navigation }) => {
       // Always check profile completion when screen comes into focus
       if (auth.currentUser) {
         console.log("Screen focused, refreshing data...")
+        // Clear shared data before recalculating
+        setSharedCourses({})
+        setSharedPreferences({})
+        setSharedInterests({})
         fetchAllStudentData(false)
       }
 
@@ -356,6 +398,9 @@ const IndexScreen = ({ navigation }) => {
     currentUser,
     allStudents,
     profileComplete,
+    sharedCourses,
+    sharedPreferences,
+    sharedInterests,
   ])
 
   const toggleClassesFilter = () => {
@@ -446,7 +491,9 @@ const IndexScreen = ({ navigation }) => {
         <View style={[styles.checklistContainer, { backgroundColor: theme.colors.background }]}>
           <View style={[styles.checklistHeader, { backgroundColor: theme.colors.tertiaryContainer }]}>
             <Ionicons name="alert-circle" size={24} color={theme.colors.onSurface} />
-            <Text style={[styles.checklistTitle, { color: theme.colors.onBackground }]}>Complete your profile to start matching with buddies</Text>
+            <Text style={[styles.checklistTitle, { color: theme.colors.onBackground }]}>
+              Complete your profile to start matching with buddies
+            </Text>
           </View>
 
           <View style={styles.checklistItems}>
@@ -459,8 +506,12 @@ const IndexScreen = ({ navigation }) => {
                 )}
               </View>
               <View style={styles.checkTextContainer}>
-                <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Upload a profile picture</Text>
-                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Add a photo so others can recognize you</Text>
+                <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>
+                  Upload a profile picture
+                </Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>
+                  Add a photo so others can recognize you
+                </Text>
               </View>
             </View>
 
@@ -474,7 +525,9 @@ const IndexScreen = ({ navigation }) => {
               </View>
               <View style={styles.checkTextContainer}>
                 <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Add your courses</Text>
-                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Select at least one course you're taking</Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>
+                  Select at least one course you're taking
+                </Text>
               </View>
             </View>
 
@@ -488,7 +541,9 @@ const IndexScreen = ({ navigation }) => {
               </View>
               <View style={styles.checkTextContainer}>
                 <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Add study preferences</Text>
-                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Select at least one study preference</Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>
+                  Select at least one study preference
+                </Text>
               </View>
             </View>
 
@@ -502,12 +557,17 @@ const IndexScreen = ({ navigation }) => {
               </View>
               <View style={styles.checkTextContainer}>
                 <Text style={[styles.checkItemTitle, { color: theme.colors.onBackground }]}>Add your interests</Text>
-                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>Select at least one interest</Text>
+                <Text style={[styles.checkItemDescription, { color: theme.colors.onBackground }]}>
+                  Select at least one interest
+                </Text>
               </View>
             </View>
           </View>
 
-          <TouchableOpacity style={[styles.refreshButton, { backgroundColor: theme.colors.tertiary }]} onPress={() => fetchAllStudentData(true)}>
+          <TouchableOpacity
+            style={[styles.refreshButton, { backgroundColor: theme.colors.tertiary }]}
+            onPress={() => fetchAllStudentData(true)}
+          >
             <Ionicons name="refresh" size={18} color={theme.colors.onPrimary} style={styles.buttonIcon} />
             <Text style={[styles.refreshButtonText, { color: theme.colors.onBackground }]}>Refresh Profile Status</Text>
           </TouchableOpacity>
@@ -568,9 +628,7 @@ const IndexScreen = ({ navigation }) => {
             <Text
               style={[
                 styles.filterButtonText,
-                classesFilterEnabled
-                  ? { color: theme.colors.onPrimary }
-                  : { color: theme.colors.onSurface },
+                classesFilterEnabled ? { color: theme.colors.onPrimary } : { color: theme.colors.onSurface },
               ]}
             >
               Matching Classes
@@ -595,9 +653,7 @@ const IndexScreen = ({ navigation }) => {
             <Text
               style={[
                 styles.filterButtonText,
-                preferencesFilterEnabled
-                  ? { color: theme.colors.onPrimary }
-                  : { color: theme.colors.onSurface },
+                preferencesFilterEnabled ? { color: theme.colors.onPrimary } : { color: theme.colors.onSurface },
               ]}
             >
               Study Preferences
@@ -622,9 +678,7 @@ const IndexScreen = ({ navigation }) => {
             <Text
               style={[
                 styles.filterButtonText,
-                interestsFilterEnabled
-                  ? { color: theme.colors.onPrimary }
-                  : { color: theme.colors.onSurface },
+                interestsFilterEnabled ? { color: theme.colors.onPrimary } : { color: theme.colors.onSurface },
               ]}
             >
               Interests
@@ -636,8 +690,12 @@ const IndexScreen = ({ navigation }) => {
       {displayedStudents.length === 0 ? (
         <View style={styles.emptyResults}>
           <Ionicons name="search" size={48} color={theme.colors.primary} />
-          <Text style={[styles.emptyResultsText, { color: theme.colors.onBackground }]}>No students match your filters</Text>
-          <Text style={[styles.emptyResultsSubtext, { color: theme.colors.onBackground }]}>Try adjusting your filters</Text>
+          <Text style={[styles.emptyResultsText, { color: theme.colors.onBackground }]}>
+            No students match your filters
+          </Text>
+          <Text style={[styles.emptyResultsSubtext, { color: theme.colors.onBackground }]}>
+            Try adjusting your filters
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -656,11 +714,14 @@ const IndexScreen = ({ navigation }) => {
                     <View style={styles.sharedClassesCountContainer}>
                       <Ionicons name="school" size={14} color={theme.colors.onBackground} style={styles.sharedIcon} />
                       <Text style={[styles.sharedClassesCount, { color: theme.colors.onBackground }]}>
-                        {sharedCourses[item.id].length} shared {sharedCourses[item.id].length === 1 ? "class" : "classes"}
+                        {sharedCourses[item.id].length} shared{" "}
+                        {sharedCourses[item.id].length === 1 ? "class" : "classes"}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={[styles.noSharedClasses, { color: theme.colors.onBackground }]}>No shared classes</Text>
+                    <Text style={[styles.noSharedClasses, { color: theme.colors.onBackground }]}>
+                      No shared classes
+                    </Text>
                   )}
 
                   {/* Display shared preferences count */}
@@ -668,7 +729,8 @@ const IndexScreen = ({ navigation }) => {
                     <View style={styles.sharedPreferencesCountContainer}>
                       <Ionicons name="options" size={14} color="#1E40AF" style={styles.sharedIcon} />
                       <Text style={[styles.sharedPreferencesCount, { color: theme.colors.onBackground }]}>
-                        {sharedPreferences[item.id].length} shared {sharedPreferences[item.id].length === 1 ? "preference" : "preferences"}
+                        {sharedPreferences[item.id].length} shared{" "}
+                        {sharedPreferences[item.id].length === 1 ? "preference" : "preferences"}
                       </Text>
                     </View>
                   )}
@@ -678,7 +740,8 @@ const IndexScreen = ({ navigation }) => {
                     <View style={styles.sharedInterestsCountContainer}>
                       <Ionicons name="heart" size={14} color="#92400E" style={styles.sharedIcon} />
                       <Text style={[styles.sharedInterestsCount, { color: theme.colors.onBackground }]}>
-                        {sharedInterests[item.id].length} shared {sharedInterests[item.id].length === 1 ? "interest" : "interests"}
+                        {sharedInterests[item.id].length} shared{" "}
+                        {sharedInterests[item.id].length === 1 ? "interest" : "interests"}
                       </Text>
                     </View>
                   )}
@@ -687,11 +750,20 @@ const IndexScreen = ({ navigation }) => {
                 {friends.includes(item.id) ? (
                   <Text style={[styles.friendLabel, { color: theme.colors.onSurface }]}>Friend</Text>
                 ) : outgoingRequests.includes(item.id) ? (
-                  <TouchableOpacity style={[styles.cancelButton, { backgroundColor: theme.colors.error || "#EF4444" }]} onPress={() => handleCancelRequest(item.id)}>
+                  <TouchableOpacity
+                    style={[styles.cancelButton, { backgroundColor: theme.colors.error || "#EF4444" }]}
+                    onPress={() => handleCancelRequest(item.id)}
+                  >
                     <Text style={[styles.buttonText, { color: theme.colors.onPrimary || "#fff" }]}>Cancel</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity style={[styles.requestButton, { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: "#fff" }]} onPress={() => handleSendRequest(item.id)}>
+                  <TouchableOpacity
+                    style={[
+                      styles.requestButton,
+                      { backgroundColor: theme.colors.primary, borderWidth: 1, borderColor: "#fff" },
+                    ]}
+                    onPress={() => handleSendRequest(item.id)}
+                  >
                     <Ionicons name="person-add" size={16} color={theme.colors.onPrimary} style={styles.buttonIcon} />
                     <Text style={[styles.buttonText, { color: theme.colors.onPrimary }]}>Add</Text>
                   </TouchableOpacity>
@@ -700,7 +772,9 @@ const IndexScreen = ({ navigation }) => {
 
               {/* More Details Button */}
               <TouchableOpacity style={styles.moreDetailsButton} onPress={() => toggleCardExpansion(item.id)}>
-                <Text style={[styles.moreDetailsText, { color: theme.colors.onBackground }]}>{expandedCards[item.id] ? "Hide Details" : "More Details"}</Text>
+                <Text style={[styles.moreDetailsText, { color: theme.colors.onBackground }]}>
+                  {expandedCards[item.id] ? "Hide Details" : "More Details"}
+                </Text>
                 <Ionicons
                   name={expandedCards[item.id] ? "chevron-up" : "chevron-down"}
                   size={16}
@@ -718,7 +792,9 @@ const IndexScreen = ({ navigation }) => {
                       <View style={styles.tagsContainer}>
                         {sharedCourses[item.id].map((course, index) => (
                           <View key={`course-${index}`} style={styles.courseTag}>
-                            <Text style={[styles.courseTagText, { color: theme.colors.onPrimaryContainer }]}>{course}</Text>
+                            <Text style={[styles.courseTagText, { color: theme.colors.onPrimaryContainer }]}>
+                              {course}
+                            </Text>
                           </View>
                         ))}
                       </View>
@@ -728,7 +804,9 @@ const IndexScreen = ({ navigation }) => {
                   {/* Display study preferences */}
                   {studyPreferences[item.id] && studyPreferences[item.id].length > 0 && (
                     <View style={styles.detailSection}>
-                      <Text style={[styles.sectionLabel, { color: theme.colors.onBackground }]}>Study Preferences:</Text>
+                      <Text style={[styles.sectionLabel, { color: theme.colors.onBackground }]}>
+                        Study Preferences:
+                      </Text>
                       <View style={styles.tagsContainer}>
                         {studyPreferences[item.id].map((preference, index) => (
                           <View
@@ -742,7 +820,7 @@ const IndexScreen = ({ navigation }) => {
                               style={[
                                 styles.preferenceTagText,
                                 sharedPreferences[item.id]?.includes(preference) ? styles.sharedTagText : {},
-                                { color: theme.colors.onPrimaryContainer }
+                                { color: theme.colors.onPrimaryContainer },
                               ]}
                             >
                               {preference}
@@ -770,7 +848,7 @@ const IndexScreen = ({ navigation }) => {
                               style={[
                                 styles.interestTagText,
                                 sharedInterests[item.id]?.includes(interest) ? styles.sharedTagText : {},
-                                { color: theme.colors.onPrimaryContainer }
+                                { color: theme.colors.onPrimaryContainer },
                               ]}
                             >
                               {interest}
@@ -813,7 +891,9 @@ const IndexScreen = ({ navigation }) => {
                     <View style={styles.userInfo}>
                       <Image source={{ uri: getStudentImage(id) }} style={styles.smallAvatar} />
                       <View>
-                        <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{getStudentName(id)}</Text>
+                        <Text style={[styles.userName, { color: theme.colors.onBackground }]}>
+                          {getStudentName(id)}
+                        </Text>
                         {sharedCourses[id] && sharedCourses[id].length > 0 && (
                           <Text style={[styles.sharedClassesText, { color: theme.colors.onBackground }]}>
                             {sharedCourses[id].length} shared {sharedCourses[id].length === 1 ? "class" : "classes"}
@@ -842,7 +922,9 @@ const IndexScreen = ({ navigation }) => {
                     <View style={styles.userInfo}>
                       <Image source={{ uri: getStudentImage(id) }} style={styles.smallAvatar} />
                       <View>
-                        <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{getStudentName(id)}</Text>
+                        <Text style={[styles.userName, { color: theme.colors.onBackground }]}>
+                          {getStudentName(id)}
+                        </Text>
                         {sharedCourses[id] && sharedCourses[id].length > 0 && (
                           <Text style={[styles.sharedClassesText, { color: theme.colors.onBackground }]}>
                             {sharedCourses[id].length} shared {sharedCourses[id].length === 1 ? "class" : "classes"}
@@ -850,7 +932,10 @@ const IndexScreen = ({ navigation }) => {
                         )}
                       </View>
                     </View>
-                    <TouchableOpacity style={[styles.removeButton, { backgroundColor: theme.colors.error || "#EF4444" }]} onPress={() => handleRemoveFriend(id)}>
+                    <TouchableOpacity
+                      style={[styles.removeButton, { backgroundColor: theme.colors.error || "#EF4444" }]}
+                      onPress={() => handleRemoveFriend(id)}
+                    >
                       <Ionicons name="person-remove" size={16} color={theme.colors.onPrimary || "#fff"} />
                     </TouchableOpacity>
                   </View>
@@ -861,7 +946,9 @@ const IndexScreen = ({ navigation }) => {
             {!refreshingFriends && friendRequests.length === 0 && friends.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={48} color={theme.colors.onBackground} />
-                <Text style={[styles.emptyStateText, { color: theme.colors.onBackground }]}>No friends or requests yet</Text>
+                <Text style={[styles.emptyStateText, { color: theme.colors.onBackground }]}>
+                  No friends or requests yet
+                </Text>
               </View>
             )}
           </View>
