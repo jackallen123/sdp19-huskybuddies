@@ -16,6 +16,7 @@ import DateTimePicker from "@react-native-community/datetimepicker"
 import { AddEventToDatabase, DeleteEventFromDatabase, getFullName } from "@/backend/firebase/firestoreService"
 import { Timestamp, collection, onSnapshot, getDocs } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
+import { useTheme } from "react-native-paper"
 
 // Event setup for database
 interface Event {
@@ -265,7 +266,7 @@ const AddEvent: React.FC<{
             })
           : "No date available"}
       </Text>
-      <Text style={styles.eventText}>{item.description}</Text>
+      <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>{item.description}</Text>
       <TouchableOpacity onPress={() => handleDeleteEvent(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
@@ -342,7 +343,7 @@ const AddEvent: React.FC<{
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.postedEventsTitle}>Posted Events:</Text>
+      <Text style={[styles.postedEventsTitle, { color: theme.colors.onBackground }]}>Posted Events:</Text>
 
       <FlatList
         style={styles.eventsContainer}
@@ -350,7 +351,7 @@ const AddEvent: React.FC<{
         renderItem={renderEventItem}
         keyExtractor={(item) => item.id}
       />
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -437,6 +438,13 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingTop: 1,
   },
+  eventItem: {
+    marginBottom: 12,
+    padding: 10,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 5,
+  },
   eventTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -453,10 +461,6 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: "#FFFFFF",
-  },
-  eventText: {
-    fontSize: 16,
-    color: "#000",
   },
 })
 

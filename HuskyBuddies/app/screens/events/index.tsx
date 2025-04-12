@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS } from '@/constants/Colors';
 import CustomCalendar from '@/components/CustomCalendar';
 import AddEvent from '@/components/AddEvent';
 import AllEvents from '@/components/AllEvents';
@@ -14,6 +13,8 @@ import {
   AddEventToDatabase,
 } from '@/backend/firebase/firestoreService';
 import { auth, db } from '@/backend/firebase/firebaseConfig';
+import { useTheme } from 'react-native-paper';
+import { useThemeSettings } from '@/context/ThemeContext';
 
 // Event setup for database
 interface Event {
@@ -47,7 +48,6 @@ const SyncAllEventsFromDatabase = async (
 
     for (const userDoc of usersSnapshot.docs) {
       const creatorId = userDoc.id;
-
       const userEventsRef = collection(db, "users", creatorId, "events");
       const eventsSnapshot = await getDocs(userEventsRef);
 
@@ -124,6 +124,9 @@ const SyncAllEventsFromDatabase = async (
 
 // Multipage functionality
 export default function MainPage() {
+  const theme = useTheme();
+  const { textSize } = useThemeSettings();
+
   const [showCalendar, setShowCalendar] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
@@ -266,13 +269,7 @@ export default function MainPage() {
       console.error("Invalid session date:", session.date)
       return
     }
-
-    const newStudySession: StudySession = {
-      id: '',
-      title: `Study Session with ${session.friends.join(', ')}`,
-      date: Timestamp.fromDate(session.date), 
-      friends: session.friends,
-    };
+    // Your study session scheduling logic here...
   };
 
   // Format event time for display
@@ -281,7 +278,6 @@ export default function MainPage() {
       console.error("Invalid event date:", eventDate)
       return "Invalid date"
     }
-
     return eventDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: 'numeric',
@@ -295,7 +291,6 @@ export default function MainPage() {
           diff = date.getDate() - day + (day == 0 ? -6 : 1); 
     return new Date(date.setDate(diff));
   };
-
   const getEndOfWeek = (date: Date) => {
     const startOfWeek = getStartOfWeek(new Date(date));
     startOfWeek.setDate(startOfWeek.getDate() + 6); 
@@ -383,7 +378,7 @@ export default function MainPage() {
 
   // Check if loading and if there are no events
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <Text style={{ color: theme.colors.onBackground, fontSize: textSize }}>Loading...</Text>;
   }
 
   // Formatting for page consistency
@@ -401,20 +396,20 @@ export default function MainPage() {
             Your Upcoming Items:
           </Text>
           <ScrollView style={styles.eventsList}>
-          {(filteredEvents.some(event => event.isadded) || filteredSessions.length > 0) ? (
+            {(filteredEvents.some(event => event.isadded) || filteredSessions.length > 0) ? (
               <>
                 {filteredEvents
-                  .filter((event) => event.isadded)  
+                  .filter((event) => event.isadded)
                   .map((event) => {
                     const eventDate = event.date?.toDate();
                     if (!eventDate) {
                       console.error('Invalid event date:', event);
-                      return null; 
+                      return null;
                     }
 
                     return (
-                      <View key={event.id} style={styles.eventItem}>
-                        <Text style={styles.eventItemText}>
+                      <View key={event.id} style={[styles.eventItem, { backgroundColor: theme.colors.surface }]}>
+                        <Text style={[styles.eventItemText, { color: theme.colors.onBackground, fontSize: textSize }]}>
                           {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
                         </Text>
                       </View>
@@ -427,8 +422,8 @@ export default function MainPage() {
                     return null
                   }
                   return (
-                    <View key={session.id} style={styles.eventItem}>
-                      <Text style={styles.eventItemText}>
+                    <View key={session.id} style={[styles.eventItem, { backgroundColor: theme.colors.surface }]}>
+                      <Text style={[styles.eventItemText, { color: theme.colors.onBackground, fontSize: textSize }]}>
                         {session.title} on {sessionDate.toLocaleDateString()} at {formatEventTime(sessionDate)}
                       </Text>
                     </View>
@@ -492,8 +487,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 20,
     fontWeight: 'bold',
   },
   scrollContent: {
@@ -504,9 +497,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.UCONN_NAVY,
     marginBottom: 10,
   },
   eventsList: {
@@ -519,8 +509,6 @@ const styles = StyleSheet.create({
   },
   eventItemText: {},
   noEventsText: {
-    fontSize: 16,
-    color: COLORS.UCONN_GREY,
     textAlign: 'center',
   },
   buttonWrapper: {
@@ -532,8 +520,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    color: COLORS.UCONN_WHITE,
-    fontSize: 16,
     fontWeight: 'bold',
   },
 });

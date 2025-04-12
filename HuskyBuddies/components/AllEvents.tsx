@@ -367,8 +367,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
           {item.date.toDate().toLocaleDateString()}{" "}
           {item.date.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </Text>
-        <Text style={styles.eventText}>{item.description}</Text>
-        <Text style={styles.creatorText}>Created by: {creatorName}</Text>
+        <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>{item.description}</Text>
+        <Text style={[styles.creatorText, { color: theme.colors.onBackground }]}>Created by: {creatorName}</Text>
 
         <TouchableOpacity
           style={[
@@ -411,8 +411,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (loading && !refreshing) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
-          <Text style={styles.loadingText}>Loading events...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Loading events...</Text>
         </View>
       )
     }
@@ -431,7 +431,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (localEvents.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.noEventsText}>Loading events...</Text>
+          <Text style={[styles.noEventsText, { color: theme.colors.onBackground }]}>Loading events...</Text>
           {refreshing ? (
             <ActivityIndicator style={{ marginTop: 20 }} size="large" color={theme.colors.primary} />
           ) : (
@@ -445,7 +445,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
     return (
       <>
-        <Text style={styles.postedEventsTitle}>
+        <Text style={[styles.postedEventsTitle, { color: theme.colors.onBackground }]}>
           Available Events: 
           {refreshing && <Text style={styles.refreshingText}> (Refreshing...)</Text>}
         </Text>
