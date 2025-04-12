@@ -18,23 +18,27 @@ import {
 } from "@/backend/firebase/firestoreService";
 import { auth } from "@/backend/firebase/firebaseConfig";
 import { ActivityIndicator } from "react-native-paper";
+import { useTheme } from "react-native-paper";
 
 const weekdays = ["MON", "TUE", "WED", "THU", "FRI"];
 
-const CourseCard: React.FC<{ course: Course }> = ({ course }) => (
-  <View style={[styles.courseCard, { backgroundColor: course.color }]}>
-    <Text style={styles.courseTime}>{course.startTime}</Text>
-    <View style={styles.courseInfo}>
-      <Text numberOfLines={1} style={styles.courseName}>
-        {course.name}
-      </Text>
-      {/* <Text style={styles.courseInstructor}>{course.instructor}</Text> */}
-      {/* <Text style={styles.courseLocation}>{course.location}</Text> */}
-      <Text style={styles.courseSection}>{course.section}</Text>
+const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
+  const theme = useTheme();
+  return (
+    <View style={[styles.courseCard, { backgroundColor: course.color }]}>
+      <Text style={[styles.courseTime, { color: theme.colors.onBackground }]}>{course.startTime}</Text>
+      <View style={styles.courseInfo}>
+        <Text numberOfLines={1} style={[styles.courseName, { color: theme.colors.onBackground }]}>
+          {course.name}
+        </Text>
+        {/* <Text style={styles.courseInstructor}>{course.instructor}</Text> */}
+        {/* <Text style={styles.courseLocation}>{course.location}</Text> */}
+        <Text style={[styles.courseSection, { color: theme.colors.onBackground }]}>{course.section}</Text>
+      </View>
+      <Text style={[styles.courseTime, { color: theme.colors.onBackground }]}>{course.endTime}</Text>
     </View>
-    <Text style={styles.courseTime}>{course.endTime}</Text>
-  </View>
-);
+  );
+};
 
 const DeleteCourseModal = ({
   visible,
@@ -46,40 +50,46 @@ const DeleteCourseModal = ({
   courses: Course[];
   onClose: () => void;
   onDelete: (courseId: string) => Promise<void>;
-}) => (
-  <Modal
-    visible={visible}
-    transparent={true}
-    animationType="fade"
-    onRequestClose={onClose}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Select Course to Delete</Text>
-        {courses.map((course) => (
-          <TouchableOpacity
-            key={course.id}
-            style={styles.courseDeleteItem}
-            onPress={async () => {
-              await onDelete(course.id);
-              onClose();
-            }}
-          >
-            <Text style={styles.courseDeleteText}>
-              {course.name} - Section {course.section}
-            </Text>
-            <Ionicons name="trash-outline" size={20} color="red" />
+}) => {
+  const theme = useTheme();
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.onBackground }]}>
+            Select Course to Delete
+          </Text>
+          {courses.map((course) => (
+            <TouchableOpacity
+              key={course.id}
+              style={styles.courseDeleteItem}
+              onPress={async () => {
+                await onDelete(course.id);
+                onClose();
+              }}
+            >
+              <Text style={[styles.courseDeleteText, { color: theme.colors.onBackground }]}>
+                {course.name} - Section {course.section}
+              </Text>
+              <Ionicons name="trash-outline" size={20} color={theme.colors.error || "red"} />
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <Text style={[styles.cancelButtonText, { color: theme.colors.primary }]}>Cancel</Text>
           </TouchableOpacity>
-        ))}
-        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 export default function Schedule({ onBack }: { onBack: () => void }) {
+  const theme = useTheme();
   const [showOptions, setShowOptions] = useState(false);
   const [isAddingCourse, setIsAddingCourse] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -134,34 +144,34 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
   }, [courses]);
 
   if (isAddingCourse) {
-    return <AddCourseScreen onBack={() => { 
-      loadCourses();
-      setIsAddingCourse(false);
-    }} />;
+    return (
+      <AddCourseScreen
+        onBack={() => { 
+          loadCourses();
+          setIsAddingCourse(false);
+        }}
+      />
+    );
   }
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView edges={["left", "right"]} style={styles.safeArea}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView edges={["left", "right"]} style={[styles.safeArea, { backgroundColor: theme.colors.primary }]}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerText}>Schedule</Text>
+            <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>Schedule</Text>
           </View>
           <TouchableOpacity onPress={() => setShowOptions(!showOptions)}>
-            <Ionicons
-              name="ellipsis-vertical"
-              size={24}
-              color={COLORS.UCONN_WHITE}
-            />
+            <Ionicons name="ellipsis-vertical" size={24} color={theme.colors.onPrimary} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
 
       {showOptions && (
-        <View style={styles.optionsContainer}>
+        <View style={[styles.optionsContainer, { backgroundColor: theme.colors.surface }]}>
           <TouchableOpacity
             style={styles.option}
             onPress={() => {
@@ -169,8 +179,8 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
               setIsAddingCourse(true);
             }}
           >
-            <Ionicons name="add" size={24} color="black" />
-            <Text style={styles.optionText}>Add Course</Text>
+            <Ionicons name="add" size={24} color={theme.colors.onBackground} />
+            <Text style={[styles.optionText, { color: theme.colors.onBackground }]}>Add Course</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.option}
@@ -179,8 +189,8 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
               setShowDeleteModal(true);
             }}
           >
-            <Ionicons name="trash" size={24} color="black" />
-            <Text style={styles.optionText}>Delete Course</Text>
+            <Ionicons name="trash" size={24} color={theme.colors.onBackground} />
+            <Text style={[styles.optionText, { color: theme.colors.onBackground }]}>Delete Course</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -194,14 +204,14 @@ export default function Schedule({ onBack }: { onBack: () => void }) {
 
       {loading ? (
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
         <View style={styles.scheduleWrapper}>
-          <View style={styles.weekdaysHeader}>
+          <View style={[styles.weekdaysHeader, { backgroundColor: theme.colors.primary }]}>
             {weekdays.map((day) => (
               <View key={day} style={styles.dayHeaderColumn}>
-                <Text style={styles.weekday}>{day}</Text>
+                <Text style={[styles.weekday, { color: theme.colors.onPrimary }]}>{day}</Text>
               </View>
             ))}
           </View>
@@ -234,7 +244,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_NAVY,
   },
   header: {
-    backgroundColor: COLORS.UCONN_NAVY,
     padding: 10,
     paddingTop: 60,
     borderRadius: 1,
@@ -255,7 +264,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 60,
     right: 16,
-    backgroundColor: "white",
     borderRadius: 8,
     elevation: 3,
     shadowColor: "#000",
@@ -278,7 +286,6 @@ const styles = StyleSheet.create({
   },
   weekdaysHeader: {
     flexDirection: "row",
-    backgroundColor: COLORS.UCONN_NAVY,
     paddingVertical: 16,
   },
   dayHeaderColumn: {
@@ -288,7 +295,6 @@ const styles = StyleSheet.create({
   weekday: {
     fontSize: 16,
     fontWeight: "bold",
-    color: COLORS.UCONN_WHITE,
   },
   scheduleContainer: {
     flexDirection: "row",
@@ -326,10 +332,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     textAlign: "center",
   },
-  // courseLocation: {
-  //   fontSize: 9,
-  //   textAlign: 'center',
-  // },
   courseSection: {
     fontSize: 9,
     textAlign: "center",

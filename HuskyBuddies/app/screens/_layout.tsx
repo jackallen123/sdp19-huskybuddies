@@ -4,7 +4,6 @@ import { View, StyleSheet } from 'react-native';
 import { MessageCircle, Users, Home, Calendar, Settings } from 'lucide-react-native';
 import { COLORS } from '../../constants/Colors';
 import { useTheme } from 'react-native-paper';
-import { useThemeSettings } from '@/context/ThemeContext';
 
 export default function ScreenLayout() {
 
