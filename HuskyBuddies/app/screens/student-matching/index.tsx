@@ -122,17 +122,6 @@ const IndexScreen = ({ navigation }) => {
       setCurrentUserPreferences(preferences || [])
       setCurrentUserInterests(userInterests || [])
 
-      console.log("Profile completion check:", {
-        hasPicture,
-        hasCourses,
-        hasPreferences,
-        hasInterests,
-        isComplete,
-      })
-      console.log("Current user courses:", courses)
-      console.log("Current user preferences:", preferences)
-      console.log("Current user interests:", userInterests)
-
       return isComplete
     } catch (error) {
       console.error("Error checking profile completion:", error)
@@ -169,7 +158,6 @@ const IndexScreen = ({ navigation }) => {
     const shared = []
 
     if (!userItems || !otherItems) {
-      console.log("Missing items to compare:", { userItems, otherItems })
       return shared
     }
 
@@ -239,15 +227,12 @@ const IndexScreen = ({ navigation }) => {
 
       // Update state with current user data if not already set
       if (currentUserCourses.length === 0 && userCourses.length > 0) {
-        console.log("Setting current user courses:", userCourses)
         setCurrentUserCourses(userCourses)
       }
       if (currentUserPreferences.length === 0 && userPreferences.length > 0) {
-        console.log("Setting current user preferences:", userPreferences)
         setCurrentUserPreferences(userPreferences)
       }
       if (currentUserInterests.length === 0 && userInterests.length > 0) {
-        console.log("Setting current user interests:", userInterests)
         setCurrentUserInterests(userInterests)
       }
 
@@ -262,7 +247,6 @@ const IndexScreen = ({ navigation }) => {
             const shared = findSharedItems(userCourses, courses, "name")
             if (shared.length > 0) {
               sharedCoursesMap[student.id] = shared
-              console.log(`Shared courses with ${student.id}:`, shared)
             }
           }
 
@@ -275,7 +259,6 @@ const IndexScreen = ({ navigation }) => {
             const sharedPrefs = findSharedItems(userPreferences, preferences)
             if (sharedPrefs.length > 0) {
               sharedPreferencesMap[student.id] = sharedPrefs
-              console.log(`Shared preferences with ${student.id}:`, sharedPrefs)
             }
           }
 
@@ -288,7 +271,6 @@ const IndexScreen = ({ navigation }) => {
             const sharedInts = findSharedItems(userInterests, studentInterests)
             if (sharedInts.length > 0) {
               sharedInterestsMap[student.id] = sharedInts
-              console.log(`Shared interests with ${student.id}:`, sharedInts)
             }
           }
 
@@ -340,7 +322,6 @@ const IndexScreen = ({ navigation }) => {
     useCallback(() => {
       // Always check profile completion when screen comes into focus
       if (auth.currentUser) {
-        console.log("Screen focused, refreshing data...")
         // Clear shared data before recalculating
         setSharedCourses({})
         setSharedPreferences({})
@@ -350,7 +331,6 @@ const IndexScreen = ({ navigation }) => {
 
       return () => {
         // This runs when the screen loses focus
-        console.log("Screen unfocused")
       }
     }, []),
   )
