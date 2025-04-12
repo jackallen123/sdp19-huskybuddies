@@ -29,8 +29,8 @@ interface Event {
   date: Timestamp
   description: string
   isadded?: boolean
-  createdBy: string // This could be either a name or a user ID
-  creatorName?: string // Added to store the display name separately
+  createdBy: string 
+  creatorName?: string 
 }
 
 interface AllEventsProps {
@@ -108,7 +108,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         unsubscribeRef.current()
       }
     }
-  }, []) // Empty dependency array means this runs once on mount
+  }, []) 
 
   // Update local state when events are updated from other users
   useEffect(() => {
@@ -181,12 +181,11 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   // Force a complete resync of all events from all users when refresh is clicked
   const fetchEvents = async () => {
     try {
-      console.log("Starting refresh of events...")
       setRefreshing(true)
       setError(null)
       setLastRefreshTime(Date.now())
 
-      // Instead of clearing events, let's keep the current state to preserve isadded status
+      // Keep the current state to preserve isadded status
       const currentEvents = [...localEvents]
       const currentEventMap = new Map(currentEvents.map((event) => [event.id, event]))
 
@@ -206,7 +205,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       }
 
       try {
-        // First, let's get the current isadded status for all events in the user's allEvents collection
+        // Get the current isadded status for all events in the user's allEvents collection
         const allEventsStatus = new Map()
 
         for (const event of currentEvents) {
@@ -223,12 +222,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
           }
         }
 
-        // Add this debug log to see what statuses we're preserving
-        console.log("Preserved isadded statuses:", Object.fromEntries(allEventsStatus))
-
-        console.log("Syncing all events from database...")
         await SyncAllEventsFromDatabase(userId, (syncedEvents: Event[]) => {
-          console.log(`Received ${syncedEvents?.length || 0} events from sync`)
 
           if (!syncedEvents || syncedEvents.length === 0) {
             // Even if no events from sync, we still want to preserve our current events
@@ -262,7 +256,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
             // Convert back to array
             const deduplicatedEvents = Array.from(uniqueEventsMap.values())
-            console.log(`Setting ${deduplicatedEvents.length} events after deduplication`)
             setLocalEvents(deduplicatedEvents)
           }
 
@@ -273,7 +266,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       } catch (syncError) {
         console.error("Error during sync:", syncError)
         Alert.alert("Sync Error", "There was an error syncing events. Please try again.")
-        // Restore previous events on error
         setLocalEvents(currentEvents)
         setRefreshing(false)
       }
@@ -283,8 +275,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       setRefreshing(false)
     }
   }
-
-  // In the handleToggleEvent function, add more detailed logging to help debug:
 
   const handleToggleEvent = async (event: Event) => {
     try {
@@ -297,8 +287,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       }
 
       const updatedIsAdded = !event.isadded
-      console.log(`Toggling event ${event.id} isadded from ${event.isadded} to ${updatedIsAdded}`)
-
       // Update local state first - preserve all original event properties
       setLocalEvents((prevEvents) =>
         prevEvents.map((e) =>
@@ -306,7 +294,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
             ? {
                 ...e,
                 isadded: updatedIsAdded,
-                // Explicitly preserve creator information
                 createdBy: e.createdBy,
                 creatorName: e.creatorName,
               }
@@ -314,24 +301,22 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         ),
       )
 
-      // IMPORTANT: Only update the isadded field in the CURRENT USER'S allEvents collection
+      // Update the isadded field in the current users allEvents collection
       const currentUserAllEventsRef = doc(db, "users", currentUserId, "allEvents", event.id)
 
       // Check if the event exists in the current user's allEvents collection
       const eventDoc = await getDoc(currentUserAllEventsRef)
 
       if (eventDoc.exists()) {
-        console.log(`Updating existing event ${event.id} in allEvents collection`)
+    
         // Only update the isadded field, preserve all other fields
         await updateDoc(currentUserAllEventsRef, {
           isadded: updatedIsAdded,
         })
 
-        console.log(
-          `Updated isadded=${updatedIsAdded} for event ${event.id} in user ${currentUserId}'s allEvents collection`,
-        )
+       
       } else {
-        console.log(`Event ${event.id} doesn't exist in allEvents collection, creating it`)
+    
         // If the event doesn't exist in allEvents, create it with all necessary fields
         await setDoc(currentUserAllEventsRef, {
           title: event.title,
@@ -341,7 +326,6 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
           createdBy: event.createdBy,
           creatorName: event.creatorName,
         })
-        console.log(`Created event ${event.id} in user ${currentUserId}'s allEvents collection`)
       }
 
       // If the update was successful, call onAddToCalendar to sync with parent component
@@ -350,15 +334,12 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         await onAddToCalendar({
           ...event,
           isadded: updatedIsAdded,
-          // Explicitly ensure we're preserving the original creator
           createdBy: event.createdBy,
           creatorName: event.creatorName,
         })
       }
     } catch (error) {
       console.error("Error updating event: ", error)
-
-      // Revert the local state change if there was an error
       setLocalEvents((prevEvents) => prevEvents.map((e) => (e.id === event.id ? { ...e, isadded: event.isadded } : e)))
       setError("Failed to update event. Please try again.")
     }
@@ -366,10 +347,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
   // Formatting for page consistency
   const renderEventItem = ({ item }: { item: Event }) => {
-    // Use the resolved name from creatorNames if available, otherwise use createdBy directly
-    // If createdBy looks like a user ID and we don't have a resolved name yet, show "Loading..."
     let displayName = item.creatorName || item.createdBy
-
     if (!displayName || displayName === "Unknown User") {
       displayName = "Unknown User"
     } else if (!item.creatorName && creatorNames[item.createdBy]) {

@@ -65,8 +65,8 @@ const SyncAllEventsFromDatabase = async (
           title: data.title,
           date: data.date,
           description: data.description,
-          isadded: data.isadded === true, // Ensure boolean value
-          createdBy: data.createdBy, // Use the creator name directly
+          isadded: data.isadded === true,
+          createdBy: data.createdBy,
         }
 
         // Skip the current user - we already have their events from the listener
@@ -101,7 +101,7 @@ const SyncAllEventsFromDatabase = async (
         date: event.date,
         description: event.description,
         isadded: isAdded,
-        createdBy: event.createdBy, // Preserve the creator name
+        createdBy: event.createdBy, 
       })
     }
 
@@ -136,7 +136,6 @@ export default function MainPage() {
   const [sessions, setSessions] = useState<StudySession[]>([])
   const [loading, setLoading] = useState(true)
   const [validationComplete, setValidationComplete] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<string>("")
 
   // Sync all events
   const syncAllEvents = async () => {
@@ -166,14 +165,14 @@ export default function MainPage() {
     }
   }, [currentUserId])
 
-  // Validate events and study sessions when they change
+  // Update events and study sessions when they change
   useEffect(() => {
     const validateItems = async () => {
       if (!events.length && !sessions.length) return
       setValidationComplete(false)
 
       try {
-        // Validate events - check if they should still be in the user's calendar
+        // Update events - check if they should still be in the user's calendar
         const validatedEvents = events.map((event) => {
           // Ensure isadded is a boolean
           const isAdded = event.isadded === true
@@ -193,7 +192,7 @@ export default function MainPage() {
           }
         })
 
-        // Validate study sessions - check if they have valid dates
+        // Update study sessions - check if they have valid dates
         const validatedSessions = sessions.filter((session) => {
           try {
             const sessionDate = session.date?.toDate()
@@ -224,16 +223,16 @@ export default function MainPage() {
       return
     }
 
-    // Preserve the original creator information
+    // Keep the original creator info
     const creatorName = event.creatorName || event.createdBy || "Unknown User"
     const creatorId = event.createdBy
 
-    // Ensure all creator information is preserved
+    // Make sure all creator info is preserved
     const eventWithCreator = {
       ...event,
-      createdBy: creatorId, // Keep the original creator ID
-      creatorName: creatorName, // Keep the original creator name
-      isadded: event.isadded === true, // Ensure boolean value
+      createdBy: creatorId, 
+      creatorName: creatorName, 
+      isadded: event.isadded === true, 
     }
 
     await AddEventToDatabase(
@@ -243,8 +242,8 @@ export default function MainPage() {
       eventWithCreator.date,
       eventWithCreator.description,
       eventWithCreator.isadded,
-      eventWithCreator.createdBy, // Pass the original creator ID
-      eventWithCreator.creatorName, // Pass the creator name as well
+      eventWithCreator.createdBy, 
+      eventWithCreator.creatorName, 
     )
   }
 
@@ -291,21 +290,19 @@ export default function MainPage() {
     })
   }
 
-  // Helper function to check if a date is today or in the future (not in the past)
+  // Check if a date is today or in the future (not in the past)
   const isDateTodayOrFuture = (date: Date): boolean => {
-    // Create today's date with time set to midnight
+    // Set to midnight and compare
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-
-    // Create a date object from the input date with time set to midnight
     const compareDate = new Date(date)
     compareDate.setHours(0, 0, 0, 0)
 
-    // Date is today or in the future if it's >= today
+    // Check if the date is after today
     return compareDate >= today
   }
 
-  // Helper function to check if a date is within the next 7 days (including today)
+  // Check if a date is within the next 7 days (including today)
   const isWithinNextWeek = (date: Date): boolean => {
     // Create today's date with time set to midnight
     const today = new Date()
@@ -316,7 +313,7 @@ export default function MainPage() {
     nextWeek.setDate(today.getDate() + 7) // Today + 7 days
     nextWeek.setHours(23, 59, 59, 999) // End of the 7th day
 
-    // Create a date object from the input date
+    // Create a date from the input date
     const compareDate = new Date(date)
 
     // Check if the date is between today and next week (inclusive)
@@ -337,8 +334,7 @@ export default function MainPage() {
         return false
       }
 
-      // Check if the event is today or in the future (not in the past)
-      // AND within the next 7 days (including today)
+      // Check if the event is today or in the future (not in the past) and within the next 7 days (including today)
       const inTimeFrame = isWithinNextWeek(eventDate)
       return inTimeFrame
     } catch (error) {
@@ -352,8 +348,7 @@ export default function MainPage() {
     try {
       const sessionDate = session.date?.toDate()
 
-      // Check if the session is today or in the future (not in the past)
-      // AND within the next 7 days (including today)
+      // Check if the session is today or in the future (not in the past) and within the next 7 days (including today)
       const inTimeFrame = isWithinNextWeek(sessionDate)
 
       return inTimeFrame

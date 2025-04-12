@@ -45,7 +45,6 @@ const AddEvent: React.FC<{
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [debugInfo, setDebugInfo] = useState<string>("")
 
   // Get the current users id so we can get their events
   useEffect(() => {
@@ -53,14 +52,12 @@ const AddEvent: React.FC<{
     const user = auth.currentUser
     if (user) {
       setCurrentUserId(user.uid)
-      console.log("Current user ID set:", user.uid)
 
       // Fetch the user's full name
       const fetchUserName = async () => {
         try {
           const fullName = await getFullName(user.uid)
           setCurrentUserName(fullName || "Unknown User")
-          console.log("Current user name set:", fullName || "Unknown User")
         } catch (error) {
           console.error("Error fetching user name:", error)
           setCurrentUserName("Unknown User")
@@ -73,15 +70,12 @@ const AddEvent: React.FC<{
     }
   }, [])
 
-  // Function to fetch events with additional check to ensure only current user's events are shown
+  // Fetch events with and check if only current user's events are shown
   const fetchEvents = async () => {
     if (!currentUserId) {
       console.error("Cannot fetch events: No current user ID")
       return
     }
-
-    console.log("Fetching events for user:", currentUserId)
-    setDebugInfo("Fetching events...")
 
     try {
       // Get all events from the user's events collection
@@ -89,14 +83,12 @@ const AddEvent: React.FC<{
       const snapshot = await getDocs(eventsRef)
 
       if (snapshot.empty) {
-        console.log("No events found for user:", currentUserId)
         setEvents([])
-        setDebugInfo("No events found")
         setLoading(false)
         return
       }
 
-      // Map the documents to Event objects and filter to ensure only current user's events
+      // Map and filter to ensure only current user's events
       const allEvents = snapshot.docs.map((doc) => {
         const data = doc.data()
         return {
@@ -115,18 +107,9 @@ const AddEvent: React.FC<{
         const isCurrentUserEvent =
           event.createdBy === currentUserId ||
           (event.creatorName === currentUserName && event.creatorName !== "Unknown User")
-
-        if (!isCurrentUserEvent) {
-          console.log(
-            `Filtering out event ${event.id} with createdBy: ${event.createdBy} (not current user: ${currentUserId})`,
-          )
-        }
-
         return isCurrentUserEvent
       })
 
-      console.log(`Found ${allEvents.length} total events, ${filteredEvents.length} created by user:`, currentUserId)
-      setDebugInfo(`Found ${filteredEvents.length} events created by you`)
       setEvents(filteredEvents)
     } catch (error) {
       console.error("Error fetching events:", error)
@@ -141,7 +124,6 @@ const AddEvent: React.FC<{
     if (!currentUserId) return
 
     setLoading(true)
-    console.log("Setting up events listener for user:", currentUserId)
 
     // Get events directly from the events collection
     const eventsRef = collection(db, "users", currentUserId, "events")
@@ -150,9 +132,8 @@ const AddEvent: React.FC<{
       eventsRef,
       (snapshot) => {
         if (snapshot.empty) {
-          console.log("No events found in listener for user:", currentUserId)
+         
           setEvents([])
-          setDebugInfo("Listener: No events found")
           setLoading(false)
           return
         }
@@ -177,26 +158,14 @@ const AddEvent: React.FC<{
             event.createdBy === currentUserId ||
             (event.creatorName === currentUserName && event.creatorName !== "Unknown User")
 
-          if (!isCurrentUserEvent) {
-            console.log(
-              `Listener filtering out event ${event.id} with createdBy: ${event.createdBy} (not current user: ${currentUserId})`,
-            )
-          }
-
           return isCurrentUserEvent
         })
 
-        console.log(
-          `Listener found ${allEvents.length} total events, ${filteredEvents.length} created by user:`,
-          currentUserId,
-        )
-        setDebugInfo(`Listener found ${filteredEvents.length} events created by you`)
         setEvents(filteredEvents)
         setLoading(false)
       },
       (error) => {
         console.error("Error in events listener:", error)
-        setDebugInfo(`Listener error: ${error.message}`)
         setLoading(false)
       },
     )
@@ -206,7 +175,7 @@ const AddEvent: React.FC<{
 
     return () => {
       unsubscribe()
-      console.log("Events listener unsubscribed")
+    
     }
   }, [currentUserId, currentUserName])
 
@@ -221,24 +190,19 @@ const AddEvent: React.FC<{
       // Generate a unique ID for the event
       const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-      // Use the user's actual name instead of "You"
+      // Use the user's name
       const creatorName = currentUserName || "Unknown User"
 
-      console.log("Creating new event with ID:", eventId)
-      console.log("Creator ID:", currentUserId)
-      console.log("Creator Name:", creatorName)
-
-      // Store the current user ID in createdBy to make filtering easier
-      // and store the display name in a separate field
+      // Store the current user ID in createdBy and name in Name
       await AddEventToDatabase(
         currentUserId,
         eventId,
         title,
         Timestamp.fromDate(date),
         description,
-        true, // Set isadded to true by default for user's own events
-        currentUserId, // Store user ID in createdBy
-        creatorName, // Store the display name
+        false, 
+        currentUserId, 
+        creatorName, 
       )
 
       // Create the event object for local state
@@ -247,7 +211,7 @@ const AddEvent: React.FC<{
         title,
         date: Timestamp.fromDate(date),
         description,
-        isadded: true, // Set isadded to true by default for user's own events
+        isadded: false, 
         createdBy: currentUserId,
         creatorName: creatorName,
       }
@@ -393,7 +357,6 @@ const AddEvent: React.FC<{
       ) : events.length === 0 ? (
         <View style={styles.noEventsContainer}>
           <Text>No events posted yet. Create your first event above!</Text>
-          <Text style={styles.debugText}>{debugInfo}</Text>
         </View>
       ) : (
         <FlatList
