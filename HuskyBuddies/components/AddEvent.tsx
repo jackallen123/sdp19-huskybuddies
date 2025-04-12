@@ -1,16 +1,23 @@
 import type React from "react"
 import { useState, useEffect } from "react"
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList } from "react-native"
+import {
+  SafeAreaView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+} from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { COLORS } from "@/constants/Colors"
 import DateTimePicker from "@react-native-community/datetimepicker"
-import {
-  AddEventToDatabase,
-  FetchEventsFromDatabase,
-  DeleteEventFromDatabase,
-} from "@/backend/firebase/firestoreService"
-import { Timestamp } from "firebase/firestore"
+import { AddEventToDatabase, DeleteEventFromDatabase, getFullName } from "@/backend/firebase/firestoreService"
+import { Timestamp, collection, onSnapshot, getDocs } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
+import { db } from "@/backend/firebase/firebaseConfig"
 
 // Event setup for database
 interface Event {
@@ -20,6 +27,7 @@ interface Event {
   description: string
   isadded?: boolean
   createdBy: string
+  creatorName?: string
 }
 
 const AddEvent: React.FC<{
@@ -35,6 +43,9 @@ const AddEvent: React.FC<{
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [events, setEvents] = useState<Event[]>(initialEvents || [])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [debugInfo, setDebugInfo] = useState<string>("")
 
   // Get the current users id so we can get their events
   useEffect(() => {
@@ -42,20 +53,132 @@ const AddEvent: React.FC<{
     const user = auth.currentUser
     if (user) {
       setCurrentUserId(user.uid)
-    }
+
+      // Fetch the user's full name
+      const fetchUserName = async () => {
+        try {
+          const fullName = await getFullName(user.uid)
+          setCurrentUserName(fullName)
+        } catch (error) {
+          console.error("Error fetching user name:", error)
+        }
+      }
+      fetchUserName()
+    } 
   }, [])
 
-  // Fetch events only current user has made
-  useEffect(() => {
-    if (currentUserId) {
-      const unsubscribe = FetchEventsFromDatabase(currentUserId, (fetchedEvents: Event[]) => {
-        setEvents(fetchedEvents); 
-      });
-  
-      return () => unsubscribe();
+  // Fetch events and check to ensure only current user's events are shown
+  const fetchEvents = async () => {
+    if (!currentUserId) {
+      console.error("Cannot fetch events: No current user ID")
+      return
     }
-  }, [currentUserId]);
-  
+
+    try {
+      // Get all events from the user's events collection
+      const eventsRef = collection(db, "users", currentUserId, "events")
+      const snapshot = await getDocs(eventsRef)
+
+      if (snapshot.empty) {
+        setEvents([])
+        setLoading(false)
+        return
+      }
+
+      // Filter to ensure only current user's events
+      const allEvents = snapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          title: data.title || "",
+          date: data.date,
+          description: data.description || "",
+          isadded: data.isadded || false,
+          createdBy: data.createdBy || currentUserId,
+          creatorName: data.creatorName || currentUserName,
+        }
+      })
+
+      // Additional check to ensure only events created by the current user are shown
+      const filteredEvents = allEvents.filter((event) => {
+        const isCurrentUserEvent =
+          event.createdBy === currentUserId ||
+          (event.creatorName === currentUserName && event.creatorName !== "Unknown User")
+
+        return isCurrentUserEvent
+      })
+
+      setEvents(filteredEvents)
+    } catch (error) {
+      console.error("Error fetching events:", error)
+      Alert.alert("Error", "Failed to load events. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Set up real-time listener for events with additional check
+  useEffect(() => {
+    if (!currentUserId) return
+
+    setLoading(true)
+
+    // Get events directly from the events collection
+    const eventsRef = collection(db, "users", currentUserId, "events")
+
+    const unsubscribe = onSnapshot(
+      eventsRef,
+      (snapshot) => {
+        if (snapshot.empty) {
+          setEvents([])
+          setLoading(false)
+          return
+        }
+
+        // Map the documents to Event objects
+        const allEvents = snapshot.docs.map((doc) => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            title: data.title || "",
+            date: data.date,
+            description: data.description || "",
+            isadded: data.isadded || false,
+            createdBy: data.createdBy || currentUserId,
+            creatorName: data.creatorName || currentUserName || "Unknown User",
+          }
+        })
+
+        // Additional check to ensure only events created by the current user are shown
+        const filteredEvents = allEvents.filter((event) => {
+          const isCurrentUserEvent =
+            event.createdBy === currentUserId ||
+            (event.creatorName === currentUserName && event.creatorName !== "Unknown User")
+
+          if (!isCurrentUserEvent) {
+          }
+          return isCurrentUserEvent
+        })
+
+    
+        setEvents(filteredEvents)
+        setLoading(false)
+      },
+      (error) => {
+        console.error("Error in events listener:", error)
+        setDebugInfo(`Listener error: ${error.message}`)
+        setLoading(false)
+      },
+    )
+
+    // Initial fetch to ensure we have data
+    fetchEvents()
+
+    return () => {
+      unsubscribe()
+    }
+  }, [currentUserId, currentUserName])
+
   // Make sure all fields
   const handleSubmit = async () => {
     if (!title || !description || !date || !currentUserId) {
@@ -67,8 +190,19 @@ const AddEvent: React.FC<{
       // Generate a unique ID for the event
       const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-      // Add event to the database - pass the ID as a separate parameter
-      await AddEventToDatabase(currentUserId, eventId, title, Timestamp.fromDate(date), description, false)
+      // Use the user's name
+      const creatorName = currentUserName || "Unknown User"
+
+      await AddEventToDatabase(
+        currentUserId,
+        eventId,
+        title,
+        Timestamp.fromDate(date),
+        description,
+        false, // Set isadded to true by default for user's own events
+        currentUserId, 
+        creatorName, 
+      )
 
       // Create the event object for local state
       const newEvent: Event = {
@@ -76,11 +210,12 @@ const AddEvent: React.FC<{
         title,
         date: Timestamp.fromDate(date),
         description,
-        isadded: false,
+        isadded: false, // Set isadded to true by default for user's own events
         createdBy: currentUserId,
+        creatorName: creatorName,
       }
 
-      // Add event to local state
+      // Call onAddEvent to update parent component
       onAddEvent(newEvent)
 
       // Clear form inputs
@@ -89,6 +224,9 @@ const AddEvent: React.FC<{
       setDescription("")
 
       alert("Event posted successfully!")
+
+      // Refresh events to ensure the new event appears
+      setTimeout(fetchEvents, 500)
     } catch (error) {
       console.error("Error adding event:", error)
       alert("Failed to add event. Please try again.")
@@ -129,6 +267,7 @@ const AddEvent: React.FC<{
           : "No date available"}
       </Text>
       <Text style={styles.eventText}>{item.description}</Text>
+      <Text style={styles.creatorText}>Created By: {item.creatorName || currentUserName || "Unknown User"}</Text>
       <TouchableOpacity onPress={() => handleDeleteEvent(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
@@ -205,14 +344,28 @@ const AddEvent: React.FC<{
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.postedEventsTitle}>Posted Events:</Text>
+      <View style={styles.eventsHeaderContainer}>
+        <Text style={styles.postedEventsTitle}>Your Posted Events:</Text>
+      </View>
 
-      <FlatList
-        style={styles.eventsContainer}
-        data={events}
-        renderItem={renderEventItem}
-        keyExtractor={(item) => item.id}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+          <Text style={styles.loadingText}>Loading events...</Text>
+        </View>
+      ) : events.length === 0 ? (
+        <View style={styles.noEventsContainer}>
+          <Text>No events posted yet. Create your first event above!</Text>
+          <Text style={styles.debugText}>{debugInfo}</Text>
+        </View>
+      ) : (
+        <FlatList
+          style={styles.eventsContainer}
+          data={events}
+          renderItem={renderEventItem}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+        />
+      )}
     </SafeAreaView>
   )
 }
@@ -292,17 +445,40 @@ const styles = StyleSheet.create({
     color: COLORS.UCONN_WHITE,
     fontSize: 16,
   },
+  eventsHeaderContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingRight: 15,
+  },
   postedEventsTitle: {
     fontSize: 20,
     color: COLORS.UCONN_NAVY,
     marginBottom: 0,
     padding: 15,
     paddingTop: 1,
+    flex: 1,
   },
   eventsContainer: {
     flex: 1,
     padding: 15,
     paddingTop: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.UCONN_NAVY,
+  },
+  noEventsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   eventTitle: {
     fontSize: 18,
@@ -322,7 +498,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
   },
+  creatorText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  debugText: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "#999",
+  },
 })
 
 export default AddEvent
-

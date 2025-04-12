@@ -1,58 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS } from '@/constants/Colors';
-import CustomCalendar from '@/components/CustomCalendar';
-import AddEvent from '@/components/AddEvent';
-import AllEvents from '@/components/AllEvents';
-import StudyScheduler from '@/components/StudyScheduler';
-import { Timestamp, doc, collection, getDocs, writeBatch } from 'firebase/firestore';
-import {  
-  DeleteStudySessionFromDatabase,  
-  DeleteEventFromDatabase, 
+import type React from "react"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native"
+import { COLORS } from "@/constants/Colors"
+import CustomCalendar from "@/components/CustomCalendar"
+import AddEvent from "@/components/AddEvent"
+import AllEvents from "@/components/AllEvents"
+import StudyScheduler from "@/components/StudyScheduler"
+import { Timestamp, doc, collection, getDocs, writeBatch } from "firebase/firestore"
+import {
+  DeleteStudySessionFromDatabase,
+  DeleteEventFromDatabase,
   FetchAllEventsFromDatabase,
   FetchStudySessionsFromDatabase,
   AddEventToDatabase,
-} from '@/backend/firebase/firestoreService';
-import { auth, db } from '@/backend/firebase/firebaseConfig';
+} from "@/backend/firebase/firestoreService"
+import { auth, db } from "@/backend/firebase/firebaseConfig"
 
-// Event setup for database 
+// Event setup for database
 interface Event {
-  id: string;
-  title: string;
-  date: Timestamp;
-  description: string;
-  isadded?: boolean;
-  createdBy: string;
+  id: string
+  title: string
+  date: Timestamp
+  description: string
+  isadded?: boolean
+  createdBy: string
+  creatorName?: string
 }
 
-// Study session setup for database 
+// Study session setup for database
 interface StudySession {
-  id: string;
-  title: string;
-  date: Timestamp;
-  friends: string[];
+  id: string
+  title: string
+  date: Timestamp
+  friends: string[]
 }
 
 // Get allEvents for current user from database
-const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React.Dispatch<React.SetStateAction<Event[]>>) => {
+const SyncAllEventsFromDatabase = async (
+  currentUserId: string,
+  setEvents: React.Dispatch<React.SetStateAction<Event[]>>,
+) => {
   try {
-    const usersRef = collection(db, "users");
-    const usersSnapshot = await getDocs(usersRef);
+    const usersRef = collection(db, "users")
+    const usersSnapshot = await getDocs(usersRef)
 
-    const allEvents: Event[] = [];
+    const allEvents: Event[] = []
 
     for (const userDoc of usersSnapshot.docs) {
-      const creatorId = userDoc.id;
+      const creatorId = userDoc.id
 
-      const userEventsRef = collection(db, "users", creatorId, "events");
-      const eventsSnapshot = await getDocs(userEventsRef);
+      const userEventsRef = collection(db, "users", creatorId, "events")
+      const eventsSnapshot = await getDocs(userEventsRef)
 
       for (const eventDoc of eventsSnapshot.docs) {
-        const data = eventDoc.data();
-        const eventId = eventDoc.id;
+        const data = eventDoc.data()
+        const eventId = eventDoc.id
 
         if (!data.title || !data.date || !data.description) {
-          continue;
+          continue
         }
 
         const event: Event = {
@@ -60,221 +65,307 @@ const SyncAllEventsFromDatabase = async (currentUserId: string, setEvents: React
           title: data.title,
           date: data.date,
           description: data.description,
-          isadded: false, 
-          createdBy: creatorId,
-        };
+          isadded: data.isadded === true, 
+          createdBy: data.createdBy,
+        }
 
         // Skip the current user - we already have their events from the listener
-      if (creatorId === currentUserId) {
-        continue;
-        };
+        if (creatorId === currentUserId) {
+          continue
+        }
 
-        allEvents.push(event);
+        allEvents.push(event)
       }
     }
 
     // Copy all events to the current user's allEvents subcollection
-    const currentUserAllEventsRef = collection(db, "users", currentUserId, "allEvents");
-    const currentUserAllEventsSnapshot = await getDocs(currentUserAllEventsRef);
-    
-    // Create a map of existing events with their isadded status
-    const existingEvents: Record<string, boolean> = {};
-    currentUserAllEventsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      existingEvents[doc.id] = data.isadded || false;
-    });
+    const currentUserAllEventsRef = collection(db, "users", currentUserId, "allEvents")
+    const currentUserAllEventsSnapshot = await getDocs(currentUserAllEventsRef)
 
-    const batch = writeBatch(db);
+    // Create a map of existing events with their isadded status
+    const existingEvents: Record<string, boolean> = {}
+    currentUserAllEventsSnapshot.docs.forEach((doc) => {
+      const data = doc.data()
+      existingEvents[doc.id] = data.isadded === true 
+    })
+
+    const batch = writeBatch(db)
 
     // Update or add each event to the current user's allEvents
     for (const event of allEvents) {
-      const isAdded = event.createdBy === currentUserId 
-        ? (event.isadded || false)
-        : (existingEvents[event.id] || false);
-      
-      const allEventsRef = doc(db, "users", currentUserId, "allEvents", event.id);
+      const isAdded = event.createdBy === currentUserId ? event.isadded : existingEvents[event.id] || false
+
+      const allEventsRef = doc(db, "users", currentUserId, "allEvents", event.id)
       batch.set(allEventsRef, {
         title: event.title,
         date: event.date,
         description: event.description,
         isadded: isAdded,
-        createdBy: event.createdBy,
-      });
+        createdBy: event.createdBy, 
+      })
     }
 
-    await batch.commit();
-    
+    await batch.commit()
+
     // Update state with all events isadded status
     if (setEvents) {
-      const eventsWithStatus = allEvents.map(event => ({
+      const eventsWithStatus = allEvents.map((event) => ({
         ...event,
-        isadded: event.createdBy === currentUserId 
-          ? (event.isadded || false)
-          : (existingEvents[event.id] || false),
-      }));
-      setEvents(eventsWithStatus);
+        isadded: event.createdBy === currentUserId ? event.isadded : existingEvents[event.id] || false,
+      }))
+      setEvents(eventsWithStatus)
     }
 
-    return allEvents;
+    return allEvents
   } catch (error) {
-    console.error("Error syncing all events:", error);
-    throw error;
+    console.error("Error syncing all events:", error)
+    throw error
   }
-};
+}
 
-// Multipage functionality 
+// Multipage functionality
 export default function MainPage() {
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showAllEvents, setShowAllEvents] = useState(false);
-  const [showAddEvent, setShowAddEvent] = useState(false);
-  const [showStudyScheduler, setShowStudyScheduler] = useState(false);
-  const currentUserId = auth.currentUser?.uid || '';
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [showAllEvents, setShowAllEvents] = useState(false)
+  const [showAddEvent, setShowAddEvent] = useState(false)
+  const [showStudyScheduler, setShowStudyScheduler] = useState(false)
+  const currentUserId = auth.currentUser?.uid || ""
 
   // Manage events and study sessions
-  const [events, setEvents] = useState<Event[]>([]);
-  const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [loading, setLoading] = useState(true); 
+  const [events, setEvents] = useState<Event[]>([])
+  const [sessions, setSessions] = useState<StudySession[]>([])
+  const [loading, setLoading] = useState(true)
+  const [validationComplete, setValidationComplete] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>("")
 
   // Sync all events
   const syncAllEvents = async () => {
     try {
-      setLoading(true);
-      await SyncAllEventsFromDatabase(currentUserId, setEvents);
-      setLoading(false);
+      setLoading(true)
+      await SyncAllEventsFromDatabase(currentUserId, setEvents)
+      setLoading(false)
     } catch (error) {
-      console.error("Error syncing events:", error);
-      setLoading(false);
+      console.error("Error syncing events:", error)
+      setLoading(false)
     }
-  };
+  }
 
   // Fetch events and study sessions
   useEffect(() => {
-    const unsubscribeEvents = FetchAllEventsFromDatabase(currentUserId, setEvents);
-    const unsubscribeSessions = FetchStudySessionsFromDatabase(currentUserId, setSessions);
-    
+    const unsubscribeEvents = FetchAllEventsFromDatabase(currentUserId, setEvents)
+    const unsubscribeSessions = FetchStudySessionsFromDatabase(currentUserId, setSessions)
+
     // Sync all events when the component mounts
-    syncAllEvents();
-    
-    setLoading(false);
-    
+    syncAllEvents()
+
+    setLoading(false)
+
     return () => {
-      unsubscribeEvents();
-      unsubscribeSessions();
-    };
-  }, [currentUserId]); 
-  
+      unsubscribeEvents()
+      unsubscribeSessions()
+    }
+  }, [currentUserId])
+
+  // Validate events and study sessions when they change
+  useEffect(() => {
+    const validateItems = async () => {
+      if (!events.length && !sessions.length) return
+      setValidationComplete(false)
+
+      try {
+        // Validate events - check if they should still be in the user's calendar
+        const validatedEvents = events.map((event) => {
+          const isAdded = event.isadded === true
+
+          // Check if the event date is valid for events
+          let isValidDate = false
+          try {
+            const eventDate = event.date?.toDate()
+            isValidDate = eventDate instanceof Date && !isNaN(eventDate.getTime())
+          } catch (error) {
+            console.error(`Invalid date for event ${event.id}:`, error)
+          }
+
+          return {
+            ...event,
+            isadded: isAdded && isValidDate,
+          }
+        })
+
+       // Check if the event date is valid for events
+        const validatedSessions = sessions.filter((session) => {
+          try {
+            const sessionDate = session.date?.toDate()
+            return sessionDate instanceof Date && !isNaN(sessionDate.getTime())
+          } catch (error) {
+            console.error(`Invalid date for session ${session.id}:`, error)
+            return false
+          }
+        })
+
+        // Update state with validated items
+        setEvents(validatedEvents)
+        setSessions(validatedSessions)
+      } catch (error) {
+        console.error("Error validating items:", error)
+      } finally {
+        setValidationComplete(true)
+      }
+    }
+
+    validateItems()
+  }, [events.length, sessions.length])
+
   // Add a new event to database
   const handleAddEvent = async (event: Event) => {
     if (!event.date) {
-      console.error('Event date is missing for event:', event);
-      return;
+      console.error("Event date is missing for event:", event)
+      return
     }
-    
-    // Ensure createdBy is set
+
+    // Preserve the original creator information
+    const creatorName = event.creatorName
+    const creatorId = event.createdBy
+
+    // Ensure all creator information is preserved
     const eventWithCreator = {
       ...event,
-      createdBy: event.createdBy || currentUserId
-    };
-    
+      createdBy: creatorId, 
+      creatorName: creatorName,
+      isadded: event.isadded === true,
+    }
+
     await AddEventToDatabase(
-      currentUserId, 
-      eventWithCreator.id, 
-      eventWithCreator.title, 
-      eventWithCreator.date, 
-      eventWithCreator.description, 
-      eventWithCreator.isadded || false
-    );
-  };
+      currentUserId,
+      eventWithCreator.id,
+      eventWithCreator.title,
+      eventWithCreator.date,
+      eventWithCreator.description,
+      eventWithCreator.isadded,
+      eventWithCreator.createdBy, 
+      eventWithCreator.creatorName,
+    )
+  }
 
   // Delete event from database
-  const handleDeleteEvent = async (id: string) => {  
-    await DeleteEventFromDatabase(currentUserId, id);  
-  };
-  
+  const handleDeleteEvent = async (id: string) => {
+    await DeleteEventFromDatabase(currentUserId, id)
+  }
+
   // Delete study session from database
-  const handleDeleteStudySession = async (sessionId: string) => {  
+  const handleDeleteStudySession = async (sessionId: string) => {
     try {
-      await DeleteStudySessionFromDatabase(currentUserId, sessionId); 
+      await DeleteStudySessionFromDatabase(currentUserId, sessionId)
     } catch (error) {
-      console.error('Error deleting study session:', error);
+      console.error("Error deleting study session:", error)
     }
-  };
+  }
 
   // Add a new study session to database
   const ScheduleSession = async (session: { date: Date; friends: string[] }) => {
     if (!(session.date instanceof Date) || isNaN(session.date.getTime())) {
-      console.error('Invalid session date:', session.date);
-      return;
+      console.error("Invalid session date:", session.date)
+      return
     }
 
     const newStudySession: StudySession = {
-      id: '',
-      title: `Study Session with ${session.friends.join(', ')}`,
-      date: Timestamp.fromDate(session.date), 
+      id: "",
+      title: `Study Session with ${session.friends.join(", ")}`,
+      date: Timestamp.fromDate(session.date),
       friends: session.friends,
-    };
-  };
+    }
+  }
 
   // Format event time for display
   const formatEventTime = (eventDate: Date) => {
     if (isNaN(eventDate.getTime())) {
-      console.error('Invalid event date:', eventDate); 
-      return 'Invalid date'; 
+      console.error("Invalid event date:", eventDate)
+      return "Invalid date"
     }
 
-    return eventDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
+    return eventDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "numeric",
       hour12: true,
-    });
-  };
+    })
+  }
 
-  // Get the start and end of the current week
-  const getStartOfWeek = (date: Date) => {
-    const day = date.getDay(),
-          diff = date.getDate() - day + (day == 0 ? -6 : 1); 
-    return new Date(date.setDate(diff));
-  };
+  // Check if date is today
+  const isDateTodayOrFuture = (date: Date): boolean => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-  const getEndOfWeek = (date: Date) => {
-    const startOfWeek = getStartOfWeek(new Date(date));
-    startOfWeek.setDate(startOfWeek.getDate() + 6); 
-    return startOfWeek;
-  };
+    // Make the date be valid until midnight
+    const compareDate = new Date(date)
+    compareDate.setHours(0, 0, 0, 0)
 
-  const startOfWeek = getStartOfWeek(new Date());
-  const endOfWeek = getEndOfWeek(new Date());
+    // Check if date is not before today
+    return compareDate >= today
+  }
 
-  // Filter events to only include those within the current week including today
+  // Check if a date is within the next 7 days (including today)
+  const isWithinNextWeek = (date: Date): boolean => {
+    // Create today's date with time set to midnight
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Create a date 7 days from today (inclusive of today)
+    const nextWeek = new Date(today)
+    nextWeek.setDate(today.getDate() + 7) // Today + 7 days
+    nextWeek.setHours(23, 59, 59, 999) // End of the 7th day
+
+    // Create a date object from the input date
+    const compareDate = new Date(date)
+
+    // Check if the date is between today and next week (inclusive)
+    const isInRange = compareDate >= today && compareDate <= nextWeek
+
+    return isInRange
+  }
+
+  // Filter events to only include today and the next 7 days
   const filteredEvents = events.filter((event) => {
-    const eventDate = event.date?.toDate();
-    if (!eventDate) {
-      console.error('Invalid event date:', event);
-      return false;
-    }
-    const today = new Date();
-    return (
-      (eventDate >= startOfWeek && eventDate <= endOfWeek) ||
-      eventDate.toDateString() === today.toDateString()
-    );
-  });
+    try {
+      // First check if the event isadded
+      if (event.isadded !== true) {
+        return false
+      }
 
-  // Filter study sessions to only include those within the current week including today
-  const filteredSessions = sessions.filter((session) => {
-    const sessionDate = session.date?.toDate();
-    if (!sessionDate) {
-      console.error('Invalid session date:', session);
-      return false;
+      const eventDate = event.date?.toDate()
+      if (!eventDate || isNaN(eventDate.getTime())) {
+        return false
+      }
+
+      // Check if the event is today or in the future (not in the past) within the next 7 days (including today)
+      const inTimeFrame = isWithinNextWeek(eventDate)
+      return inTimeFrame
+    } catch (error) {
+      console.error(`Error filtering event ${event?.id}:`, error)
+      return false
     }
-    const today = new Date();
-    return (
-      sessionDate >= startOfWeek && sessionDate <= endOfWeek) ||
-      sessionDate.toDateString() === today.toDateString()
-  });
+  })
+
+  // Filter study sessions from today and the next 7 days
+  const filteredSessions = sessions.filter((session) => {
+    try {
+      const sessionDate = session.date?.toDate()
+      if (!sessionDate || isNaN(sessionDate.getTime())) {
+        return false
+      }
+
+      // Check if the session is today or in the future (not in the past)within the next 7 days (including today)
+      const inTimeFrame = isWithinNextWeek(sessionDate)
+
+      return inTimeFrame
+    } catch (error) {
+      console.error(`Error filtering session ${session?.id}:`, error)
+      return false
+    }
+  })
 
   // Multipage event/study/calendar session handling
   if (showCalendar) {
-    return <CustomCalendar userId={currentUserId} onBack={() => setShowCalendar(false)} />;
+    return <CustomCalendar userId={currentUserId} onBack={() => setShowCalendar(false)} />
   }
 
   if (showStudyScheduler) {
@@ -288,38 +379,37 @@ export default function MainPage() {
             friends: session.friends,
           })
         }
-        currentUserId={currentUserId} 
+        currentUserId={currentUserId}
       />
-    );
+    )
   }
 
   if (showAllEvents) {
-    return (
-      <AllEvents
-        onBack={() => setShowAllEvents(false)} 
-        events={events}
-        onAddToCalendar={handleAddEvent} 
-      />
-    );
+    return <AllEvents onBack={() => setShowAllEvents(false)} events={events} onAddToCalendar={handleAddEvent} />
   }
 
   if (showAddEvent) {
     return (
       <AddEvent
-        onBack={() => setShowAddEvent(false)} 
-        onAddEvent={handleAddEvent} 
-        events={events}  
-        onDeleteEvent={handleDeleteEvent} 
+        onBack={() => setShowAddEvent(false)}
+        onAddEvent={handleAddEvent}
+        events={events}
+        onDeleteEvent={handleDeleteEvent}
       />
-    );
+    )
   }
 
   // Check if loading and if there are no events
   if (loading) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    )
   }
 
-  // Formatting for page consistency 
+  // Formatting for page consistency
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -330,39 +420,37 @@ export default function MainPage() {
         <View style={styles.eventsWrapper}>
           <Text style={styles.sectionTitle}>Your Upcoming Items:</Text>
           <ScrollView style={styles.eventsList}>
-          {(filteredEvents.some(event => event.isadded) || filteredSessions.length > 0) ? (
+            {filteredEvents.length > 0 || filteredSessions.length > 0 ? (
               <>
-                {filteredEvents
-                  .filter((event) => event.isadded)  
-                  .map((event) => {
-                    const eventDate = event.date?.toDate();
-                    if (!eventDate) {
-                      console.error('Invalid event date:', event);
-                      return null; 
-                    }
-
-                    return (
-                      <View key={event.id} style={styles.eventItem}>
-                        <Text style={styles.eventItemText}>
-                          {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                {filteredSessions.map((session) => {
-                  const sessionDate = session.date?.toDate();
-                  if (!sessionDate) {
-                    console.error('Invalid session date:', session);
-                    return null; 
+                {filteredEvents.map((event, index) => {
+                  const eventDate = event.date?.toDate()
+                  if (!eventDate) {
+                    console.error("Invalid event date:", event)
+                    return null
                   }
 
                   return (
-                    <View key={session.id} style={styles.eventItem}>
+                    <View key={`event-${event.id}-${index}`} style={styles.eventItem}>
+                      <Text style={styles.eventItemText}>
+                        {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
+                      </Text>
+                    </View>
+                  )
+                })}
+                {filteredSessions.map((session, index) => {
+                  const sessionDate = session.date?.toDate()
+                  if (!sessionDate) {
+                    console.error("Invalid session date:", session)
+                    return null
+                  }
+
+                  return (
+                    <View key={`session-${session.id}-${index}`} style={styles.eventItem}>
                       <Text style={styles.eventItemText}>
                         {session.title} on {sessionDate.toLocaleDateString()} at {formatEventTime(sessionDate)}
                       </Text>
                     </View>
-                  );
+                  )
                 })}
               </>
             ) : (
@@ -396,10 +484,10 @@ export default function MainPage() {
         </View>
       </ScrollView>
     </View>
-  );
+  )
 }
 
-// Styles to keep pages consistent 
+// Styles to keep pages consistent
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -410,13 +498,13 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     marginBottom: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerText: {
     color: COLORS.UCONN_WHITE,
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   scrollContent: {
     flexGrow: 1,
@@ -427,7 +515,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.UCONN_NAVY,
     marginBottom: 10,
   },
@@ -447,7 +535,7 @@ const styles = StyleSheet.create({
   noEventsText: {
     fontSize: 16,
     color: COLORS.UCONN_GREY,
-    textAlign: 'center',
+    textAlign: "center",
   },
   buttonWrapper: {
     marginBottom: 20,
@@ -456,11 +544,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_NAVY,
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonText: {
     color: COLORS.UCONN_WHITE,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
-});
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.UCONN_WHITE,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.UCONN_NAVY,
+  },
+})
