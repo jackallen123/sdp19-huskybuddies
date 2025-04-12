@@ -725,10 +725,9 @@ export const hasMessagesWithFriend = async (userId, friendId) => {
  * @param {Timestamp} date
  * @param {string} description
  * @param {boolean} isadded
- * @param {string} createdBy 
- * @param {string} creatorName 
+ * @param {string} createdBy - The creator's ID
+ * @param {string} creatorName - The creator's display name
  */
-
 export const AddEventToDatabase = async (
   userId,
   eventId,
@@ -747,7 +746,7 @@ export const AddEventToDatabase = async (
     const finalCreatorId = createdBy || userId
     let finalCreatorName = creatorName || "Unknown User"
 
-    // Get name with creator id
+    // If we have a creator ID but no name, try to get the name
     if (finalCreatorId && !finalCreatorName && finalCreatorId.length > 10 && !finalCreatorId.includes(" ")) {
       try {
         const name = await getFullName(finalCreatorId)
@@ -758,6 +757,15 @@ export const AddEventToDatabase = async (
         console.error("Error fetching creator name:", error)
       }
     }
+
+    console.log("Adding event to database:", {
+      userId,
+      eventId: finalEventId,
+      title,
+      isadded,
+      createdBy: finalCreatorId,
+      creatorName: finalCreatorName,
+    })
 
     // Only add to user's events collection if they created it
     if (finalCreatorId === userId) {
@@ -770,9 +778,12 @@ export const AddEventToDatabase = async (
         createdBy: finalCreatorId,
         creatorName: finalCreatorName,
       })
-    } 
+      console.log("Event added to events collection")
+    } else {
+      console.log("Event not added to events collection (created by another user)")
+    }
 
-    // Add to allEvents collection for global visibility
+    // Always add to allEvents collection for global visibility
     const allEventsRef = doc(db, "users", userId, "allEvents", finalEventId)
     await setDoc(allEventsRef, {
       title: title,
@@ -782,11 +793,16 @@ export const AddEventToDatabase = async (
       createdBy: finalCreatorId,
       creatorName: finalCreatorName,
     })
+    console.log("Event added to allEvents collection")
+
+    console.log("Event added successfully with ID:", finalEventId)
+    return finalEventId
   } catch (error) {
     console.error("Error adding event to database:", error)
     throw error
   }
 }
+
 
 /**
  * Deletes an event from the current users database and shared database
@@ -859,7 +875,7 @@ export const FetchEventsFromDatabase = (userId, setEvents) => {
             date: data.date,
             description: data.description,
             isadded: data.isadded,
-            createdBy: data.createdBy || userId, 
+            createdBy: data.createdBy || userId, // Ensure createdBy is set
           }
         })
 
@@ -884,6 +900,7 @@ export const FetchEventsFromDatabase = (userId, setEvents) => {
  */
 export const SyncAllEventsFromDatabase = async (userId, callback) => {
   try {
+    console.log("Starting SyncAllEventsFromDatabase for user:", userId)
 
     // Get all existing events from the user's own events collection
     const userEventsRef = collection(db, "users", userId, "events")
@@ -941,7 +958,7 @@ export const SyncAllEventsFromDatabase = async (userId, callback) => {
         // Add to our collection array
         allEvents.push(event)
 
-        // Store in allEvents collection 
+        // Store in allEvents collection with the SAME ID as the original event
         const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
         batchOperations.push({
           ref: allEventsRef,
@@ -985,7 +1002,7 @@ export const SyncAllEventsFromDatabase = async (userId, callback) => {
           creatorName: event.creatorName || null,
         },
         { merge: true },
-      ) 
+      ) // Use merge: true to only update specified fields
 
       operationCount++
 
@@ -1000,6 +1017,8 @@ export const SyncAllEventsFromDatabase = async (userId, callback) => {
       await batch.commit()
     }
 
+    console.log(`Synced ${allEvents.length} events for user ${userId}`)
+
     // Update state with all events
     if (callback) {
       callback(allEvents)
@@ -1009,14 +1028,14 @@ export const SyncAllEventsFromDatabase = async (userId, callback) => {
   } catch (error) {
     console.error("Error syncing all events:", error)
     if (callback) {
-      callback([]) 
+      callback([]) // Call callback with empty array on error
     }
     throw error
   }
 }
 
 /**
- * Removes specific events from allEvents collection
+ * Safely removes specific events from allEvents collection
  * @param {string} userId
  * @param {string[]} eventIdsToRemove
  */
@@ -1067,6 +1086,7 @@ export const FetchAllEventsFromDatabase = (userId, setEvents) => {
           const data = doc.data()
           let creatorName = data.creatorName || data.createdBy || "Unknown User"
 
+          // Check if createdBy looks like a user ID (typically longer than 10 characters and doesn't contain spaces)
           if (
             !data.creatorName &&
             data.createdBy &&
@@ -1089,13 +1109,14 @@ export const FetchAllEventsFromDatabase = (userId, setEvents) => {
             title: data.title,
             date: data.date,
             description: data.description,
-            isadded: data.isadded === true, 
+            isadded: data.isadded === true, // Ensure boolean value
             createdBy: data.createdBy || "Unknown User",
             creatorName: creatorName,
           }
         }),
       )
 
+      console.log(`FetchAllEventsFromDatabase: Retrieved ${eventsList.length} events for user ${userId}`)
       setEvents(eventsList) //update events
     },
     (error) => {
@@ -1149,7 +1170,7 @@ export const AddStudySessionToDatabase = async (
       participantNames.set(friendId, friendName || friendId)
     }
 
-    // Create a title for the creator that includes all friends
+    // Create a title for the creator that includes all friends without "You"
     let creatorParticipantsList = ""
     if (studySessionFriends.length === 0) {
       creatorParticipantsList = "Solo Study Session"
@@ -1176,7 +1197,7 @@ export const AddStudySessionToDatabase = async (
 
     // Add to each friend's study sessions collection with personalized title
     for (const friendId of studySessionFriends) {
-      // Create a title for this friend that includes other participants
+      // Create a title for this friend that includes other participants without "You"
       const otherParticipants = studySessionFriends
         .filter((id) => id !== friendId) // Exclude the current friend
         .map((id) => participantNames.get(id)) // Get names of other friends

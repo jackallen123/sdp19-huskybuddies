@@ -21,7 +21,6 @@ import {
   SyncAllEventsFromDatabase,
   getFullName,
 } from "@/backend/firebase/firestoreService"
-import { useTheme } from "react-native-paper"
 
 // event setup for database
 interface Event {
@@ -30,8 +29,8 @@ interface Event {
   date: Timestamp
   description: string
   isadded?: boolean
-  createdBy: string 
-  creatorName?: string
+  createdBy: string // This could be either a name or a user ID
+  creatorName?: string // Added to store the display name separately
 }
 
 interface AllEventsProps {
@@ -41,7 +40,6 @@ interface AllEventsProps {
 }
 
 const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, onAddToCalendar }) => {
-  const theme = useTheme();
   const [localEvents, setLocalEvents] = useState<Event[]>(initialEvents || [])
   const [loading, setLoading] = useState(!initialEvents || initialEvents.length === 0)
   const [error, setError] = useState<string | null>(null)
@@ -61,7 +59,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     fetchUserId()
   }, [])
 
-  // Get creator names when the current user changes
+  // Fetch creator names for all events
   useEffect(() => {
     const fetchCreatorNames = async () => {
       const newCreatorNames: { [key: string]: string } = { ...creatorNames }
@@ -79,6 +77,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         }
 
         try {
+          // Try to get the full name if it looks like a user ID
           const name = await getFullName(event.createdBy)
           if (name) {
             newCreatorNames[event.createdBy] = name
@@ -109,7 +108,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         unsubscribeRef.current()
       }
     }
-  }, []) 
+  }, []) // Empty dependency array means this runs once on mount
 
   // Update local state when events are updated from other users
   useEffect(() => {
@@ -182,10 +181,12 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   // Force a complete resync of all events from all users when refresh is clicked
   const fetchEvents = async () => {
     try {
+      console.log("Starting refresh of events...")
       setRefreshing(true)
       setError(null)
       setLastRefreshTime(Date.now())
 
+      // Instead of clearing events, let's keep the current state to preserve isadded status
       const currentEvents = [...localEvents]
       const currentEventMap = new Map(currentEvents.map((event) => [event.id, event]))
 
@@ -205,7 +206,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       }
 
       try {
-        // Get the current isadded status for all events in the user's allEvents collection
+        // First, let's get the current isadded status for all events in the user's allEvents collection
         const allEventsStatus = new Map()
 
         for (const event of currentEvents) {
@@ -222,7 +223,13 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
           }
         }
 
+        // Add this debug log to see what statuses we're preserving
+        console.log("Preserved isadded statuses:", Object.fromEntries(allEventsStatus))
+
+        console.log("Syncing all events from database...")
         await SyncAllEventsFromDatabase(userId, (syncedEvents: Event[]) => {
+          console.log(`Received ${syncedEvents?.length || 0} events from sync`)
+
           if (!syncedEvents || syncedEvents.length === 0) {
             // Even if no events from sync, we still want to preserve our current events
             setLocalEvents(currentEvents)
@@ -232,7 +239,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
             syncedEvents.forEach((event: Event) => {
               const uniqueKey = `${event.id}-${event.createdBy}`
 
-              // Keep the isadded status from our current events or from the database
+              // Preserve the isadded status from our current events or from the database
               const existingEvent = currentEventMap.get(event.id)
               // Use the status from allEventsStatus if available, otherwise use the existing event status
               const isAdded = allEventsStatus.has(event.id)
@@ -241,7 +248,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
                   ? existingEvent.isadded
                   : false
 
-              // Keep the original creator name/ID
+              // Preserve the original creator name/ID
               const creatorName = existingEvent?.creatorName || event.creatorName
               const createdBy = existingEvent?.createdBy || event.createdBy
 
@@ -253,8 +260,9 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
               })
             })
 
-            // Save as array
+            // Convert back to array
             const deduplicatedEvents = Array.from(uniqueEventsMap.values())
+            console.log(`Setting ${deduplicatedEvents.length} events after deduplication`)
             setLocalEvents(deduplicatedEvents)
           }
 
@@ -265,7 +273,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       } catch (syncError) {
         console.error("Error during sync:", syncError)
         Alert.alert("Sync Error", "There was an error syncing events. Please try again.")
-        // Restore previous events if error
+        // Restore previous events on error
         setLocalEvents(currentEvents)
         setRefreshing(false)
       }
@@ -275,6 +283,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       setRefreshing(false)
     }
   }
+
+  // In the handleToggleEvent function, add more detailed logging to help debug:
 
   const handleToggleEvent = async (event: Event) => {
     try {
@@ -287,14 +297,16 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
       }
 
       const updatedIsAdded = !event.isadded
-      
-      // Update local state first - keep all original event properties
+      console.log(`Toggling event ${event.id} isadded from ${event.isadded} to ${updatedIsAdded}`)
+
+      // Update local state first - preserve all original event properties
       setLocalEvents((prevEvents) =>
         prevEvents.map((e) =>
           e.id === event.id
             ? {
                 ...e,
                 isadded: updatedIsAdded,
+                // Explicitly preserve creator information
                 createdBy: e.createdBy,
                 creatorName: e.creatorName,
               }
@@ -302,17 +314,24 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         ),
       )
 
+      // IMPORTANT: Only update the isadded field in the CURRENT USER'S allEvents collection
       const currentUserAllEventsRef = doc(db, "users", currentUserId, "allEvents", event.id)
 
       // Check if the event exists in the current user's allEvents collection
       const eventDoc = await getDoc(currentUserAllEventsRef)
 
       if (eventDoc.exists()) {
+        console.log(`Updating existing event ${event.id} in allEvents collection`)
         // Only update the isadded field, preserve all other fields
         await updateDoc(currentUserAllEventsRef, {
           isadded: updatedIsAdded,
         })
+
+        console.log(
+          `Updated isadded=${updatedIsAdded} for event ${event.id} in user ${currentUserId}'s allEvents collection`,
+        )
       } else {
+        console.log(`Event ${event.id} doesn't exist in allEvents collection, creating it`)
         // If the event doesn't exist in allEvents, create it with all necessary fields
         await setDoc(currentUserAllEventsRef, {
           title: event.title,
@@ -322,6 +341,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
           createdBy: event.createdBy,
           creatorName: event.creatorName,
         })
+        console.log(`Created event ${event.id} in user ${currentUserId}'s allEvents collection`)
       }
 
       // If the update was successful, call onAddToCalendar to sync with parent component
@@ -330,6 +350,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
         await onAddToCalendar({
           ...event,
           isadded: updatedIsAdded,
+          // Explicitly ensure we're preserving the original creator
           createdBy: event.createdBy,
           creatorName: event.creatorName,
         })
@@ -345,6 +366,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
   // Formatting for page consistency
   const renderEventItem = ({ item }: { item: Event }) => {
+    // Use the resolved name from creatorNames if available, otherwise use createdBy directly
+    // If createdBy looks like a user ID and we don't have a resolved name yet, show "Loading..."
     let displayName = item.creatorName || item.createdBy
 
     if (!displayName || displayName === "Unknown User") {
@@ -362,24 +385,19 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
     return (
       <View style={styles.eventItem}>
-        <Text style={[styles.eventTitle, { color: theme.colors.onBackground }]}>{item.title}</Text>
-        <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>
+        <Text style={styles.eventTitle}>{item.title}</Text>
+        <Text style={styles.eventText}>
           {item.date.toDate().toLocaleDateString()}{" "}
           {item.date.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </Text>
-        <Text style={[styles.eventText, { color: theme.colors.onBackground }]}>{item.description}</Text>
-        <Text style={[styles.creatorText, { color: theme.colors.onBackground }]}>Created by: {creatorName}</Text>
+        <Text style={styles.eventText}>{item.description}</Text>
+        <Text style={styles.creatorText}>Created by: {displayName}</Text>
 
         <TouchableOpacity
-          style={[
-            styles.addToCalendarButton,
-            item.isadded 
-            ? { backgroundColor: theme.colors.error }
-            : { backgroundColor: theme.colors.primary }
-          ]}
+          style={[styles.addToCalendarButton, item.isadded ? styles.removeButton : styles.addButton]}
           onPress={() => handleToggleEvent(item)}
         >
-          <Text style={[styles.addToCalendarButtonText, { color: theme.colors.onPrimary }]}>
+          <Text style={styles.addToCalendarButtonText}>
             {item.isadded ? "Remove from Calendar" : "Add to Calendar"}
           </Text>
         </TouchableOpacity>
@@ -388,19 +406,19 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   }
 
   const renderHeader = () => (
-    <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+    <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
+        <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
       </TouchableOpacity>
       <View style={styles.headerTextContainer}>
-        <Text style={[styles.headerText, { color: theme.colors.onPrimary }]}>All Events</Text>
+        <Text style={styles.headerText}>All Events</Text>
       </View>
       {/* Refresh Button */}
       <TouchableOpacity style={styles.refreshButton} onPress={fetchEvents} disabled={refreshing} activeOpacity={0.7}>
         <Ionicons
           name={refreshing ? "sync" : "refresh"}
           size={24}
-          color={theme.colors.onPrimary}
+          color={COLORS.UCONN_WHITE}
           style={refreshing ? styles.spinningIcon : undefined}
         />
       </TouchableOpacity>
@@ -411,8 +429,8 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (loading && !refreshing) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Loading events...</Text>
+          <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+          <Text style={styles.loadingText}>Loading events...</Text>
         </View>
       )
     }
@@ -420,9 +438,9 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (error) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={[styles.errorText, { color: theme.colors.error || "#FF4C4C" }]}>{error}</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.primary }]} onPress={fetchEvents}>
-            <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>Retry</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchEvents}>
+            <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       )
@@ -431,12 +449,12 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
     if (localEvents.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={[styles.noEventsText, { color: theme.colors.onBackground }]}>Loading events...</Text>
+          <Text style={styles.noEventsText}>No events found</Text>
           {refreshing ? (
-            <ActivityIndicator style={{ marginTop: 20 }} size="large" color={theme.colors.primary} />
+            <ActivityIndicator style={{ marginTop: 20 }} size="large" color={COLORS.UCONN_NAVY} />
           ) : (
-            <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.primary }]} onPress={fetchEvents}>
-              <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>Refresh</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchEvents}>
+              <Text style={styles.retryButtonText}>Refresh</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -445,13 +463,13 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
 
     return (
       <>
-        <Text style={[styles.postedEventsTitle, { color: theme.colors.onBackground }]}>
-          Available Events: 
+        <Text style={styles.postedEventsTitle}>
+          Available Events
           {refreshing && <Text style={styles.refreshingText}> (Refreshing...)</Text>}
         </Text>
         {refreshing && (
           <View style={styles.refreshingIndicator}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color={COLORS.UCONN_NAVY} />
           </View>
         )}
         <FlatList
@@ -466,11 +484,11 @@ const AllEvents: React.FC<AllEventsProps> = ({ onBack, events: initialEvents, on
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.UCONN_NAVY} />
       {renderHeader()}
       {renderContent()}
-    </View>
+    </SafeAreaView>
   )
 }
 
@@ -481,13 +499,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    marginBottom: 20,
-    borderRadius: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: COLORS.UCONN_NAVY,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerTextContainer: {
     flex: 1,

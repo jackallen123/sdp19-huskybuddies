@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import CustomCalendar from '@/components/CustomCalendar';
-import AddEvent from '@/components/AddEvent';
-import AllEvents from '@/components/AllEvents';
-import StudyScheduler from '@/components/StudyScheduler';
-import { Timestamp, doc, collection, getDocs, writeBatch } from 'firebase/firestore';
-import {  
-  DeleteStudySessionFromDatabase,  
-  DeleteEventFromDatabase, 
+import type React from "react"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native"
+import { COLORS } from "@/constants/Colors"
+import CustomCalendar from "@/components/CustomCalendar"
+import AddEvent from "@/components/AddEvent"
+import AllEvents from "@/components/AllEvents"
+import StudyScheduler from "@/components/StudyScheduler"
+import { Timestamp, doc, collection, getDocs, writeBatch } from "firebase/firestore"
+import {
+  DeleteStudySessionFromDatabase,
+  DeleteEventFromDatabase,
   FetchAllEventsFromDatabase,
   FetchStudySessionsFromDatabase,
   AddEventToDatabase,
-} from '@/backend/firebase/firestoreService';
-import { auth, db } from '@/backend/firebase/firebaseConfig';
-import { useTheme } from 'react-native-paper';
-import { useThemeSettings } from '@/context/ThemeContext';
+} from "@/backend/firebase/firestoreService"
+import { auth, db } from "@/backend/firebase/firebaseConfig"
 
 // Event setup for database
 interface Event {
@@ -47,9 +47,10 @@ const SyncAllEventsFromDatabase = async (
     const allEvents: Event[] = []
 
     for (const userDoc of usersSnapshot.docs) {
-      const creatorId = userDoc.id;
-      const userEventsRef = collection(db, "users", creatorId, "events");
-      const eventsSnapshot = await getDocs(userEventsRef);
+      const creatorId = userDoc.id
+
+      const userEventsRef = collection(db, "users", creatorId, "events")
+      const eventsSnapshot = await getDocs(userEventsRef)
 
       for (const eventDoc of eventsSnapshot.docs) {
         const data = eventDoc.data()
@@ -64,8 +65,8 @@ const SyncAllEventsFromDatabase = async (
           title: data.title,
           date: data.date,
           description: data.description,
-          isadded: data.isadded === true, 
-          createdBy: data.createdBy,
+          isadded: data.isadded === true, // Ensure boolean value
+          createdBy: data.createdBy, // Use the creator name directly
         }
 
         // Skip the current user - we already have their events from the listener
@@ -85,7 +86,7 @@ const SyncAllEventsFromDatabase = async (
     const existingEvents: Record<string, boolean> = {}
     currentUserAllEventsSnapshot.docs.forEach((doc) => {
       const data = doc.data()
-      existingEvents[doc.id] = data.isadded === true 
+      existingEvents[doc.id] = data.isadded === true // Ensure boolean value
     })
 
     const batch = writeBatch(db)
@@ -100,7 +101,7 @@ const SyncAllEventsFromDatabase = async (
         date: event.date,
         description: event.description,
         isadded: isAdded,
-        createdBy: event.createdBy, 
+        createdBy: event.createdBy, // Preserve the creator name
       })
     }
 
@@ -124,14 +125,11 @@ const SyncAllEventsFromDatabase = async (
 
 // Multipage functionality
 export default function MainPage() {
-  const theme = useTheme();
-  const { textSize } = useThemeSettings();
-
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showAllEvents, setShowAllEvents] = useState(false);
-  const [showAddEvent, setShowAddEvent] = useState(false);
-  const [showStudyScheduler, setShowStudyScheduler] = useState(false);
-  const currentUserId = auth.currentUser?.uid || '';
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [showAllEvents, setShowAllEvents] = useState(false)
+  const [showAddEvent, setShowAddEvent] = useState(false)
+  const [showStudyScheduler, setShowStudyScheduler] = useState(false)
+  const currentUserId = auth.currentUser?.uid || ""
 
   // Manage events and study sessions
   const [events, setEvents] = useState<Event[]>([])
@@ -177,9 +175,10 @@ export default function MainPage() {
       try {
         // Validate events - check if they should still be in the user's calendar
         const validatedEvents = events.map((event) => {
+          // Ensure isadded is a boolean
           const isAdded = event.isadded === true
 
-          // Check if the event date is valid for events
+          // Check if the event date is valid
           let isValidDate = false
           try {
             const eventDate = event.date?.toDate()
@@ -194,7 +193,7 @@ export default function MainPage() {
           }
         })
 
-       // Check if the event date is valid for events
+        // Validate study sessions - check if they have valid dates
         const validatedSessions = sessions.filter((session) => {
           try {
             const sessionDate = session.date?.toDate()
@@ -226,15 +225,15 @@ export default function MainPage() {
     }
 
     // Preserve the original creator information
-    const creatorName = event.creatorName
+    const creatorName = event.creatorName || event.createdBy || "Unknown User"
     const creatorId = event.createdBy
 
     // Ensure all creator information is preserved
     const eventWithCreator = {
       ...event,
-      createdBy: creatorId, 
-      creatorName: creatorName,
-      isadded: event.isadded === true,
+      createdBy: creatorId, // Keep the original creator ID
+      creatorName: creatorName, // Keep the original creator name
+      isadded: event.isadded === true, // Ensure boolean value
     }
 
     await AddEventToDatabase(
@@ -244,8 +243,8 @@ export default function MainPage() {
       eventWithCreator.date,
       eventWithCreator.description,
       eventWithCreator.isadded,
-      eventWithCreator.createdBy, 
-      eventWithCreator.creatorName,
+      eventWithCreator.createdBy, // Pass the original creator ID
+      eventWithCreator.creatorName, // Pass the creator name as well
     )
   }
 
@@ -269,8 +268,14 @@ export default function MainPage() {
       console.error("Invalid session date:", session.date)
       return
     }
-    // Your study session scheduling logic here...
-  };
+
+    const newStudySession: StudySession = {
+      id: "",
+      title: `Study Session with ${session.friends.join(", ")}`,
+      date: Timestamp.fromDate(session.date),
+      friends: session.friends,
+    }
+  }
 
   // Format event time for display
   const formatEventTime = (eventDate: Date) => {
@@ -278,32 +283,51 @@ export default function MainPage() {
       console.error("Invalid event date:", eventDate)
       return "Invalid date"
     }
-    return eventDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
+
+    return eventDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "numeric",
       hour12: true,
     })
   }
 
-  // Get the start and end of the current week
-  const getStartOfWeek = (date: Date) => {
-    const day = date.getDay(),
-          diff = date.getDate() - day + (day == 0 ? -6 : 1); 
-    return new Date(date.setDate(diff));
-  };
-  const getEndOfWeek = (date: Date) => {
-    const startOfWeek = getStartOfWeek(new Date(date));
-    startOfWeek.setDate(startOfWeek.getDate() + 6); 
-    return startOfWeek;
-  };
+  // Helper function to check if a date is today or in the future (not in the past)
+  const isDateTodayOrFuture = (date: Date): boolean => {
+    // Create today's date with time set to midnight
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-  const startOfWeek = getStartOfWeek(new Date());
-  const endOfWeek = getEndOfWeek(new Date());
+    // Create a date object from the input date with time set to midnight
+    const compareDate = new Date(date)
+    compareDate.setHours(0, 0, 0, 0)
 
-  // Filter events to only include today and the next 7 days
+    // Date is today or in the future if it's >= today
+    return compareDate >= today
+  }
+
+  // Helper function to check if a date is within the next 7 days (including today)
+  const isWithinNextWeek = (date: Date): boolean => {
+    // Create today's date with time set to midnight
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Create a date 7 days from today (inclusive of today)
+    const nextWeek = new Date(today)
+    nextWeek.setDate(today.getDate() + 7) // Today + 7 days
+    nextWeek.setHours(23, 59, 59, 999) // End of the 7th day
+
+    // Create a date object from the input date
+    const compareDate = new Date(date)
+
+    // Check if the date is between today and next week (inclusive)
+    const isInRange = compareDate >= today && compareDate <= nextWeek
+    return isInRange
+  }
+
+  // Filter events to only include those from today and the next 7 days
   const filteredEvents = events.filter((event) => {
     try {
-      // First check if the event isadded
+      // First check if the event is actually added to the calendar
       if (event.isadded !== true) {
         return false
       }
@@ -313,7 +337,8 @@ export default function MainPage() {
         return false
       }
 
-      // Check if the event is today or in the future (not in the past) within the next 7 days (including today)
+      // Check if the event is today or in the future (not in the past)
+      // AND within the next 7 days (including today)
       const inTimeFrame = isWithinNextWeek(eventDate)
       return inTimeFrame
     } catch (error) {
@@ -322,15 +347,13 @@ export default function MainPage() {
     }
   })
 
-  // Filter study sessions from today and the next 7 days
+  // Filter study sessions to only include those from today and the next 7 days
   const filteredSessions = sessions.filter((session) => {
     try {
       const sessionDate = session.date?.toDate()
-      if (!sessionDate || isNaN(sessionDate.getTime())) {
-        return false
-      }
 
-      // Check if the session is today or in the future (not in the past)within the next 7 days (including today)
+      // Check if the session is today or in the future (not in the past)
+      // AND within the next 7 days (including today)
       const inTimeFrame = isWithinNextWeek(sessionDate)
 
       return inTimeFrame
@@ -378,52 +401,52 @@ export default function MainPage() {
 
   // Check if loading and if there are no events
   if (loading) {
-    return <Text style={{ color: theme.colors.onBackground, fontSize: textSize }}>Loading...</Text>;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    )
   }
 
   // Formatting for page consistency
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-        <Text style={[styles.headerText, { color: theme.colors.onPrimary, fontSize: textSize + 4 }]}>
-          Scheduler
-        </Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Scheduler</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.eventsWrapper}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.onBackground, fontSize: textSize + 2 }]}>
-            Your Upcoming Items:
-          </Text>
+          <Text style={styles.sectionTitle}>Your Upcoming Items:</Text>
           <ScrollView style={styles.eventsList}>
-            {(filteredEvents.some(event => event.isadded) || filteredSessions.length > 0) ? (
+            {filteredEvents.length > 0 || filteredSessions.length > 0 ? (
               <>
-                {filteredEvents
-                  .filter((event) => event.isadded)
-                  .map((event) => {
-                    const eventDate = event.date?.toDate();
-                    if (!eventDate) {
-                      console.error('Invalid event date:', event);
-                      return null;
-                    }
+                {filteredEvents.map((event, index) => {
+                  const eventDate = event.date?.toDate()
+                  if (!eventDate) {
+                    console.error("Invalid event date:", event)
+                    return null
+                  }
 
-                    return (
-                      <View key={event.id} style={[styles.eventItem, { backgroundColor: theme.colors.surface }]}>
-                        <Text style={[styles.eventItemText, { color: theme.colors.onBackground, fontSize: textSize }]}>
-                          {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                {filteredSessions.map((session) => {
-                  const sessionDate = session.date?.toDate();
+                  return (
+                    <View key={`event-${event.id}-${index}`} style={styles.eventItem}>
+                      <Text style={styles.eventItemText}>
+                        {event.title} on {eventDate.toLocaleDateString()} at {formatEventTime(eventDate)}
+                      </Text>
+                    </View>
+                  )
+                })}
+                {filteredSessions.map((session, index) => {
+                  const sessionDate = session.date?.toDate()
                   if (!sessionDate) {
                     console.error("Invalid session date:", session)
                     return null
                   }
+
                   return (
-                    <View key={session.id} style={[styles.eventItem, { backgroundColor: theme.colors.surface }]}>
-                      <Text style={[styles.eventItemText, { color: theme.colors.onBackground, fontSize: textSize }]}>
+                    <View key={`session-${session.id}-${index}`} style={styles.eventItem}>
+                      <Text style={styles.eventItemText}>
                         {session.title} on {sessionDate.toLocaleDateString()} at {formatEventTime(sessionDate)}
                       </Text>
                     </View>
@@ -431,42 +454,32 @@ export default function MainPage() {
                 })}
               </>
             ) : (
-              <Text style={[styles.noEventsText, { color: theme.colors.onBackground, fontSize: textSize }]}>
-                No upcoming items this week
-              </Text>
+              <Text style={styles.noEventsText}>No upcoming items this week</Text>
             )}
           </ScrollView>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowAllEvents(true)}>
-            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
-              View All Events
-            </Text>
+          <TouchableOpacity style={styles.button} onPress={() => setShowAllEvents(true)}>
+            <Text style={styles.buttonText}>View All Events</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowAddEvent(true)}>
-            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
-              Post An Event
-            </Text>
+          <TouchableOpacity style={styles.button} onPress={() => setShowAddEvent(true)}>
+            <Text style={styles.buttonText}>Post An Event</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowStudyScheduler(true)}>
-            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
-              Schedule a Study Session
-            </Text>
+          <TouchableOpacity style={styles.button} onPress={() => setShowStudyScheduler(true)}>
+            <Text style={styles.buttonText}>Schedule a Study Session</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.buttonWrapper}>
-          <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={() => setShowCalendar(true)}>
-            <Text style={[styles.buttonText, { color: theme.colors.onPrimary, fontSize: textSize }]}>
-              View Your Calendar
-            </Text>
+          <TouchableOpacity style={styles.button} onPress={() => setShowCalendar(true)}>
+            <Text style={styles.buttonText}>View Your Calendar</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -478,8 +491,10 @@ export default function MainPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.UCONN_WHITE,
   },
   header: {
+    backgroundColor: COLORS.UCONN_NAVY,
     padding: 20,
     paddingTop: 60,
     marginBottom: 20,
@@ -487,7 +502,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerText: {
-    fontWeight: 'bold',
+    color: COLORS.UCONN_WHITE,
+    fontSize: 20,
+    fontWeight: "bold",
   },
   scrollContent: {
     flexGrow: 1,
@@ -497,29 +514,52 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.UCONN_NAVY,
     marginBottom: 10,
   },
   eventsList: {
     maxHeight: 250,
   },
   eventItem: {
+    backgroundColor: COLORS.UCONN_GREY,
     padding: 10,
     marginBottom: 10,
     borderRadius: 8,
   },
-  eventItemText: {},
+  eventItemText: {
+    fontSize: 16,
+    color: COLORS.UCONN_NAVY,
+  },
   noEventsText: {
-    textAlign: 'center',
+    fontSize: 16,
+    color: COLORS.UCONN_GREY,
+    textAlign: "center",
   },
   buttonWrapper: {
     marginBottom: 20,
   },
   button: {
+    backgroundColor: COLORS.UCONN_NAVY,
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
   },
   buttonText: {
-    fontWeight: 'bold',
+    color: COLORS.UCONN_WHITE,
+    fontSize: 16,
+    fontWeight: "bold",
   },
-});
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.UCONN_WHITE,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.UCONN_NAVY,
+  },
+})
