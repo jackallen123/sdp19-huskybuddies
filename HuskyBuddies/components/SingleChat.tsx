@@ -22,6 +22,7 @@ interface MessageProps {
     sender: string;
     time: string;
     onLongPress?: () => void;
+    theme:any;
 }
 
 interface UserBannerProps {
@@ -257,10 +258,10 @@ const theme = useTheme();
             }}
         >
             <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Delete message?</Text>
+                <View style={[styles.modalContent, {backgroundColor: theme.colors.surface}]}>
+                    <Text style={[styles.modalTitle, {color: theme.colors.onSurface}]}>Delete message?</Text>
 
-                    <Text style={styles.modalText} numberOfLines={3}>
+                    <Text style={[styles.modalText, {color: theme.colors.onSurface}]} numberOfLines={3}>
                         {selectedMessage?.message}
                         {selectedMessage?.timestamp && (
                             <Text style={styles.modalTimeText}>
@@ -292,13 +293,12 @@ const theme = useTheme();
 
     return (
         <KeyboardAvoidingView
-            style={styles.pageContainer}
+            style={[styles.pageContainer, { backgroundColor: theme.colors.background }]} 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             {/* Structure banner, full name, message log... */}
             <View style={styles.chatContainer}>
-                <Banner onBack={onBack} />
-                <Text style={styles.sendButtonText}>Send</Text>
+                <Banner onBack={onBack} theme={theme} />
                 <UserBanner firstName={firstName || ""} lastName={lastName || ""} profilePicture={profilePicture || ""} />
                 <HorizontalLine
                 />
@@ -323,27 +323,33 @@ const theme = useTheme();
                                         setShowDeleteModal(true);
                                     }
                                 }}
+                                theme={theme}
                             />
                         ))}
                     </ScrollView>
                 </TouchableWithoutFeedback>
 
                 {/* Message input area with keyboard handling */}
-                <View style={styles.inputContainer}>
+                <View style={[styles.inputContainer, 
+                  { borderColor: COLORS.UCONN_GREY, backgroundColor: theme.colors.background }]}>
                     <TextInput
                         key={Platform.OS}
                         autoCapitalize={Platform.OS === 'ios' ? 'sentences' : 'words'}
-                        style={styles.input}
+                        style={[styles.input, { color: theme.colors.onBackground, borderColor: COLORS.UCONN_GREY }]}
                         value={messageInput}
                         onChangeText={setMessageInput}
                         placeholder="Message..."
-                        placeholderTextColor={COLORS.UCONN_GREY}
+                        placeholderTextColor={theme.colors.onSurface + '80'}
                         onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 300)} //handles keyboard view below last message in chat log
                         autoCorrect={true}
                     />
-                    <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-                        <Text style={styles.sendButtonText}>Send</Text>
-                    </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.sendButton, { backgroundColor: theme.colors.primary}]} 
+                  onPress={handleSendMessage}
+                >
+                  <Text style={[styles.sendButtonText, { color: theme.colors.onPrimary }]}>Send
+                  </Text>
+                </TouchableOpacity>
                 </View>
             </View>
             <DeleteMessageModal />
@@ -353,23 +359,24 @@ const theme = useTheme();
 
 // BANNER COMPONENTS -----------------------------------------
 
-const Banner = ({ onBack }: { onBack: () => void }) => {
+const Banner = ({ onBack, theme }: { onBack: () => void; theme: any }) => {
     return (
-        <View style={styles.banner}>
+      <View style={[styles.banner, { backgroundColor: theme.colors.primary }]}>
             <TouchableOpacity style={styles.BackButton} onPress={onBack}>
-                <Ionicons name="arrow-back" size={24} color={COLORS.UCONN_WHITE} />
+                <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
             </TouchableOpacity>
-            <Text style={styles.bannerText}>Let's Chat!</Text>
+            <Text style={[styles.bannerText, { color: theme.colors.onPrimary }]}>Let's Chat!</Text>
         </View>
     );
 };
 
 
 const UserBanner: React.FC<UserBannerProps> = ({ firstName, lastName, profilePicture }) => {
+    const theme = useTheme();
     return (
         <View style={styles.userBanner}>
             <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
-            <Text style={styles.userBannerText}>{`${firstName} ${lastName}`}</Text>
+            <Text style={[styles.userBannerText, { color: theme.colors.onBackground }]}>{`${firstName} ${lastName}`}</Text>
         </View>
     );
 };
@@ -379,7 +386,7 @@ const HorizontalLine = () => {
 };
 
 // MESSAGE COMPONENT -----------------------------------------
-const Message: React.FC<MessageProps> = ({ message, sender, time, onLongPress }) => {
+const Message: React.FC<MessageProps> = ({ message, sender, time, onLongPress, theme}) => {
     // console.log("➤ Loading message from:", sender); // DEBUGGING
     // console.log("➤ Rendering message:", { message, sender, time }); // DEBUGGING
 
@@ -391,12 +398,12 @@ const Message: React.FC<MessageProps> = ({ message, sender, time, onLongPress })
         >
             <View style={styles.messageContainer}>
                 {sender === "System" ? (
-                    <Text style={styles.systemMessage}>{message}</Text>
+                    <Text style={[styles.systemMessage, { color: theme.colors.onBackground }]}>{message}</Text>
                 ) : (
                     <>
-                        <Text style={styles.sender}>{sender}</Text>
-                        <Text style={styles.message}>{message}</Text>
-                        <Text style={styles.time}>{time}</Text>
+                      <Text style={[styles.sender, { color: theme.colors.onSurface, opacity: 0.8 }]}>{sender}</Text>
+                      <Text style={[styles.message, { color: theme.colors.onBackground }]}>{message}</Text>
+                      <Text style={[styles.time, { color: theme.colors.onSurface, opacity: 0.63 }]}>{time}</Text>
                     </>
                 )}
             </View>
@@ -428,30 +435,29 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         flex: 1,
     },
-    BackButton: {
-        position: 'absolute',
-        left: 30,
-        top: 60,
-        padding: 5,
-    },
     userBanner: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 10,
+        marginTop: 10,
         padding: 5,
+        paddingLeft: 10,
+
     },
     userBannerText: {
         color: COLORS.UCONN_NAVY,
         marginBottom: 10,
         fontSize: 18,
         fontWeight: 'bold',
+        paddingTop: 10,
     },
     horizontalLine: {
-        height: 1.5,
+        height: 1.2,
         marginLeft: 10,
         marginRight: 10,
         backgroundColor: COLORS.UCONN_GREY,
         marginBottom: 10,
+        opacity: 0.6,
     },
     messageContainer: {
         marginBottom: 10,
@@ -462,7 +468,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
     sender: {
-        color: COLORS.UCONN_NAVY,
+        // color: COLORS.UCONN_NAVY,
         fontWeight: 'bold',
         fontSize: 16,
     },
@@ -472,7 +478,7 @@ const styles = StyleSheet.create({
     },
     time: {
         fontSize: 14,
-        color: COLORS.UCONN_GREY,
+        // color: COLORS.UCONN_GREY,
     },
     inputContainer: {
         flexDirection: 'row',
@@ -489,11 +495,11 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     sendButton: {
+        // backgroundColor: theme.colors.onBackground,
         borderRadius: 20,
         padding: 10,
     },
     sendButtonText: {
-        color: COLORS.UCONN_WHITE,
         fontWeight: 'bold',
     },
     BackButton: {

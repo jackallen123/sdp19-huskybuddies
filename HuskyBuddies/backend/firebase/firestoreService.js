@@ -395,17 +395,11 @@ export const getUserCourses = async (userId) => {
 
 /**
 /**
-/**
- * Retrieves a user's study preferences from the userProfile subcollection,
- * including both regular and additional study preferences
- * @param {string} userId - ID of the user
- * @returns {Promise<string[]|null>} - Array of study preferences or null if not found
  * Retrieves a user's study preferences from the userProfile subcollection,
  * including both regular and additional study preferences
  * @param {string} userId - ID of the user
  * @returns {Promise<string[]|null>} - Array of study preferences or null if not found
  */
-export const getUserStudyPreferences = async (userId) => {
 export const getUserStudyPreferences = async (userId) => {
   try {
     const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
@@ -434,69 +428,13 @@ export const getUserStudyPreferences = async (userId) => {
 };
 
 /**
- * Fetches events for a specific user from Firestore (Real-time listener).
- * @param {string} userId - The ID of the current user.
- * @param {function} setEvents - A function to update the state with the fetched events.
- */
-export const FetchEventsFromDatabase = (userId, setEvents) => {
-  if (!userId) {
-    console.error("Cannot fetch events: No user ID provided")
-    return () => {} // Return empty unsubscribe function
-  }
-
-  const userEventsRef = collection(db, "users", userId, "events")
-
-  return onSnapshot(
-    userEventsRef,
-    (snapshot) => {
-      const eventsList = snapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          title: data.title,
-          date: data.date,
-          description: data.description,
-          isadded: data.isadded,
-          createdBy: data.createdBy || userId, // Ensure createdBy is set
-        }
-      })
-      console.log(`Fetched ${eventsList.length} events for user ${userId}`)
-      setEvents(eventsList)
-    },
-    (error) => {
-      console.error("Error fetching events:", error)
-    },
-  )
-}
-
-/**
  * Retrieves a user's interests from the userProfile subcollection,
  * including both regular and additional interests
  * @param {string} userId - ID of the user
  * @returns {Promise<string[]|null>} - Array of interests or null if not found
  */
 export const getUserInterests = async (userId) => {
-export const getUserInterests = async (userId) => {
   try {
-    const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
-    const profileDoc = await getDoc(profileDocRef);
-    
-    let allInterests = [];
-    
-    if (profileDoc.exists()) {
-      // Get regular interests
-      if (profileDoc.data().interests) {
-        allInterests = [...profileDoc.data().interests];
-      }
-      
-      // Get additional interests and combine them
-      if (profileDoc.data().additionalInterests) {
-        allInterests = [...allInterests, ...profileDoc.data().additionalInterests];
-      }
-      
-      return allInterests.length > 0 ? allInterests : null;
-    }
-    return null;
     const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
     const profileDoc = await getDoc(profileDocRef);
     
@@ -519,15 +457,7 @@ export const getUserInterests = async (userId) => {
   } catch (error) {
     console.error("Error fetching interests:", error);
     return null;
-    console.error("Error fetching interests:", error);
-    return null;
   }
-};
-
-/**
- * Retrieves a user's profile picture from the userProfile subcollection
- * @param {string} userId - ID of the user
- * @returns {Promise<string|null>} - The profile picture URL or null if not found
 };
 
 /**
@@ -544,19 +474,7 @@ export const getUserProfilePicture = async (userId) => {
       return profileDoc.data().profilePicture;
     }
     return null;
-export const getUserProfilePicture = async (userId) => {
-  try {
-    const profileDocRef = doc(db, "users", userId, "userProfile", "profile");
-    const profileDoc = await getDoc(profileDocRef);
-    
-    if (profileDoc.exists() && profileDoc.data().profilePicture) {
-      return profileDoc.data().profilePicture;
-    }
-    return null;
   } catch (error) {
-    console.error("Error fetching profile picture:", error);
-    return null;
-  }
     console.error("Error fetching profile picture:", error);
     return null;
   }
@@ -940,42 +858,67 @@ export const getUserProfilePictureUniversal = async (userId) => {
 /**
  * Adds a new event to current users database and the shared database
  * @param {string} userId
- * @param {string} eventId 
+ * @param {string} eventId
  * @param {string} title
- * @param {Timestamp} date 
- * @param {string} description 
- * @param {boolean} isadded 
+ * @param {Timestamp} date
+ * @param {string} description
+ * @param {boolean} isadded
+ * @param {string} createdBy
+ * @param {string} creatorName 
  */
-export const AddEventToDatabase = async (userId, eventId, title, date, description, isadded) => {
+export const AddEventToDatabase = async (
+  userId,
+  eventId,
+  title,
+  date,
+  description,
+  isadded,
+  createdBy = null,
+  creatorName = null,
+) => {
   try {
     // Generate a unique ID if one is not provided
     const finalEventId = eventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const finalCreatorId = createdBy || userId
+    let finalCreatorName = creatorName || "Unknown User"
 
-    // Get user's name for display
-    const userName = await getFullName(userId)
+    // If we have a creator ID but no name, try to get the name
+    if (finalCreatorId && !finalCreatorName && finalCreatorId.length > 10 && !finalCreatorId.includes(" ")) {
+      try {
+        const name = await getFullName(finalCreatorId)
+        if (name) {
+          finalCreatorName = name
+        }
+      } catch (error) {
+        console.error("Error fetching creator name:", error)
+      }
+    }
 
-    // Add to user's events collection
-    const userEventRef = doc(db, "users", userId, "events", finalEventId)
-    await setDoc(userEventRef, {
-      title: title,
-      date: date,
-      description: description,
-      isadded: isadded,
-      createdBy: userId,
-      creatorName: userName || "Unknown User",
-    })
+    // Only add to user's events collection if they created it
+    if (finalCreatorId === userId) {
+      const userEventRef = doc(db, "users", userId, "events", finalEventId)
+      await setDoc(userEventRef, {
+        title: title,
+        date: date,
+        description: description,
+        isadded: isadded,
+        createdBy: finalCreatorId,
+        creatorName: finalCreatorName,
+      })
+    } 
 
-    // Add to allEvents collection for global visibility
+    // Always add to allEvents collection for global visibility
     const allEventsRef = doc(db, "users", userId, "allEvents", finalEventId)
     await setDoc(allEventsRef, {
       title: title,
       date: date,
       description: description,
       isadded: isadded,
-      createdBy: userId,
-      creatorName: userName || "Unknown User",
+      createdBy: finalCreatorId,
+      creatorName: finalCreatorName,
     })
-    return finalEventId 
+
+    return finalEventId
   } catch (error) {
     console.error("Error adding event to database:", error)
     throw error
@@ -984,7 +927,7 @@ export const AddEventToDatabase = async (userId, eventId, title, date, descripti
 
 /**
  * Deletes an event from the current users database and shared database
- * @param {string} userId 
+ * @param {string} userId
  * @param {string} eventId
  */
 export const DeleteEventFromDatabase = async (userId, eventId) => {
@@ -995,11 +938,11 @@ export const DeleteEventFromDatabase = async (userId, eventId) => {
 
     // Delete from user's events collection
     await deleteDoc(userEventRef)
-    
+
     // Delete from current user's allEvents collection
     const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
     await deleteDoc(allEventsRef)
-    
+
     // Sync deletion to all other users' allEvents collections
     const usersRef = collection(db, "users")
     const usersSnapshot = await getDocs(usersRef)
@@ -1020,9 +963,7 @@ export const DeleteEventFromDatabase = async (userId, eventId) => {
       deletionPromises.push(deleteDoc(otherUserAllEventsRef))
     }
 
-    // Wait for all deletion operations to complete
     await Promise.all(deletionPromises)
-
   } catch (error) {
     console.error("Error deleting event from database:", error)
     throw error
@@ -1031,51 +972,55 @@ export const DeleteEventFromDatabase = async (userId, eventId) => {
 
 /**
  * Fetches events for current user
- * @param {string} userId 
+ * @param {string} userId
  * @param {function} setEvents
  */
 
 // Get user
 export const FetchEventsFromDatabase = (userId, setEvents) => {
   if (!userId) {
-    return () => {};
+    return () => {}
   }
   // Get events
-  const userEventsRef = collection(db, "users", userId, "events");
+  const userEventsRef = collection(db, "users", userId, "events")
   return onSnapshot(
     userEventsRef,
     (snapshot) => {
       if (!snapshot.empty) {
         const eventsList = snapshot.docs.map((doc) => {
-          const data = doc.data();
+          const data = doc.data()
           return {
             id: doc.id,
             title: data.title,
             date: data.date,
             description: data.description,
             isadded: data.isadded,
-            createdBy: data.createdBy || userId,
-            creatorName: data.creatorName || "Unknown User",
-          };
-        });
+            createdBy: data.createdBy || userId, 
+          }
+        })
 
-        setEvents(eventsList);
+        // Only include events created by this user
+        const userEvents = eventsList.filter((event) => event.createdBy === userId || event.createdBy === "You")
+
+        setEvents(userEvents)
+      } else {
+        setEvents([])
       }
     },
     (error) => {
-      console.error("Error fetching events:", error);
-    }
-  );
-};
-
+      console.error("Error fetching events:", error)
+    },
+  )
+}
 
 /**
- * Fetches events for all users and stores them in the 'allEvents' collection under each user.
- * @param {string} userId 
+ * Fetches events for all users and stores them in the 'allEvents' collection
+ * @param {string} userId
  * @param {function} setEvents
  */
-export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
+export const SyncAllEventsFromDatabase = async (userId, callback) => {
   try {
+
     // Get all existing events from the user's own events collection
     const userEventsRef = collection(db, "users", userId, "events")
     const userEventsSnapshot = await getDocs(userEventsRef)
@@ -1125,15 +1070,14 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
           title: data.title,
           date: data.date,
           description: data.description,
-          isadded: false, // Default to false for other users
-          createdBy: creatorId,
-          creatorName: data.creatorName || creatorName || "Unknown User",
+          isadded: false, 
+          createdBy: data.createdBy || creatorId,
         }
 
         // Add to our collection array
         allEvents.push(event)
 
-        // Store in allEvents collection with the SAME ID as the original event
+        // Store in allEvents collection
         const allEventsRef = doc(db, "users", userId, "allEvents", eventId)
         batchOperations.push({
           ref: allEventsRef,
@@ -1142,25 +1086,47 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
             date: data.date,
             description: data.description,
             isadded: false,
-            createdBy: creatorId,
-            creatorName: data.creatorName || creatorName || "Unknown User",
+            createdBy: data.createdBy || creatorId,
           },
         })
       }
     }
 
-    // Now process all the batch operations in chunks 
-    const BATCH_SIZE = 500 
+    // Now process all the batch operations in chunks
+    const BATCH_SIZE = 500
     let operationCount = 0
-    let batch = writeBatch(db)
+    const batch = writeBatch(db)
 
-    for (const op of batchOperations) {
-      batch.set(op.ref, op.data)
+    // Update or add each event to the current user's allEvents
+    for (const event of allEvents) {
+      // Check if this event already exists in the user's allEvents collection
+      const allEventsRef = doc(db, "users", userId, "allEvents", event.id)
+      const existingEventDoc = await getDoc(allEventsRef)
+
+      // If the event exists, preserve its isadded status, otherwise default to false
+      const isAdded = existingEventDoc.exists()
+        ? existingEventDoc.data().isadded === true
+        : event.createdBy === userId
+          ? event.isadded
+          : false
+
+      batch.set(
+        allEventsRef,
+        {
+          title: event.title,
+          date: event.date,
+          description: event.description,
+          isadded: isAdded,
+          createdBy: event.createdBy,
+          creatorName: event.creatorName || null,
+        },
+        { merge: true },
+      )
+
       operationCount++
 
       if (operationCount >= BATCH_SIZE) {
         await batch.commit()
-        batch = writeBatch(db)
         operationCount = 0
       }
     }
@@ -1171,20 +1137,23 @@ export const SyncAllEventsFromDatabase = async (userId, setEvents) => {
     }
 
     // Update state with all events
-    if (setEvents) {
-      setEvents(allEvents)
+    if (callback) {
+      callback(allEvents)
     }
 
     return allEvents
   } catch (error) {
     console.error("Error syncing all events:", error)
+    if (callback) {
+      callback([]) 
+    }
     throw error
   }
 }
 
 /**
  * Safely removes specific events from allEvents collection
- * @param {string} userId 
+ * @param {string} userId
  * @param {string[]} eventIdsToRemove
  */
 export const removeEventsFromAllEvents = async (userId, eventIdsToRemove) => {
@@ -1212,7 +1181,6 @@ export const removeEventsFromAllEvents = async (userId, eventIdsToRemove) => {
     if (operationCount > 0) {
       await batch.commit()
     }
-
   } catch (error) {
     console.error("Error removing specific events:", error)
   }
@@ -1222,27 +1190,48 @@ export const removeEventsFromAllEvents = async (userId, eventIdsToRemove) => {
 export const FetchAllEventsFromDatabase = (userId, setEvents) => {
   if (!userId) {
     console.error("Cannot fetch all events: No user ID provided")
-    return () => {} 
+    return () => {}
   }
 
   const allEventsRef = collection(db, "users", userId, "allEvents")
 
   return onSnapshot(
     allEventsRef,
-    (snapshot) => {
-      const eventsList = snapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          title: data.title,
-          date: data.date,
-          description: data.description,
-          isadded: data.isadded || false,
-          createdBy: data.createdBy,
-          creatorName: data.creatorName || "Unknown User",
-        }
-      })
-      setEvents(eventsList) //update events
+    async (snapshot) => {
+      const eventsList = await Promise.all(
+        snapshot.docs.map(async (doc) => {
+          const data = doc.data()
+          let creatorName = data.creatorName || data.createdBy || "Unknown User"
+
+          // Check if createdBy is a user ID 
+          if (
+            !data.creatorName &&
+            data.createdBy &&
+            data.createdBy.length > 10 &&
+            !data.createdBy.includes(" ") &&
+            data.createdBy !== "Unknown User"
+          ) {
+            try {
+              const name = await getFullName(data.createdBy)
+              if (name) {
+                creatorName = name
+              }
+            } catch (error) {
+              console.error("Error fetching creator name:", error)
+            }
+          }
+
+          return {
+            id: doc.id,
+            title: data.title,
+            date: data.date,
+            description: data.description,
+            isadded: data.isadded === true, 
+            createdBy: data.createdBy || "Unknown User",
+            creatorName: creatorName,
+          }
+        }),
+      )
     },
     (error) => {
       console.error("Error fetching all events:", error)
@@ -1252,7 +1241,7 @@ export const FetchAllEventsFromDatabase = (userId, setEvents) => {
 
 /**
  * Force refresh all events
- * @param {string} userId 
+ * @param {string} userId
  * @param {function} setEvents
  */
 export const ForceRefreshAllEvents = async (userId, setEvents) => {
@@ -1295,17 +1284,17 @@ export const AddStudySessionToDatabase = async (
       participantNames.set(friendId, friendName || friendId)
     }
 
-    // Create a personalized title for the creator that includes "You" and all friends
+    // Create a title for the creator that includes all friends
     let creatorParticipantsList = ""
     if (studySessionFriends.length === 0) {
+      creatorParticipantsList = "Solo Study Session"
     } else if (studySessionFriends.length === 1) {
       // Creator and one friend
-      creatorParticipantsList = "You & " + (participantNames.get(studySessionFriends[0]) || "Friend")
+      creatorParticipantsList = participantNames.get(studySessionFriends[0]) || "Friend"
     } else {
       // Creator and multiple friends
       const friendNames = studySessionFriends.map((id) => participantNames.get(id) || id)
-      creatorParticipantsList =
-        "You, " + friendNames.slice(0, -1).join(", ") + " & " + friendNames[friendNames.length - 1]
+      creatorParticipantsList = friendNames.slice(0, -1).join(", ") + " & " + friendNames[friendNames.length - 1]
     }
 
     const creatorPersonalizedTitle = `Study session with ${creatorParticipantsList}`
@@ -1313,7 +1302,7 @@ export const AddStudySessionToDatabase = async (
     // Add to creator's study sessions collection with personalized title
     const userStudySessionsRef = doc(db, "users", userId, "studySessions", sessionId)
     await setDoc(userStudySessionsRef, {
-      title: creatorPersonalizedTitle, 
+      title: creatorPersonalizedTitle,
       date: studySessionDate,
       friends: studySessionFriends,
       createdBy: userId,
@@ -1322,7 +1311,7 @@ export const AddStudySessionToDatabase = async (
 
     // Add to each friend's study sessions collection with personalized title
     for (const friendId of studySessionFriends) {
-      // Create a personalized title for this friend that includes "You" and other participants
+      // Create a title for this friend that includes other participants
       const otherParticipants = studySessionFriends
         .filter((id) => id !== friendId) // Exclude the current friend
         .map((id) => participantNames.get(id)) // Get names of other friends
@@ -1330,15 +1319,15 @@ export const AddStudySessionToDatabase = async (
       let participantsList = ""
 
       if (otherParticipants.length === 0) {
-        participantsList = "You & " + (creatorName || "Creator")
+        participantsList = creatorName || "Creator"
       } else {
         const allParticipants = [creatorName || "Creator", ...otherParticipants]
 
         if (allParticipants.length === 1) {
-          participantsList = "You & " + allParticipants[0]
+          participantsList = allParticipants[0]
         } else {
           participantsList =
-            "You, " + allParticipants.slice(0, -1).join(", ") + " & " + allParticipants[allParticipants.length - 1]
+            allParticipants.slice(0, -1).join(", ") + " & " + allParticipants[allParticipants.length - 1]
         }
       }
 
@@ -1362,9 +1351,9 @@ export const AddStudySessionToDatabase = async (
 
 /**
  * Deletes a study session from the Firestore database for the creator and all participants.
- * @param {string} userId 
- * @param {string} studySessionId 
- * @param {string[]} [participants] 
+ * @param {string} userId
+ * @param {string} studySessionId
+ * @param {string[]} [participants]
  */
 export const DeleteStudySessionFromDatabase = async (userId, studySessionId, participants = []) => {
   try {
@@ -1388,7 +1377,6 @@ export const DeleteStudySessionFromDatabase = async (userId, studySessionId, par
       const participantSessionRef = doc(db, "users", participantId, "studySessions", studySessionId)
       await deleteDoc(participantSessionRef)
     }
-
   } catch (error) {
     console.error("Error deleting study session from database:", error)
     throw error
@@ -1400,6 +1388,7 @@ export const DeleteStudySessionFromDatabase = async (userId, studySessionId, par
  * @param {string} userId
  * @param {function} setSessions
  */
+
 //Get user
 export const FetchStudySessionsFromDatabase = (userId, setSessions) => {
   const userStudySessionsRef = collection(db, "users", userId, "studySessions")

@@ -13,6 +13,7 @@ import { ActivityIndicator } from 'react-native';
 
 interface BannerProps {
   onAddChatPress?: () => void;
+  theme: any;
 }
 
 interface User {
@@ -30,12 +31,14 @@ interface chatDataProps {
   timestamp: any;
   time: string;
   profilePicture: string;
+  theme: any;
 }
 
 interface ChatListProps {
   onChatPress: (chat: chatDataProps) => void;
   onLongPress: (chat: chatDataProps) => void;
   chatData: chatDataProps[];
+  theme: any;
 }
 
 interface ChatItemProps {
@@ -48,6 +51,7 @@ interface ChatItemProps {
   profilePicture: string;
   onPress: (chat: chatDataProps) => void;
   chat: chatDataProps;
+  theme: any;
 }
 
 
@@ -90,11 +94,122 @@ export default function MessagingPage() {
     const fetchUsers = async () => {
       const usersData = await getUsersWithMessages(userId);
       setUsers(usersData);
-      console.log("Fetched users with messages:", usersData);
+      //console.log("Fetched users with messages:", usersData);   // DEBUGGING
     };
     fetchUsers();
   }, [userId]);
 
+// SUB-COMPONENTS -----------------------------------
+  const Banner = ({ onAddChatPress, theme }: BannerProps) => {
+    return (
+      <View style={[styles.banner, { backgroundColor: theme.colors.primary }]}>
+        <TouchableOpacity style={[styles.addButton]} onPress={onAddChatPress}>
+          <MaterialIcons name={"add"} size={28} color={theme.colors.onPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.bannerText, { color: theme.colors.onPrimary }]}>Let's Chat!</Text>
+      </View>
+    );
+  };
+
+  function ischatDataProps(chat: any): chat is chatDataProps {
+    return (
+      chat &&
+      typeof chat.id === 'string' &&
+      typeof chat.firstName === 'string' &&
+      typeof chat.lastName === 'string' &&
+      typeof chat.lastMessage === 'string' &&
+      chat.timestamp &&
+      typeof chat.time === 'string' &&
+      typeof chat.profilePicture === 'string'
+    );
+  }
+
+  const ChatList = ({
+    onChatPress,
+    onLongPress,
+    chatData,
+    theme
+  }: ChatListProps) => {
+    return (
+      <FlatList
+        data={chatData}
+        renderItem={({ item }) => (
+          <ChatItem
+            id={item.id}
+            firstName={item.firstName}
+            lastName={item.lastName}
+            lastMessage={item.lastMessage}
+            timestamp={item.timestamp}
+            time={item.time}
+            profilePicture={item.profilePicture}
+            onPress={onChatPress}
+            onLongPress={onLongPress}
+            chat={item}
+            theme={theme}
+          />
+        )}
+        keyExtractor={(item) => item.id}
+      />
+    );
+  };
+
+  const formatTimestampDisplay = (timeString: string, firestoreTimestamp: any) => {
+    if (firestoreTimestamp) {
+      try {
+        const messageDate = firestoreTimestamp.toDate();
+        const today = new Date();
+
+        //define current date and yesterday's date
+        const isToday = messageDate.toDateString() === today.toDateString();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = messageDate.toDateString() === yesterday.toDateString();
+
+        if (isToday) {
+          return timeString;
+        } else if (isYesterday) {
+          return "Yesterday";
+        } else {
+          return messageDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+      } catch (e) {
+        console.error("Error formatting timestamp:", Error);
+      }
+    }
+    return timeString;
+  };
+
+
+  const ChatItem: React.FC<ChatItemProps & { onLongPress: (chat: chatDataProps) => void }> = ({
+    id,
+    firstName,
+    lastName,
+    lastMessage,
+    timestamp,
+    time,
+    profilePicture,
+    onPress,
+    onLongPress,
+    chat,
+    theme
+  }) => {
+    const displayTime = formatTimestampDisplay(time, timestamp);
+
+    return (
+      <TouchableOpacity
+        style={styles.chatItem}
+        onPress={() => onPress(chat)}
+        onLongPress={() => onLongPress(chat)}
+        delayLongPress={500}>
+        <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
+        <View style={styles.chatInfo}>
+          <Text style={[styles.chatName, { color: theme.colors.onBackground }]}>{firstName} {lastName}</Text>
+          <Text style={[styles.chatMessage, { color: theme.colors.onBackground }]}>{lastMessage}</Text>
+        </View>
+        <Text style={styles.chatTime}>{displayTime}</Text>
+      </TouchableOpacity>
+    );
+  };
 
 // HANDLERS -----------------------------------------
 
@@ -227,11 +342,13 @@ export default function MessagingPage() {
       onRequestClose={() => setShowDeleteChatModal(false)}
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.deleteModalTitle}>
+        <View style={[styles.modalContent, {backgroundColor: theme.colors.surface}]
+        }>
+          <Text style={[styles.deleteModalTitle, {color: theme.colors.onSurface}
+          ]}>
             Delete chat with {chatToDelete?.firstName} {chatToDelete?.lastName}?
           </Text>
-          <Text style={styles.deleteModalText}>
+          <Text style={[styles.deleteModalText, {color: theme.colors.onSurface}]}>
             This will permanently erase the chat from your inbox.
           </Text>
           <View style={styles.deleteModalButtons}>
@@ -239,7 +356,7 @@ export default function MessagingPage() {
               style={[styles.deleteModalButton, styles.cancelButton]}
               onPress={() => setShowDeleteChatModal(false)}
             >
-              <Text style={styles.deleteModalButtonText}>Cancel</Text>
+              <Text style={[styles.deleteModalButtonText]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.deleteModalButton, styles.deleteButton]}
@@ -252,243 +369,6 @@ export default function MessagingPage() {
       </View>
     </Modal>
   );
-
-
-// RENDER -----------------------------------------
-  return (
-    <View style={styles.pageContainer}>
-      {/* Single Banner controlled by MessagingPage */}
-      {/* Main content area - switches between ChatList and SingleChatView */}
-      {showSingleChat && selectedChat ? (
-        <SingleChatView
-          onBack={async () => {
-            console.log('[DEBUG] Navigating back from SingleChatView');
-            setShowSingleChat(false);
-
-            //Refresh chat list when returning from chat log...
-            if (userId) {
-              const updatedUsers = await getUsersWithMessages(userId);
-              setUsers(updatedUsers);
-            }
-          }}
-          firstName={selectedChat.firstName}
-          lastName={selectedChat.lastName}
-          lastMessage={selectedChat.lastMessage}
-          profilePicture={selectedChat.profilePicture}
-          userId={userId!}
-          otherUserId={selectedChat.id}
-        />
-      ) : (
-        <>
-          {/* Chat list view */}
-          <Banner onAddChatPress={handleAddChatPress} />
-          <View style={styles.container}>
-            <ChatList
-              onChatPress={(chat) => {
-                console.log('[DEBUG] Existing chat selected:', chat.id);
-                handleChatPress(chat);
-              }}
-              onLongPress={handleLongPress}
-              chatData={[...users]
-                .filter(chat => !hiddenChats.includes(chat.id))
-                .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
-              }
-            />
-          </View>
-
-          {/* Buffering animation */}
-          <Modal
-            visible={isFetching}
-            transparent={true}
-            animationType="fade"
-            statusBarTranslucent={true}
-          >
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={COLORS.UCONN_NAVY} />
-            </View>
-          </Modal>
-
-          {/* Add chat modal */}
-          <Modal
-            visible={showAddChatModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => {
-              console.log('[DEBUG] Add chat modal closed');
-              setShowAddChatModal(false);
-            }}
-          >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Create a new chat</Text>
-                {allUsers.length === 0 ? (
-                  <Text style={styles.placeholderText}>Add new friends to chat.</Text>
-                ) : (
-                  <FlatList
-                    data={allUsers}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.userItem}
-                        onPress={() => {
-                          //console.log('Selected user for new chat:', item.id);    //DEBUGGING
-                          setShowAddChatModal(false);
-
-                          const newChat = {
-                            id: item.id,
-                            firstName: item.fullName.split(' ')[0] || "",
-                            lastName: item.fullName.split(' ')[1] || "",
-                            lastMessage: "Send a message to begin chatting.",
-                            timestamp: "",
-                            time: "",
-                            profilePicture: item.profilePicture || "https://www.solidbackgrounds.com/images/950x350/950x350-light-gray-solid-color-background.jpg",
-                          };
-
-                          console.log('[DEBUG] Created new chat:', newChat);
-                          setUsers(prev => [...prev, newChat]);
-                          setSelectedChat(newChat);
-                          setShowSingleChat(true);
-
-                          // Short delay ensures state updates fully before rendering...
-                          setSelectedChat(newChat);
-                          setTimeout(() => {
-                            setShowSingleChat(true);
-                          }, 2); //delay
-                        }}
-                      >
-                        <Text style={styles.userName}>{item.fullName}</Text>
-                      </TouchableOpacity>
-                    )}
-                    keyExtractor={(item) => item.id}
-                    showsVerticalScrollIndicator={true} 
-                    indicatorStyle="black"
-                    scrollIndicatorInsets={{ right: 1 }}
-                  />
-                )}
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={() => setShowAddChatModal(false)}
-                >
-                  <Text style={styles.modalButtonText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-        </>
-      )}
-      <DeleteConfirmationModal />
-    </View>
-  );
-}
-
-// SUB-COMPONENTS -----------------------------------
-const Banner = ({ onAddChatPress }: BannerProps) => {
-  return (
-    <View style={[styles.banner, { backgroundColor: COLORS.UCONN_NAVY }]}>
-      <TouchableOpacity style={[styles.addButton]} onPress={onAddChatPress}>
-        <MaterialIcons name={"add"} size={28} color={'white'} />
-      </TouchableOpacity>
-      <Text style={[styles.bannerText, { color: 'white' }]}>Let's Chat!</Text>
-    </View>
-  );
-};
-
-function ischatDataProps(chat: any): chat is chatDataProps {
-  return (
-    chat &&
-    typeof chat.id === 'string' &&
-    typeof chat.firstName === 'string' &&
-    typeof chat.lastName === 'string' &&
-    typeof chat.lastMessage === 'string' &&
-    chat.timestamp &&
-    typeof chat.time === 'string' &&
-    typeof chat.profilePicture === 'string'
-  );
-}
-
-const ChatList = ({
-  onChatPress,
-  onLongPress,
-  chatData
-}: ChatListProps) => {
-  return (
-    <FlatList
-      data={chatData}
-      renderItem={({ item }) => (
-        <ChatItem
-          id={item.id}
-          firstName={item.firstName}
-          lastName={item.lastName}
-          lastMessage={item.lastMessage}
-          timestamp={item.timestamp}
-          time={item.time}
-          profilePicture={item.profilePicture}
-          onPress={onChatPress}
-          onLongPress={onLongPress}
-          chat={item}
-          theme={theme}
-        />
-      )}
-      keyExtractor={(item) => item.id}
-    />
-  );
-};
-
-const formatTimestampDisplay = (timeString: string, firestoreTimestamp: any) => {
-  if (firestoreTimestamp) {
-    try {
-      const messageDate = firestoreTimestamp.toDate();
-      const today = new Date();
-
-      //define current date and yesterday's date
-      const isToday = messageDate.toDateString() === today.toDateString();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const isYesterday = messageDate.toDateString() === yesterday.toDateString();
-
-      if (isToday) {
-        return timeString;
-      } else if (isYesterday) {
-        return "Yesterday";
-      } else {
-        return messageDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
-      }
-    } catch (e) {
-      console.error("Error formatting timestamp:", Error);
-    }
-  }
-  return timeString;
-};
-
-
-const ChatItem: React.FC<ChatItemProps & { onLongPress: (chat: chatDataProps) => void }> = ({
-  id,
-  firstName,
-  lastName,
-  lastMessage,
-  timestamp,
-  time,
-  profilePicture,
-  onPress,
-  onLongPress,
-  chat
-}) => {
-  const displayTime = formatTimestampDisplay(time, timestamp);
-
-  return (
-    <TouchableOpacity
-      style={styles.chatItem}
-      onPress={() => onPress(chat)}
-      onLongPress={() => onLongPress(chat)}
-      delayLongPress={500}>
-      <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
-      <View style={styles.chatInfo}>
-        <Text style={[styles.chatName, { color: theme.colors.onBackground }]}>{firstName} {lastName}</Text>
-        <Text style={[styles.chatMessage, { color: theme.colors.onBackground }]}>{lastMessage}</Text>
-      </View>
-      <Text style={styles.chatTime}>{displayTime}</Text>
-    </TouchableOpacity>
-  );
-};
 
 // STYLES -----------------------------------------
 const styles = StyleSheet.create({
@@ -525,13 +405,12 @@ const styles = StyleSheet.create({
   },
   chatItem: {
     flexDirection: 'row',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#ccc',
     borderRadius: 25,
     marginBottom: 10,
     padding: 15,
     paddingHorizontal: 10,
-    backgroundColor: COLORS.UCONN_WHITE,
   },
   profilePicture: {
     width: 50,
@@ -545,7 +424,7 @@ const styles = StyleSheet.create({
   chatName: {
     fontWeight: 'bold',
     fontSize: 16,
-    color: COLORS.UCONN_NAVY,
+    color: COLORS.UCONN_NAVY
   },
   chatMessage: {
     color: 'black',
@@ -674,4 +553,144 @@ const styles = StyleSheet.create({
     padding: 7,
     zIndex: 200,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  }
 });
+
+// RENDER -----------------------------------------
+  return (
+    <View style={{ flex: 1 }}>
+    {isFetching && (
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.dark ? 'rgba(33, 33, 33, 0.7)' : 'rgba(255,255,255,0.7)',
+        zIndex: 1000
+      }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    )}
+
+    <View style={[styles.pageContainer, { backgroundColor: theme.colors.background }]}>
+      {/* Single Banner controlled by MessagingPage */}
+      {/* Main content area - switches between ChatList and SingleChatView */}
+      {showSingleChat && selectedChat ? (
+        <SingleChatView
+          onBack={async () => {
+            console.log('[DEBUG] Navigating back from SingleChatView');
+            setShowSingleChat(false);
+
+            //Refresh chat list when returning from chat log...
+            if (userId) {
+              const updatedUsers = await getUsersWithMessages(userId);
+              setUsers(updatedUsers);
+            }
+          }}
+          firstName={selectedChat.firstName}
+          lastName={selectedChat.lastName}
+          lastMessage={selectedChat.lastMessage}
+          profilePicture={selectedChat.profilePicture}
+          userId={userId!}
+          otherUserId={selectedChat.id}
+        />
+      ) : (
+        <>
+          {/* Chat list view */}
+          <Banner onAddChatPress={handleAddChatPress} theme={theme} />
+          <View style={styles.container}>
+            <ChatList
+              onChatPress={(chat) => {
+                console.log('[DEBUG] Existing chat selected:', chat.id);
+                handleChatPress(chat);
+              }}
+              onLongPress={handleLongPress}
+              chatData={[...users]
+                .filter(chat => !hiddenChats.includes(chat.id))
+                .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
+              }
+              theme={theme}
+            />
+          </View>
+
+          {/* Add chat modal */}
+          <Modal
+            visible={showAddChatModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => {
+              console.log('[DEBUG] Add chat modal closed');
+              setShowAddChatModal(false);
+            }}
+          >
+            <View style={styles.modalContainer}>
+              <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}> Create a new chat</Text>
+                {allUsers.length === 0 ? (
+                  <Text style={styles.placeholderText}>Add new friends to chat.</Text>
+                ) : (
+                  <FlatList
+                    data={allUsers}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[styles.userItem,
+                          {borderBottomColor: theme.colors.onSurface + '50'}]}
+                        onPress={() => {
+                          //console.log('Selected user for new chat:', item.id);    //DEBUGGING
+                          setShowAddChatModal(false);
+
+                          const newChat = {
+                            id: item.id,
+                            firstName: item.fullName.split(' ')[0] || "",
+                            lastName: item.fullName.split(' ')[1] || "",
+                            lastMessage: "Send a message to begin chatting.",
+                            timestamp: "",
+                            time: "",
+                            profilePicture: item.profilePicture || "https://www.solidbackgrounds.com/images/950x350/950x350-light-gray-solid-color-background.jpg",
+                            theme
+                          };
+
+                          //console.log('Created new chat:', newChat);     //DEBUGGING
+                          setUsers(prev => [...prev, newChat]);
+                          setSelectedChat(newChat);
+                          setShowSingleChat(true);
+
+                          // Short delay ensures state updates fully before rendering...
+                          setSelectedChat(newChat);
+                          setTimeout(() => {
+                            setShowSingleChat(true);
+                          }, 2); //delay
+                        }}
+                      >
+                        <Text style={[styles.userName, { color: theme.colors.onSurface }]}>{item.fullName}</Text>
+                      </TouchableOpacity>
+                    )}
+                    keyExtractor={(item) => item.id}
+                    showsVerticalScrollIndicator={true} 
+                    indicatorStyle="black"
+                    scrollIndicatorInsets={{ right: 1 }}
+                  />
+                )}
+                <TouchableOpacity
+                  style={[styles.modalButton, {backgroundColor: theme.colors.onPrimaryContainer }]}
+                  onPress={() => setShowAddChatModal(false)}
+                >
+                  <Text style={styles.modalButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </>
+      )}
+      <DeleteConfirmationModal />
+    </View>
+    </View>
+  );
+}
