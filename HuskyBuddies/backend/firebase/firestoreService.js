@@ -15,7 +15,8 @@ import {
   onSnapshot,
   limit,
   Timestamp, 
-  writeBatch
+  writeBatch,
+  getCountFromServer
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -510,7 +511,7 @@ export const getFullName = async (uid) => {
 
     if (userSnap.exists()) {
       const userData = userSnap.data();
-      console.log(`Full name fetched: ${userData.firstName} ${userData.lastName}`);
+      //console.log(`Full name fetched: ${userData.firstName} ${userData.lastName}`);
       return `${userData.firstName} ${userData.lastName}`;
     } else {
       console.log("User does not exist.");
@@ -559,9 +560,10 @@ export const getUsersWithMessages = async (userId) => {
             id: chatPartnerId,
             firstName: user.firstName|| "firstName",
             lastName: user.lastName || "lastName",
-            profilePicture: user.profilePicture || "https://robohash.org/default",
+            profilePicture: user.profilePicture || "https://www.solidbackgrounds.com/images/950x350/950x350-light-gray-solid-color-background.jpg",
             lastMessage: lastMessageData ? lastMessageData.messageContent : "No messages yet",
-            time: lastMessageData ? new Date(lastMessageData.timestamp.toDate()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true} ): "",
+            timestamp: lastMessageData.timestamp, // Keep the raw Firestore timestamp
+            time: lastMessageData.timestamp ? new Date(lastMessageData.timestamp.toDate()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true} ): "",
         };
       } else {
         return null; //no messages, skip user
@@ -634,15 +636,61 @@ export const getMessages = (currentUserId, chatPartnerId, callback) => {
 };
 
 /**
- * Deletes a message from Firestore.
- * @param {string} messageId - The message ID.
+ * Deletes a message from a conversation between two users
+ * @param {string} currentUserId - Current user's ID
+ * @param {string} otherUserId - Other user's ID in the conversation
+ * @param {number} messageIndex - Index of the message in the conversation
+ * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const deleteMessage = async (messageId) => {
+export const deleteMessage = async (currentUserId, otherUserId, messageIndex) => {
   try {
-    await deleteDoc(doc(db, "messages", messageId));
-    console.log("Message deleted successfully");
+    const messageIds = await getMessageIdsInConversation(currentUserId, otherUserId);
+    
+    if (messageIndex < 0 || messageIndex >= messageIds.length) {
+      return { success: false, error: "Invalid message index" };
+    }
+
+    const messageId = messageIds[messageIndex].id;
+    const senderId = messageIds[messageIndex].senderId;
+
+    //Ensure the current user is the sender...
+    if (senderId !== currentUserId) {
+      return { success: false, error: "You can only delete your messages." };
+    }
+
+    const messageRef = doc(db, "messages", messageId);
+    await deleteDoc(messageRef);
+    
+    return { success: true };
   } catch (error) {
     console.error("Error deleting message:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Gets all message IDs in a conversation
+ * @param {string} userId1 
+ * @param {string} userId2 
+ * @returns {Promise<{id: string, senderId: string}[]>}
+ */
+export const getMessageIdsInConversation = async (userId1, userId2) => {
+  try {
+    const q = query(
+      collection(db, "messages"),
+      where("senderId", "in", [userId1, userId2]),
+      where("receiverId", "in", [userId1, userId2]),
+      orderBy("timestamp", "asc")
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      senderId: doc.data().senderId
+    }));
+  } catch (error) {
+    console.error("Error fetching message IDs:", error);
+    return [];
   }
 };
 
@@ -701,16 +749,106 @@ export const hasMessagesWithFriend = async (userId, friendId) => {
     const q = query( //query to find messages between logged-in user and friend
       messagesRef,
       where("senderId", "in", [userId, friendId]),
-      where("receiverId", "in", [userId, friendId])
+      where("receiverId", "in", [userId, friendId]),
+      limit(1) //fetch only one message with another 
     );
 
-    const querySnapshot = await getDocs(q);
+    const snapshot = await getCountFromServer(q);
 
-    //return true if there are messages, false otherwise...
-    return querySnapshot.size > 0;
-  } catch (error) {
+    // Return true if there are messages, false otherwise...
+    return snapshot.data().count > 0;
+    } catch (error) {
     console.error("Error checking messages with friend:", error);
     return false;
+  }
+};
+
+/**
+ * Gets the most recent message ID between two users
+ * @param {string} userId1 
+ * @param {string} userId2 
+ * @returns {Promise<string|null>} - Message ID or null if none exists
+ */
+export const getMostRecentMessageId = async (userId1, userId2) => {
+    try {
+      const messagesRef = collection(db, "messages");
+      const q = query(
+        messagesRef,
+        where("senderId", "in", [userId1, userId2]),
+        where("receiverId", "in", [userId1, userId2]),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.length > 0 ? querySnapshot.docs[0].id : null;
+    } catch (error) {
+      console.error("Error getting recent message ID:", error);
+      return null;
+    }
+  };
+
+/**
+ * Deletes an entire conversation between two users
+ * @param {string} currentUserId 
+ * @param {string} otherUserId 
+ * @param {string[]} currentHiddenChats 
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const deleteChat = async (currentUserId, otherUserId, currentHiddenChats) => {
+  try {
+    const messageIds = await getMessageIdsInConversation(currentUserId, otherUserId);
+    
+    if (messageIds.length === 0) {
+      return { 
+        success: true,
+      };
+    }
+
+    const batch = writeBatch(db);
+    messageIds.forEach(msg => {
+      const messageRef = doc(db, "messages", msg.id);
+      batch.delete(messageRef);
+    });
+
+    await batch.commit();
+    
+    return { 
+      success: true, 
+      hiddenChats: [...currentHiddenChats, otherUserId] 
+    };
+  } catch (error) {
+    console.error("Error deleting chat conversation:", error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+};
+
+/**
+ * Checks both users/{userId}/profile/profilePicture and users/{userId}/profilePicture paths for profile pictures.
+ * @param {string} userId - ID of the user
+ * @returns {Promise<string|null>} - URL or null if not found
+ */
+export const getUserProfilePictureUniversal = async (userId) => {
+  try {
+    // First check the shortest path
+    const newPathPic = await getUserProfilePicture(userId);
+    if (newPathPic) return newPathPic;
+
+    // Check longer path: users/{userId}/profilePicture/url
+    const userDocRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userDocRef);
+
+    if (userDoc.exists()) {
+      return userDoc.data().profilePicture || "https://www.solidbackgrounds.com/images/950x350/950x350-light-gray-solid-color-background.jpg";
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Could not retrieve profile picture:", error);
+    return null;
   }
 };
 
